@@ -37,3 +37,38 @@ export async function dedupedRequest<T>(query: string, variables?: Record<string
 
 	return requestCache.get(key) as Promise<ShopifyResponse<T>>;
 }
+
+// Customer authentication mutations
+export const customerAccessTokenCreateMutation = `
+	mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
+		customerAccessTokenCreate(input: $input) {
+			customerAccessToken {
+				accessToken
+				expiresAt
+			}
+			customerUserErrors {
+				code
+				field
+				message
+			}
+		}
+	}
+`;
+
+export const customerCreateMutation = `
+	mutation customerCreate($input: CustomerCreateInput!) {
+		customerCreate(input: $input) {
+			customer {
+				id
+				email
+				firstName
+				lastName
+			}
+			customerUserErrors {
+				code
+				field
+				message
+			}
+		}
+	}
+`;

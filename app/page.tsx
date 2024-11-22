@@ -1,5 +1,5 @@
 import { DarkCheckerboard } from "@/components/ChessBackground";
 
-export default function Home() {
+export default function HomePage() {
 	return <DarkCheckerboard />;
 }
