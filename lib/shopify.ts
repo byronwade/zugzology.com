@@ -21,3 +21,19 @@ export const TAGS = {
 } as const;
 
 export type ShopifyResponse<T> = ClientResponse<T>;
+
+const requestCache = new Map();
+
+export async function dedupedRequest<T>(query: string, variables?: Record<string, unknown>): Promise<ShopifyResponse<T>> {
+	const key = JSON.stringify({ query, variables });
+
+	if (!requestCache.has(key)) {
+		requestCache.set(key, shopifyClient.request<T>(query, { variables }));
+
+		requestCache.get(key)?.finally(() => {
+			requestCache.delete(key);
+		});
+	}
+
+	return requestCache.get(key) as Promise<ShopifyResponse<T>>;
+}

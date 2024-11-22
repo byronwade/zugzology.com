@@ -1,20 +1,17 @@
-import { headers } from "next/headers";
-
 export const runtime = "edge";
 export const preferredRegion = "auto";
 export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
-export async function generateMetadata() {
-	const headersList = await headers();
-	const domain = headersList.get("host") || "";
+// Add fetchCache for better caching
+export const fetchCache = "force-cache";
 
-	return {
-		title: "Products | Zugzology",
-		description: "Browse our selection of premium mushroom products",
-		openGraph: {
-			title: "Products | Zugzology",
-			description: "Browse our selection of premium mushroom products",
-			url: `https://${domain}/products`,
-		},
-	};
+// Add generateStaticParams for static generation
+export async function generateStaticParams() {
+	// Generate static params for most popular products/categories
+	return [
+		{ handle: "popular-product-1" },
+		{ handle: "popular-product-2" },
+		// ... more popular products
+	];
 }

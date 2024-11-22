@@ -57,6 +57,14 @@ const getProductQuery = `#graphql
             altText
             width
             height
+            id
+            originalSrc
+            transformedSrc(
+              maxWidth: 1920
+              maxHeight: 1080
+              crop: CENTER
+              preferredContentType: WEBP
+            )
           }
         }
       }
@@ -127,7 +135,7 @@ export default async function ProductPage({ params }: { params: { handle: string
 	return (
 		<div className="container mx-auto px-4 py-8">
 			<Suspense fallback={<ProductSkeleton />}>
-				<ProductDetails product={product} />
+				<ProductDetails product={product} priority={true} />
 			</Suspense>
 		</div>
 	);

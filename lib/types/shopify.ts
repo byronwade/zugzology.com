@@ -8,6 +8,9 @@ export type Image = {
 	altText: string | null;
 	width: number;
 	height: number;
+	id: string;
+	originalSrc: string;
+	transformedSrc?: string;
 };
 
 export type ProductVariant = {
@@ -46,6 +49,7 @@ export type Product = {
 			node: Image;
 		}[];
 	};
+	availableForSale: boolean;
 };
 
 export type Cart = {
@@ -117,6 +121,44 @@ export type BlogResponse = {
 		pageInfo: {
 			hasNextPage: boolean;
 			endCursor: string | null;
+		};
+	};
+};
+
+export type Collection = {
+	id: string;
+	handle: string;
+	title: string;
+	description: string | null;
+	image?: {
+		url: string;
+		altText: string | null;
+		width: number;
+		height: number;
+		id: string;
+		transformedSrc?: string;
+	};
+	products: {
+		edges: {
+			node: Product;
+		}[];
+	};
+};
+
+export type CartLine = {
+	id: string;
+	quantity: number;
+	cost: {
+		totalAmount: Money;
+		subtotalAmount: Money;
+	};
+	merchandise: ProductVariant & {
+		product: Pick<Product, "id" | "title" | "handle"> & {
+			images: {
+				edges: {
+					node: Image;
+				}[];
+			};
 		};
 	};
 };

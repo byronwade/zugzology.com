@@ -3,30 +3,59 @@ import { ProductsList } from "@/components/products/products-list";
 import { ProductsSkeleton } from "@/components/products/products-skeleton";
 import { unstable_cache } from "@/lib/unstable-cache";
 import { shopifyClient } from "@/lib/shopify";
-import { getProductsQuery } from "@/actions/getProducts";
 import type { Product } from "@/lib/types/shopify";
 
-export const revalidate = 3600; // 1 hour
-export const runtime = "edge";
-export const preferredRegion = "auto";
+const productsQuery = `#graphql
+  query GetProducts($first: Int!) {
+    products(first: $first) {
+      edges {
+        node {
+          id
+          title
+          handle
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          images(first: 1) {
+            edges {
+              node {
+                url
+                altText
+                width
+                height
+                id
+                originalSrc
+                transformedSrc(
+                  maxWidth: 800
+                  maxHeight: 800
+                  crop: CENTER
+                  preferredContentType: WEBP
+                )
+              }
+            }
+          }
+          availableForSale
+        }
+      }
+    }
+  }
+`;
 
 const getProducts = unstable_cache(
 	async () => {
 		try {
-			const response = await shopifyClient.request(getProductsQuery, {
+			const response = await shopifyClient.request(productsQuery, {
 				variables: { first: 250 },
 			});
 
-			console.log("Shopify response:", JSON.stringify(response, null, 2));
-
 			if (!response.data?.products?.edges) {
-				console.error("Invalid response structure:", response);
 				throw new Error("No products found in response");
 			}
 
 			const products = response.data.products.edges.map((edge: { node: Product }) => edge.node);
-
-			console.log(`Found ${products.length} products`);
 			return products;
 		} catch (error) {
 			console.error("Error fetching products:", error);
@@ -34,7 +63,7 @@ const getProducts = unstable_cache(
 		}
 	},
 	["products"],
-	{ revalidate: 60 * 60 * 2 } // 2 hours
+	{ revalidate: 60 * 60 * 2 }
 );
 
 export default async function ProductsPage() {
@@ -52,7 +81,7 @@ export default async function ProductsPage() {
 		return (
 			<div className="container mx-auto px-4">
 				<Suspense fallback={<ProductsSkeleton />}>
-					<ProductsList products={products} />
+					<ProductsList products={products} priority={true} />
 				</Suspense>
 			</div>
 		);
