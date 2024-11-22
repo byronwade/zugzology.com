@@ -162,3 +162,43 @@ export type CartLine = {
 		};
 	};
 };
+
+export type Brand = {
+	id: string;
+	handle: string;
+	title: string;
+	description: string | null;
+	products: {
+		edges: {
+			node: Product;
+		}[];
+	};
+	image?: {
+		url: string;
+		altText: string | null;
+		width: number;
+		height: number;
+		id: string;
+		transformedSrc?: string;
+	};
+};
+
+export type Page = {
+	id: string;
+	title: string;
+	handle: string;
+	bodySummary: string;
+	body: string;
+	bodyHtml: string;
+	createdAt: string;
+	updatedAt: string;
+	onlineStoreUrl: string;
+	author?: {
+		name: string;
+	};
+	publishedAt: string;
+	seo?: {
+		title?: string;
+		description?: string;
+	};
+};
