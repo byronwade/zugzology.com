@@ -12,6 +12,7 @@ const nextConfig = {
 	},
 	experimental: {
 		ppr: true,
+		inlineCss: true,
 		typedRoutes: true,
 		serverActions: {
 			bodySizeLimit: "2mb",

@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import { shopifyClient } from "@/lib/shopify";
 import type { Cart } from "@/lib/types/shopify";
 

@@ -3,6 +3,7 @@ import "./globals.css";
 import { CartSheet } from "@/components/cart/cart-sheet";
 import { CartButton } from "@/components/cart/cart-button";
 import { CustomerProvider } from "@/lib/context/CustomerContext";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
 	title: {
@@ -29,7 +30,7 @@ export default async function RootLayout({
 					<header>
 						<CartButton />
 					</header>
-					{children}
+					<Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
 					<CartSheet />
 				</CustomerProvider>
 			</body>

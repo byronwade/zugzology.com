@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import { shopifyClient, type ShopifyResponse } from "@/lib/shopify";
 import type { Product } from "@/lib/types/shopify";
 

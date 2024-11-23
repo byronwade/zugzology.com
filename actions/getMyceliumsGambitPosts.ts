@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import { shopifyClient, type ShopifyResponse } from "@/lib/shopify";
 import type { Article } from "@/lib/types/shopify";
 import { unstable_cache } from "@/lib/unstable-cache";

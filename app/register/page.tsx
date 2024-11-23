@@ -2,7 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { shopifyClient } from "@/lib/shopify";
+import { dedupedRequest, customerCreateMutation } from "@/lib/shopify";
+
+interface CustomerCreateResponse {
+	customerCreate: {
+		customer: {
+			id: string;
+			email: string;
+			firstName: string;
+			lastName: string;
+		} | null;
+		customerUserErrors: Array<{
+			code: string;
+			field: string[];
+			message: string;
+		}>;
+	};
+}
 
 export default function RegisterPage() {
 	const [email, setEmail] = useState("");
@@ -15,31 +31,12 @@ export default function RegisterPage() {
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		try {
-			const { data } = await shopifyClient.request({
-				query: `
-          mutation customerCreate($input: CustomerCreateInput!) {
-            customerCreate(input: $input) {
-              customer {
-                id
-                email
-                firstName
-                lastName
-              }
-              customerUserErrors {
-                code
-                field
-                message
-              }
-            }
-          }
-        `,
-				variables: {
-					input: {
-						email,
-						password,
-						firstName,
-						lastName,
-					},
+			const { data } = await dedupedRequest<CustomerCreateResponse>(customerCreateMutation, {
+				input: {
+					email,
+					password,
+					firstName,
+					lastName,
 				},
 			});
 
