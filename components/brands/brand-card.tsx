@@ -12,7 +12,7 @@ interface BrandCardProps {
 
 export function BrandCard({ brand, priority }: BrandCardProps) {
 	return (
-		<Link href={`/brands/${brand.handle}` as `/brands/${string}`} className="group block">
+		<Link prefretch={true} href={`/brands/${brand.handle}` as `/brands/${string}`} className="group block">
 			<div className="border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300">
 				{brand.image && (
 					<div className="relative aspect-[16/9]">

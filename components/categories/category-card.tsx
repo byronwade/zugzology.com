@@ -12,7 +12,7 @@ interface CategoryCardProps {
 
 export function CategoryCard({ category, priority }: CategoryCardProps) {
 	return (
-		<Link href={`/categories/${category.handle}` as `/categories/${string}`} className="group block">
+		<Link prefretch={true} href={`/categories/${category.handle}` as `/categories/${string}`} className="group block">
 			<div className="border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300">
 				{category.image && (
 					<div className="relative aspect-[16/9]">

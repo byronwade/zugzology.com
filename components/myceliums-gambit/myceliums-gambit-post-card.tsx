@@ -4,7 +4,7 @@ import { type Article } from "@/lib/types/shopify";
 
 export function MyceliumsGambitPostCard({ post }: { post: Article }) {
 	return (
-		<Link href={`/myceliums-gambit/${post.handle}`} className="group block">
+		<Link prefretch={true} href={`/myceliums-gambit/${post.handle}`} className="group block">
 			<div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
 				{post.image && (
 					<div className="relative aspect-[16/9]">

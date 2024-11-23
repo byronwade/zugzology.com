@@ -22,7 +22,7 @@ export function CartItem({ item }: CartItemProps) {
 
 			<div className="flex flex-1 flex-col gap-1">
 				<div className="flex justify-between gap-2">
-					<Link href={`/products/${item.merchandise.product.handle}`} className="hover:underline" onClick={() => useCart.getState().closeCart()}>
+					<Link prefretch={true} href={`/products/${item.merchandise.product.handle}`} className="hover:underline" onClick={() => useCart.getState().closeCart()}>
 						<span className="text-sm font-medium">{item.merchandise.product.title}</span>
 					</Link>
 					<Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeFromCart(item.id)}>

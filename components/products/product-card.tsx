@@ -35,7 +35,7 @@ export function ProductCard({ product, priority }: ProductCardProps) {
 
 	return (
 		<div ref={cardRef}>
-			<Link href={`/products/${product.handle}`} className="group block">
+			<Link prefretch={true} href={`/products/${product.handle}`} className="group block">
 				<div className="border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300">
 					{firstImage && (
 						<div className="relative aspect-square">

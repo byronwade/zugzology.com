@@ -10,7 +10,7 @@ interface TagCardProps {
 
 export function TagCard({ tag, count }: TagCardProps) {
 	return (
-		<Link href={`/tags/${tag}` as `/tags/${string}`} className="group block">
+		<Link prefretch={true} href={`/tags/${tag}` as `/tags/${string}`} className="group block">
 			<div className="border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 p-4">
 				<div className="flex items-center gap-2">
 					<Tag className="w-5 h-5 text-blue-500" />
