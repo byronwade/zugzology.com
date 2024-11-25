@@ -1,13 +1,47 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { shopifyClient, customerAccessTokenCreateMutation, dedupedRequest } from "../shopify";
+import { customerAccessTokenCreateMutation, dedupedRequest } from "../shopify";
+import { useCart } from "@/lib/stores/cart";
+
+interface CustomerData {
+	id: string;
+	firstName?: string;
+	lastName?: string;
+	email: string;
+	orders?: {
+		edges: Array<{
+			node: {
+				id: string;
+				orderNumber: number;
+				totalPrice: string;
+				processedAt: string;
+				fulfillmentStatus: string;
+			};
+		}>;
+	};
+}
 
 interface CustomerContextType {
 	isAuthenticated: boolean;
-	customer: any | null;
+	customer: CustomerData | null;
 	login: (email: string, password: string) => Promise<void>;
 	logout: () => Promise<void>;
+}
+
+interface CustomerResponse {
+	customer: CustomerData;
+}
+
+interface TokenResponse {
+	customerAccessTokenCreate: {
+		customerAccessToken: {
+			accessToken: string;
+		};
+		customerUserErrors: Array<{
+			message: string;
+		}>;
+	};
 }
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
@@ -35,51 +69,44 @@ const getCustomerQuery = `
 `;
 
 export function CustomerProvider({ children }: { children: React.ReactNode }) {
-	const [customer, setCustomer] = useState<any | null>(null);
+	const [customer, setCustomer] = useState<CustomerData | null>(null);
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
-	const [accessToken, setAccessToken] = useState<string | null>(null);
+	const { loadCustomerCart, clearCart } = useCart();
 
 	useEffect(() => {
-		// Check for existing token in localStorage
-		const token = typeof window !== "undefined" ? localStorage.getItem("shopifyCustomerToken") : null;
-		if (token) {
-			setAccessToken(token);
-			fetchCustomerData(token);
+		const storedToken = typeof window !== "undefined" ? localStorage.getItem("shopifyCustomerToken") : null;
+		if (storedToken) {
+			void fetchCustomerData(storedToken);
 		}
 	}, []);
 
-	async function fetchCustomerData(token: string) {
+	async function fetchCustomerData(currentToken: string) {
 		try {
-			const { data } = await dedupedRequest(getCustomerQuery, {
-				customerAccessToken: token,
+			const { data } = await dedupedRequest<CustomerResponse>(getCustomerQuery, {
+				customerAccessToken: currentToken,
 			});
 
 			if (data?.customer) {
 				setCustomer(data.customer);
 				setIsAuthenticated(true);
+				await loadCustomerCart(data.customer.id);
 			}
 		} catch (error) {
 			console.error("Error fetching customer data:", error);
-			logout();
+			await logout();
 		}
 	}
 
 	async function login(email: string, password: string) {
 		try {
-			const { data } = await dedupedRequest(customerAccessTokenCreateMutation, {
-				input: {
-					email,
-					password,
-				},
+			const { data } = await dedupedRequest<TokenResponse>(customerAccessTokenCreateMutation, {
+				input: { email, password },
 			});
 
-			if (data?.customerAccessTokenCreate?.customerAccessToken?.accessToken) {
-				const token = data.customerAccessTokenCreate.customerAccessToken.accessToken;
-				if (typeof window !== "undefined") {
-					localStorage.setItem("shopifyCustomerToken", token);
-				}
-				setAccessToken(token);
-				await fetchCustomerData(token);
+			const newToken = data?.customerAccessTokenCreate?.customerAccessToken?.accessToken;
+			if (newToken) {
+				localStorage.setItem("shopifyCustomerToken", newToken);
+				await fetchCustomerData(newToken);
 			} else {
 				throw new Error(data?.customerAccessTokenCreate?.customerUserErrors[0]?.message || "Login failed");
 			}
@@ -89,12 +116,10 @@ export function CustomerProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function logout() {
-		if (typeof window !== "undefined") {
-			localStorage.removeItem("shopifyCustomerToken");
-		}
-		setAccessToken(null);
+		localStorage.removeItem("shopifyCustomerToken");
 		setCustomer(null);
 		setIsAuthenticated(false);
+		clearCart();
 	}
 
 	return <CustomerContext.Provider value={{ isAuthenticated, customer, login, logout }}>{children}</CustomerContext.Provider>;

@@ -9,9 +9,9 @@ export function CartButton() {
 	const itemCount = cart?.totalQuantity || 0;
 
 	return (
-		<Button variant="outline" size="icon" className="relative" onClick={openCart}>
-			<ShoppingCart className="h-5 w-5" />
-			{itemCount > 0 && <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-blue-600 text-xs text-white flex items-center justify-center">{itemCount}</span>}
+		<Button variant="outline" size="sm" className="h-8 w-8 relative" onClick={openCart}>
+			<ShoppingCart className="h-4 w-4" />
+			{itemCount > 0 && <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-600 text-xs text-white flex items-center justify-center">{itemCount}</span>}
 		</Button>
 	);
 }

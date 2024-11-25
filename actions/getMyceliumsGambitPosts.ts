@@ -1,39 +1,30 @@
 export const runtime = "edge";
 
-import { shopifyClient, type ShopifyResponse } from "@/lib/shopify";
+import { shopifyClient } from "@/lib/shopify";
+import { unstable_cache } from "next/cache";
 import type { Article } from "@/lib/types/shopify";
-import { unstable_cache } from "@/lib/unstable-cache";
 
-export const getMyceliumsGambitPostsQuery = `#graphql
-  query GetMyceliumsGambitPosts($first: Int!, $after: String) {
+const getBlogPostsQuery = `#graphql
+  query GetBlogPosts($first: Int!) {
     blog(handle: "myceliums-gambit") {
-      id
-      handle
-      title
-      articles(first: $first, after: $after) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
+      articles(first: $first, sortKey: PUBLISHED_AT, reverse: true) {
         edges {
-          cursor
           node {
             id
             title
             handle
+            excerpt
             content
             contentHtml
-            excerpt
-            excerptHtml
             publishedAt
+            author {
+              name
+            }
             image {
               url
               altText
               width
               height
-            }
-            author {
-              name
             }
             blog {
               handle
@@ -45,62 +36,44 @@ export const getMyceliumsGambitPostsQuery = `#graphql
   }
 `;
 
-type MyceliumsGambitResponse = {
-	blog: {
-		id: string;
-		handle: string;
-		title: string;
-		articles: {
-			pageInfo: {
-				hasNextPage: boolean;
-				endCursor: string | null;
-			};
-			edges: Array<{
-				cursor: string;
-				node: Article;
-			}>;
-		};
-	};
-};
-
-async function fetchPosts(first: number = 50) {
-	try {
-		const allPosts: Article[] = [];
-		let hasNextPage = true;
-		let afterCursor: string | null = null;
-
-		while (hasNextPage) {
-			const response: ShopifyResponse<MyceliumsGambitResponse> = await shopifyClient.request(getMyceliumsGambitPostsQuery, {
-				variables: {
-					first: Math.min(first, 50),
-					after: afterCursor,
-				},
+export const getMyceliumsGambitPosts = unstable_cache(
+	async (first: number): Promise<Article[]> => {
+		try {
+			const response = await shopifyClient.request(getBlogPostsQuery, {
+				variables: { first },
 			});
 
-			if (!response.data?.blog) {
-				throw new Error("Blog not found or not accessible");
-			}
+			const posts = response.data?.blog?.articles?.edges?.map((edge: { node: Article }) => edge.node) || [];
 
-			const { edges, pageInfo } = response.data.blog.articles;
+			console.log(`Fetched ${posts.length} blog posts`);
 
-			allPosts.push(...edges.map((edge) => edge.node));
-
-			hasNextPage = pageInfo.hasNextPage;
-			afterCursor = pageInfo.endCursor;
-
-			if (allPosts.length >= first) {
-				break;
-			}
+			return posts;
+		} catch (error) {
+			console.error("Error fetching blog posts:", error);
+			console.error("Error details:", JSON.stringify(error, null, 2));
+			return [];
 		}
+	},
+	["blog-posts"],
+	{ revalidate: 60 }
+);
 
-		return allPosts;
-	} catch (error) {
-		console.error("Error fetching posts:", error);
-		throw error;
-	}
-}
+export const getMyceliumsGambitPost = unstable_cache(
+	async (handle: string): Promise<Article | null> => {
+		try {
+			const posts = await getMyceliumsGambitPosts(250);
+			const post = posts.find((post) => post.handle === handle);
 
-// Export both cached and uncached versions
-export const getMyceliumsGambitPosts = unstable_cache(fetchPosts, ["myceliums-gambit-posts"], { revalidate: 60 });
+			if (!post) {
+				console.log(`No post found with handle: ${handle}`);
+			}
 
-export const getMyceliumsGambitPostsUncached = fetchPosts;
+			return post || null;
+		} catch (error) {
+			console.error("Error fetching blog post:", error);
+			return null;
+		}
+	},
+	["blog-post"],
+	{ revalidate: 60 }
+);

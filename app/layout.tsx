@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { CartSheet } from "@/components/cart/cart-sheet";
-import { CartButton } from "@/components/cart/cart-button";
 import { CustomerProvider } from "@/lib/context/CustomerContext";
-import { Suspense } from "react";
+import { HeaderWrapper } from "@/components/header/header-wrapper";
+import { CartHydration } from "@/components/cart/cart-hydration";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
 export const metadata: Metadata = {
 	title: {
@@ -14,25 +14,17 @@ export const metadata: Metadata = {
 	metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
 };
 
-export default async function RootLayout({
-	children,
-}: Readonly<{
-	children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en">
-			<head>
-				{/* Preconnect to Shopify CDN */}
-				<link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
-			</head>
-			<body className="min-h-screen bg-background text-foreground">
-				<CustomerProvider>
-					<header>
-						<CartButton />
-					</header>
-					<Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
-					<CartSheet />
-				</CustomerProvider>
+		<html lang="en" suppressHydrationWarning>
+			<body>
+				<ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+					<CartHydration />
+					<CustomerProvider>
+						<HeaderWrapper />
+						{children}
+					</CustomerProvider>
+				</ThemeProvider>
 			</body>
 		</html>
 	);

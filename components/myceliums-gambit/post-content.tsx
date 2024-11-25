@@ -4,20 +4,29 @@ import Image from "next/image";
 import type { Article } from "@/lib/types/shopify";
 
 export function PostContent({ post }: { post: Article }) {
+	if (!post) {
+		return null;
+	}
+
+	const publishedDate = new Date(post.publishedAt);
+	const formattedDate = publishedDate.toLocaleDateString(undefined, {
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+	});
+
 	return (
-		<article className="prose prose-lg dark:prose-invert mx-auto">
+		<article className="prose prose-lg mx-auto">
 			{post.image && (
-				<div className="relative aspect-[21/9] mb-8 rounded-lg overflow-hidden">
-					<Image src={post.image.url} alt={post.image.altText || post.title} fill className="object-cover" priority sizes="(min-width: 1024px) 1000px, 100vw" />
+				<div className="relative aspect-[16/9] mb-8">
+					<Image src={post.image.url} alt={post.image.altText || post.title} fill className="object-cover rounded-lg" priority />
 				</div>
 			)}
-			<h1 className="text-4xl font-bold mb-4">{post.title}</h1>
-			<div className="flex items-center text-gray-600 mb-8">
-				<span>By {post.author.name}</span>
-				<span className="mx-2">•</span>
-				<time dateTime={post.publishedAt}>{new Date(post.publishedAt).toLocaleDateString()}</time>
+			<h1>{post.title}</h1>
+			<div className="text-sm text-gray-500 mb-8">
+				By {post.author.name} • {formattedDate}
 			</div>
-			<div className="mt-8" dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
+			<div className="mt-6" dangerouslySetInnerHTML={{ __html: post.contentHtml }} />
 		</article>
 	);
 }

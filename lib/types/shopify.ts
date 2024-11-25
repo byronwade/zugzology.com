@@ -30,26 +30,29 @@ export type Product = {
 	handle: string;
 	description: string;
 	descriptionHtml: string;
-	options: {
+	options: Array<{
 		id: string;
 		name: string;
 		values: string[];
-	}[];
+	}>;
 	priceRange: {
 		minVariantPrice: Money;
 		maxVariantPrice: Money;
 	};
 	variants: {
-		edges: {
+		edges: Array<{
 			node: ProductVariant;
-		}[];
+		}>;
 	};
 	images: {
-		edges: {
+		edges: Array<{
 			node: Image;
-		}[];
+		}>;
 	};
 	availableForSale: boolean;
+	tags: string[];
+	vendor: string;
+	productType: string;
 };
 
 export type Cart = {
@@ -57,7 +60,7 @@ export type Cart = {
 	checkoutUrl: string;
 	totalQuantity: number;
 	lines: {
-		edges: {
+		edges: Array<{
 			node: {
 				id: string;
 				quantity: number;
@@ -68,14 +71,14 @@ export type Cart = {
 				merchandise: ProductVariant & {
 					product: Pick<Product, "id" | "title" | "handle"> & {
 						images: {
-							edges: {
+							edges: Array<{
 								node: Image;
-							}[];
+							}>;
 						};
 					};
 				};
 			};
-		}[];
+		}>;
 	};
 	cost: {
 		subtotalAmount: Money;
@@ -130,6 +133,7 @@ export type Collection = {
 	handle: string;
 	title: string;
 	description: string | null;
+	productsCount: number;
 	image?: {
 		url: string;
 		altText: string | null;
@@ -139,9 +143,9 @@ export type Collection = {
 		transformedSrc?: string;
 	};
 	products: {
-		edges: {
+		edges: Array<{
 			node: Product;
-		}[];
+		}>;
 	};
 };
 
@@ -155,9 +159,9 @@ export type CartLine = {
 	merchandise: ProductVariant & {
 		product: Pick<Product, "id" | "title" | "handle"> & {
 			images: {
-				edges: {
+				edges: Array<{
 					node: Image;
-				}[];
+				}>;
 			};
 		};
 	};
@@ -169,9 +173,9 @@ export type Brand = {
 	title: string;
 	description: string | null;
 	products: {
-		edges: {
+		edges: Array<{
 			node: Product;
-		}[];
+		}>;
 	};
 	image?: {
 		url: string;
@@ -202,3 +206,43 @@ export type Page = {
 		description?: string;
 	};
 };
+
+export type ProductColor = {
+	name: string;
+	value: string;
+	handle: string;
+};
+
+export interface ProductWithColor extends Omit<Product, "options"> {
+	options: Array<{
+		id: string;
+		name: string;
+		values: string[];
+	}>;
+	vendor: string;
+	productType: string;
+	tags: string[];
+	metafields: {
+		edges: Array<{
+			node: {
+				key: string;
+				value: string;
+				namespace: string;
+			};
+		}>;
+	};
+}
+
+export interface ShopifyMenu {
+	id: string;
+	items: Array<{
+		id: string;
+		title: string;
+		url: string;
+		items?: Array<{
+			id: string;
+			title: string;
+			url: string;
+		}>;
+	}>;
+}

@@ -1,228 +1,186 @@
+"use client";
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { shopifyClient } from "@/lib/shopify";
 import type { Cart } from "@/lib/types/shopify";
-import { type StateCreator, type SetState, type GetState } from "zustand";
 
-interface CartStore {
+interface CartState {
 	cart: Cart | null;
 	isOpen: boolean;
 	openCart: () => void;
 	closeCart: () => void;
-	createCart: () => Promise<void>;
-	addToCart: (variantId: string, quantity: number) => Promise<void>;
+	addToCart: (item: { merchandiseId: string; quantity: number }) => Promise<void>;
 	removeFromCart: (lineId: string) => Promise<void>;
 	updateLineItem: (lineId: string, quantity: number) => Promise<void>;
+	loadCustomerCart: (customerId: string) => Promise<void>;
+	clearCart: () => void;
 }
 
+// Create cart mutation
 const createCartMutation = `#graphql
-  mutation CartCreate {
-    cartCreate {
-      cart {
-        id
-        checkoutUrl
-        totalQuantity
-        cost {
-          subtotalAmount {
-            amount
-            currencyCode
-          }
-          totalAmount {
-            amount
-            currencyCode
-          }
-          totalTaxAmount {
-            amount
-            currencyCode
-          }
-        }
-        lines(first: 100) {
-          edges {
-            node {
-              id
-              quantity
-              cost {
-                totalAmount {
-                  amount
-                  currencyCode
-                }
-                subtotalAmount {
-                  amount
-                  currencyCode
-                }
-              }
-              merchandise {
-                ... on ProductVariant {
-                  id
-                  title
-                  product {
-                    id
-                    title
-                    handle
-                    images(first: 1) {
-                      edges {
-                        node {
-                          url
-                          altText
-                          width
-                          height
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+	mutation cartCreate($input: CartInput!) {
+		cartCreate(input: $input) {
+			cart {
+				id
+				checkoutUrl
+				totalQuantity
+				lines(first: 100) {
+					edges {
+						node {
+							id
+								quantity
+								merchandise {
+									... on ProductVariant {
+										id
+										title
+										product {
+											title
+											handle
+											images(first: 1) {
+												edges {
+													node {
+														url
+														altText
+													}
+												}
+											}
+										}
+									}
+								}
+								cost {
+									totalAmount {
+										amount
+										currencyCode
+									}
+								}
+						}
+					}
+				}
+				cost {
+					totalAmount {
+						amount
+						currencyCode
+					}
+					subtotalAmount {
+						amount
+						currencyCode
+					}
+					totalTaxAmount {
+						amount
+						currencyCode
+					}
+				}
+			}
+		}
+	}
 `;
 
-const addToCartMutation = `#graphql
-  mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
-    cartLinesAdd(cartId: $cartId, lines: $lines) {
-      cart {
-        id
-        totalQuantity
-        checkoutUrl
-        cost {
-          subtotalAmount {
-            amount
-            currencyCode
-          }
-          totalAmount {
-            amount
-            currencyCode
-          }
-          totalTaxAmount {
-            amount
-            currencyCode
-          }
-        }
-        lines(first: 100) {
-          edges {
-            node {
-              id
-              quantity
-              cost {
-                totalAmount {
-                  amount
-                  currencyCode
-                }
-                subtotalAmount {
-                  amount
-                  currencyCode
-                }
-              }
-              merchandise {
-                ... on ProductVariant {
-                  id
-                  title
-                  product {
-                    id
-                    title
-                    handle
-                    images(first: 1) {
-                      edges {
-                        node {
-                          url
-                          altText
-                          width
-                          height
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+// Add to cart mutation
+const cartLinesAddMutation = `#graphql
+	mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+		cartLinesAdd(cartId: $cartId, lines: $lines) {
+			cart {
+				id
+				checkoutUrl
+				totalQuantity
+				lines(first: 100) {
+					edges {
+						node {
+							id
+							quantity
+							merchandise {
+								... on ProductVariant {
+									id
+									title
+									product {
+										title
+										handle
+										images(first: 1) {
+											edges {
+												node {
+													url
+													altText
+												}
+											}
+										}
+									}
+								}
+							}
+							cost {
+								totalAmount {
+									amount
+									currencyCode
+								}
+							}
+						}
+					}
+				}
+				cost {
+					totalAmount {
+						amount
+						currencyCode
+					}
+					subtotalAmount {
+						amount
+						currencyCode
+					}
+					totalTaxAmount {
+						amount
+						currencyCode
+					}
+				}
+			}
+		}
+	}
 `;
 
-const removeFromCartMutation = `#graphql
-  mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
-    cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
-      cart {
-        id
-        totalQuantity
-        checkoutUrl
-        cost {
-          subtotalAmount {
-            amount
-            currencyCode
-          }
-          totalAmount {
-            amount
-            currencyCode
-          }
-          totalTaxAmount {
-            amount
-            currencyCode
-          }
-        }
-        lines(first: 100) {
-          edges {
-            node {
-              id
-              quantity
-              cost {
-                totalAmount {
-                  amount
-                  currencyCode
-                }
-                subtotalAmount {
-                  amount
-                  currencyCode
-                }
-              }
-              merchandise {
-                ... on ProductVariant {
-                  id
-                  title
-                  product {
-                    id
-                    title
-                    handle
-                    images(first: 1) {
-                      edges {
-                        node {
-                          url
-                          altText
-                          width
-                          height
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const updateCartMutation = `#graphql
-  mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+// Add update quantity mutation
+const cartLinesUpdateMutation = `#graphql
+  mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
     cartLinesUpdate(cartId: $cartId, lines: $lines) {
       cart {
         id
-        totalQuantity
         checkoutUrl
+        totalQuantity
+        lines(first: 100) {
+          edges {
+            node {
+              id
+              quantity
+              merchandise {
+                ... on ProductVariant {
+                  id
+                  title
+                  product {
+                    title
+                    handle
+                    images(first: 1) {
+                      edges {
+                        node {
+                          url
+                          altText
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              cost {
+                totalAmount {
+                  amount
+                  currencyCode
+                }
+              }
+            }
+          }
+        }
         cost {
-          subtotalAmount {
+          totalAmount {
             amount
             currencyCode
           }
-          totalAmount {
+          subtotalAmount {
             amount
             currencyCode
           }
@@ -231,27 +189,29 @@ const updateCartMutation = `#graphql
             currencyCode
           }
         }
+      }
+    }
+  }
+`;
+
+// Add remove line items mutation
+const cartLinesRemoveMutation = `#graphql
+  mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+    cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
+      cart {
+        id
+        checkoutUrl
+        totalQuantity
         lines(first: 100) {
           edges {
             node {
               id
               quantity
-              cost {
-                totalAmount {
-                  amount
-                  currencyCode
-                }
-                subtotalAmount {
-                  amount
-                  currencyCode
-                }
-              }
               merchandise {
                 ... on ProductVariant {
                   id
                   title
                   product {
-                    id
                     title
                     handle
                     images(first: 1) {
@@ -259,15 +219,33 @@ const updateCartMutation = `#graphql
                         node {
                           url
                           altText
-                          width
-                          height
                         }
                       }
                     }
                   }
                 }
               }
+              cost {
+                totalAmount {
+                  amount
+                  currencyCode
+                }
+              }
             }
+          }
+        }
+        cost {
+          totalAmount {
+            amount
+            currencyCode
+          }
+          subtotalAmount {
+            amount
+            currencyCode
+          }
+          totalTaxAmount {
+            amount
+            currencyCode
           }
         }
       }
@@ -275,106 +253,162 @@ const updateCartMutation = `#graphql
   }
 `;
 
-export const useCart = create<CartStore>()(
+export const useCart = create<CartState>()(
 	persist(
-		((set: SetState<CartStore>, get: GetState<CartStore>) => ({
+		(set, get) => ({
 			cart: null,
 			isOpen: false,
 			openCart: () => set({ isOpen: true }),
 			closeCart: () => set({ isOpen: false }),
-			createCart: async () => {
-				try {
-					const response = await shopifyClient.request(createCartMutation);
-					console.log("Cart created:", response.data.cartCreate.cart);
-					set({ cart: response.data.cartCreate.cart });
-				} catch (error) {
-					console.error("Error creating cart:", error);
-				}
-			},
-			addToCart: async (variantId: string, quantity: number) => {
-				const { cart, createCart } = get();
 
+			addToCart: async ({ merchandiseId, quantity }) => {
+				const { cart } = get();
 				try {
-					set((state) => ({
-						...state,
-						isOpen: true,
-						cart: state.cart
-							? {
-									...state.cart,
-									totalQuantity: (state.cart.totalQuantity || 0) + quantity,
-							  }
-							: null,
-					}));
-
 					if (!cart) {
-						await createCart();
+						const response = await shopifyClient.request(createCartMutation, {
+							variables: {
+								input: {
+									lines: [{ merchandiseId, quantity }],
+								},
+							},
+						});
+
+						if (response.data?.cartCreate?.cart) {
+							set({
+								cart: response.data.cartCreate.cart,
+								isOpen: true,
+							});
+						}
+					} else {
+						const response = await shopifyClient.request(cartLinesAddMutation, {
+							variables: {
+								cartId: cart.id,
+								lines: [{ merchandiseId, quantity }],
+							},
+						});
+
+						if (response.data?.cartLinesAdd?.cart) {
+							set({
+								cart: response.data.cartLinesAdd.cart,
+								isOpen: true,
+							});
+						}
 					}
-
-					const currentCart = get().cart;
-					if (!currentCart) throw new Error("Failed to create cart");
-
-					const response = await shopifyClient.request(addToCartMutation, {
-						variables: {
-							cartId: currentCart.id,
-							lines: [{ merchandiseId: variantId, quantity }],
-						},
-					});
-
-					set({ cart: response.data.cartLinesAdd.cart });
 				} catch (error) {
 					console.error("Error adding to cart:", error);
-					set((state) => ({ ...state, cart: cart }));
+					throw error;
 				}
 			},
-			removeFromCart: async (lineId: string) => {
-				const { cart } = get();
-				if (!cart) return;
 
-				try {
-					const response = await shopifyClient.request(removeFromCartMutation, {
-						variables: {
-							cartId: cart.id,
-							lineIds: [lineId],
-						},
-					});
-					set({ cart: response.data.cartLinesRemove.cart });
-				} catch (error) {
-					console.error("Error removing from cart:", error);
-				}
-			},
 			updateLineItem: async (lineId: string, quantity: number) => {
 				const { cart } = get();
 				if (!cart) return;
 
 				try {
-					const response = await shopifyClient.request(updateCartMutation, {
+					const response = await shopifyClient.request(cartLinesUpdateMutation, {
 						variables: {
 							cartId: cart.id,
-							lines: [{ id: lineId, quantity }],
+							lines: [
+								{
+									id: lineId,
+									quantity: quantity,
+								},
+							],
 						},
 					});
-					set({ cart: response.data.cartLinesUpdate.cart });
+
+					if (response.data?.cartLinesUpdate?.cart) {
+						set({ cart: response.data.cartLinesUpdate.cart });
+					}
 				} catch (error) {
 					console.error("Error updating cart:", error);
+					throw error;
 				}
 			},
-		})) as StateCreator<CartStore>,
+
+			removeFromCart: async (lineId: string) => {
+				const { cart } = get();
+				if (!cart) return;
+
+				try {
+					const response = await shopifyClient.request(cartLinesRemoveMutation, {
+						variables: {
+							cartId: cart.id,
+							lineIds: [lineId],
+						},
+					});
+
+					if (response.data?.cartLinesRemove?.cart) {
+						set({ cart: response.data.cartLinesRemove.cart });
+					}
+				} catch (error) {
+					console.error("Error removing from cart:", error);
+					throw error;
+				}
+			},
+
+			loadCustomerCart: async (customerId: string) => {
+				try {
+					const response = await shopifyClient.request(cartLinesAddMutation, {
+						variables: { customerId },
+					});
+
+					if (response?.data?.customer?.cart) {
+						set({ cart: response.data.customer.cart });
+					}
+				} catch (error) {
+					console.error("Error loading customer cart:", error);
+				}
+			},
+
+			clearCart: () => {
+				set({ cart: null });
+			},
+		}),
 		{
-			name: "cart-storage",
+			name: "shopping-cart",
+			skipHydration: true,
 			storage: {
 				getItem: (name) => {
-					const str = localStorage.getItem(name);
-					return str ? JSON.parse(str) : null;
-				},
-				setItem: (name, value) => {
-					if (typeof value === "string") {
-						localStorage.setItem(name, value);
-					} else {
-						localStorage.setItem(name, JSON.stringify(value));
+					try {
+						if (typeof window === "undefined") return null;
+						const str = localStorage.getItem(name);
+						return str ? JSON.parse(str) : null;
+					} catch {
+						return null;
 					}
 				},
-				removeItem: (name) => localStorage.removeItem(name),
+				setItem: (name, value) => {
+					try {
+						if (typeof window !== "undefined") {
+							localStorage.setItem(name, JSON.stringify(value));
+						}
+					} catch (err) {
+						console.error("Error saving cart to localStorage:", err);
+					}
+				},
+				removeItem: (name) => {
+					try {
+						if (typeof window !== "undefined") {
+							localStorage.removeItem(name);
+						}
+					} catch (err) {
+						console.error("Error removing cart from localStorage:", err);
+					}
+				},
 			},
+			partialize: (state) => ({
+				cart: state.cart,
+				isOpen: state.isOpen,
+				openCart: state.openCart,
+				closeCart: state.closeCart,
+				addToCart: state.addToCart,
+				removeFromCart: state.removeFromCart,
+				updateLineItem: state.updateLineItem,
+				loadCustomerCart: state.loadCustomerCart,
+				clearCart: state.clearCart,
+			}),
+			// prettier-ignore: This line will not be formatted
 		}
 	)
 );

@@ -6,23 +6,46 @@ import { CartItem } from "@/components/cart/cart-item";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { useState } from "react";
 
 export function CartSheet() {
 	const { cart, isOpen, closeCart } = useCart();
+	const isMobile = useMediaQuery("(max-width: 768px)");
 	const hasItems = cart?.lines.edges && cart.lines.edges.length > 0;
+	const [dragStartY, setDragStartY] = useState(0);
 
-	// Debug logging
-	console.log("Cart state:", {
-		hasItems,
-		checkoutUrl: cart?.checkoutUrl,
-		totalQuantity: cart?.totalQuantity,
-		cost: cart?.cost,
-	});
+	const handleDragStart = (e: React.TouchEvent) => {
+		setDragStartY(e.touches[0].pageY);
+	};
+
+	const handleDragMove = (e: React.TouchEvent) => {
+		if (dragStartY === 0) return;
+
+		const currentY = e.touches[0].pageY;
+		const distance = currentY - dragStartY;
+
+		if (distance > 100) {
+			setDragStartY(0);
+			closeCart();
+		}
+	};
+
+	const handleDragEnd = () => {
+		setDragStartY(0);
+	};
 
 	return (
 		<Sheet open={isOpen} onOpenChange={closeCart}>
-			<SheetContent className="flex flex-col h-full">
-				<SheetHeader className="space-y-2.5">
+			<SheetContent side={isMobile ? "bottom" : "right"} className={`flex flex-col ${isMobile ? "h-[85vh] rounded-t-xl" : "h-full"}`} onTouchStart={isMobile ? handleDragStart : undefined} onTouchMove={isMobile ? handleDragMove : undefined} onTouchEnd={handleDragEnd}>
+				{/* Drag handle for mobile */}
+				{isMobile && (
+					<div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-6 flex items-center justify-center touch-none" role="button" aria-label="Drag to close">
+						<div className="w-8 h-1 rounded-full bg-muted-foreground/20" />
+					</div>
+				)}
+
+				<SheetHeader className={`space-y-2.5 pb-6 border-b ${isMobile ? "mt-6" : ""}`}>
 					<SheetTitle className="flex items-center gap-2">
 						<ShoppingCart className="w-5 h-5" />
 						Cart ({cart?.totalQuantity || 0})
