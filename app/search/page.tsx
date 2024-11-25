@@ -8,6 +8,7 @@ import { ImageIcon, Star, StarHalf, Filter, ChevronLeft, ChevronRight } from "lu
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Suspense } from "react";
 
 interface Product {
 	id: string;
@@ -103,9 +104,9 @@ function RatingStars({ rating }: { rating: number }) {
 	);
 }
 
-export default function SearchPage() {
+function SearchResults() {
 	const searchParams = useSearchParams();
-	const [, setSearchQuery] = useState(searchParams.get("q") || "");
+	const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
 	const [priceRange, setPriceRange] = useState([0, 3000]);
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 10;
@@ -114,8 +115,10 @@ export default function SearchPage() {
 		setSearchQuery(searchParams.get("q") || "");
 	}, [searchParams]);
 
-	const totalPages = Math.ceil(mockProducts.length / itemsPerPage);
-	const paginatedProducts = mockProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+	const filteredProducts = mockProducts.filter((product) => product.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+	const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+	const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
 	const FilterSidebar = () => (
 		<div className="space-y-6">
@@ -169,6 +172,12 @@ export default function SearchPage() {
 
 	return (
 		<div className="min-h-screen bg-background flex flex-col">
+			<div className="p-4 border-b">
+				<p className="text-sm text-muted-foreground">
+					{filteredProducts.length} results {searchQuery && `for "${searchQuery}"`}
+				</p>
+			</div>
+
 			<div className="flex-1 flex">
 				{/* Filter Sidebar for desktop */}
 				<aside className="hidden md:block w-64 p-4 border-r bg-background">
@@ -237,5 +246,19 @@ export default function SearchPage() {
 				</div>
 			)}
 		</div>
+	);
+}
+
+export default function SearchPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="flex items-center justify-center min-h-screen">
+					<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+				</div>
+			}
+		>
+			<SearchResults />
+		</Suspense>
 	);
 }

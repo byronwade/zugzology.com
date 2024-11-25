@@ -8,10 +8,36 @@ import { getProduct } from "@/actions/getProduct";
 import { getMyceliumsGambitPosts, getMyceliumsGambitPost } from "@/actions/getMyceliumsGambitPosts";
 import { FilterSidebar } from "@/components/products/filter-sidebar";
 import { FilterBar } from "@/components/products/filter-bar";
+import { unstable_cache } from "next/cache";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 
 export const runtime = "edge";
 export const preferredRegion = "auto";
 export const revalidate = 0;
+
+const getCachedCollectionData = unstable_cache(
+	async (handle: string) => {
+		return getCollectionData(handle);
+	},
+	["collection-data"],
+	{ revalidate: 60 } // Cache for 1 minute
+);
+
+const getCachedProducts = unstable_cache(
+	async () => {
+		return getAllProducts();
+	},
+	["all-products"],
+	{ revalidate: 60 }
+);
+
+const getCachedMyceliumsGambitPosts = unstable_cache(
+	async (limit: number) => {
+		return getMyceliumsGambitPosts(limit);
+	},
+	["myceliums-gambit-posts"],
+	{ revalidate: 300 } // Cache for 5 minutes
+);
 
 export default async function PathPage({ params }: { params: { path: string[] } }) {
 	const nextjs15 = await params;
@@ -31,7 +57,7 @@ export default async function PathPage({ params }: { params: { path: string[] } 
 		switch (type) {
 			case "products":
 				if (!handle) {
-					const products = await getAllProducts();
+					const products = await getCachedProducts();
 					return {
 						title: "All Products",
 						content: <ProductsList products={products} />,
@@ -47,7 +73,7 @@ export default async function PathPage({ params }: { params: { path: string[] } 
 
 			case "myceliums-gambit":
 				if (!handle) {
-					const posts = await getMyceliumsGambitPosts(250);
+					const posts = await getCachedMyceliumsGambitPosts(250);
 					return {
 						title: "Mycelium's Gambit",
 						description: "Read our latest articles about mushrooms and mycology",
@@ -70,7 +96,7 @@ export default async function PathPage({ params }: { params: { path: string[] } 
 						content: <ProductsList products={products} />,
 					};
 				}
-				const collection = await getCollectionData(handle);
+				const collection = await getCachedCollectionData(handle);
 				if (!collection) return null;
 				return {
 					title: collection.title,
@@ -101,29 +127,31 @@ export default async function PathPage({ params }: { params: { path: string[] } 
 	}
 
 	return (
-		<div className="min-h-screen bg-background flex flex-col">
-			<div className="flex-1 flex relative">
-				{shouldShowFilters && (
-					<aside className="hidden lg:block w-64 fixed top-[105px] bottom-0 left-0 overflow-y-auto border-r bg-background">
-						<div className="p-4 h-full">
-							<FilterSidebar categories={["Mushrooms", "Spores", "Equipment", "Supplies"]} brands={["Zugzology", "Other Brands"]} />
-						</div>
-					</aside>
-				)}
-
-				<div className={`flex-1 ${shouldShowFilters ? "lg:ml-64" : ""}`}>
+		<ErrorBoundary fallback={<div>Something went wrong</div>}>
+			<div className="min-h-screen bg-background flex flex-col">
+				<div className="flex-1 flex relative">
 					{shouldShowFilters && (
-						<div className="lg:hidden">
-							<FilterBar categories={["Mushrooms", "Spores", "Equipment", "Supplies"]} brands={["Zugzology", "Other Brands"]} />
-						</div>
+						<aside className="hidden lg:block w-64 fixed top-[105px] bottom-0 left-0 overflow-y-auto border-r bg-background">
+							<div className="p-4 h-full">
+								<FilterSidebar categories={["Mushrooms", "Spores", "Equipment", "Supplies"]} brands={["Zugzology", "Other Brands"]} />
+							</div>
+						</aside>
 					)}
 
-					<>
-						{shouldShowTitle(type, handle) && <h1 className="text-3xl font-bold p-4">{pageContent.title}</h1>}
-						{pageContent.content}
-					</>
+					<div className={`flex-1 ${shouldShowFilters ? "lg:ml-64" : ""}`}>
+						{shouldShowFilters && (
+							<div className="lg:hidden">
+								<FilterBar categories={["Mushrooms", "Spores", "Equipment", "Supplies"]} brands={["Zugzology", "Other Brands"]} />
+							</div>
+						)}
+
+						<>
+							{shouldShowTitle(type, handle) && <h1 className="text-3xl font-bold p-4">{pageContent.title}</h1>}
+							{pageContent.content}
+						</>
+					</div>
 				</div>
 			</div>
-		</div>
+		</ErrorBoundary>
 	);
 }
