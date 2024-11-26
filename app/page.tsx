@@ -1,52 +1,34 @@
-"use client";
-
-import { Suspense } from "react";
-import { unstable_cache } from "next/cache";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { getAllProducts } from "@/lib/actions/getTaxonomyData";
+import { getProducts, getCollections } from "@/lib/actions/getTaxonomyData";
 import { ProductsList } from "@/components/products/products-list";
-import { ProductListLayout } from "@/components/layouts/product-list-layout";
-import type { Product } from "@/lib/types/shopify";
+import { Suspense } from "react";
 
-export const runtime = "edge";
-export const preferredRegion = "auto";
-export const revalidate = 0;
-
-// Cache featured products query
-const getFeaturedProducts = unstable_cache(
-	async (): Promise<Product[]> => {
-		const products = await getAllProducts();
-		return products.slice(0, 6); // Return first 6 products
-	},
-	["featured-products"],
-	{ revalidate: 3600 } // Cache for 1 hour
-);
-
-function FeaturedProducts({ products }: { products: Product[] }) {
-	return (
-		<ProductListLayout
-			filters={{
-				categories: ["Mushrooms", "Spores", "Equipment", "Supplies"],
-				brands: ["Zugzology", "Other Brands"],
-			}}
-			header={{
-				title: "Featured Products",
-				description: "Check out our most popular items",
-			}}
-		>
-			<ProductsList products={products} />
-		</ProductListLayout>
-	);
-}
-
-export default async function Home() {
-	const products = await getFeaturedProducts();
+export default async function Page() {
+	const [products, collections] = await Promise.all([getProducts(), getCollections()]);
 
 	return (
-		<main>
-			<Suspense fallback={<LoadingSpinner />}>
-				<FeaturedProducts products={products} />
-			</Suspense>
-		</main>
+		<div className="container mx-auto px-4 py-8">
+			<h1 className="text-3xl font-bold mb-8">Our Products</h1>
+			<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+				<aside className="md:col-span-1">
+					<nav className="space-y-4">
+						<h2 className="font-semibold">Collections</h2>
+						<ul className="space-y-2">
+							{collections.map((collection) => (
+								<li key={collection.id}>
+									<a href={`/collections/${collection.handle}`} className="text-gray-600 hover:text-gray-900">
+										{collection.title}
+									</a>
+								</li>
+							))}
+						</ul>
+					</nav>
+				</aside>
+				<div className="md:col-span-3">
+					<Suspense fallback={<div>Loading products...</div>}>
+						<ProductsList initialProducts={products} />
+					</Suspense>
+				</div>
+			</div>
+		</div>
 	);
 }

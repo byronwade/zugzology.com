@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 import { addToCart, removeFromCart, updateCart } from "@/lib/actions/cart";
 import { shopifyClient } from "@/lib/shopify/client";
 import type { ShopifyCart } from "@/lib/types/shopify";
@@ -129,8 +129,6 @@ const createCartMutation = /* GraphQL */ `
 	}
 `;
 
-const STORAGE_KEY = "cart-storage-v1";
-
 export const useCart = create<CartStore>()(
 	persist(
 		(set, get) => ({
@@ -142,24 +140,14 @@ export const useCart = create<CartStore>()(
 			cost: undefined,
 
 			setCart: (cart) => {
-				// Ensure we're only storing serializable data
+				if (typeof window === "undefined") return;
+
 				const serializableCart = cart ? JSON.parse(JSON.stringify(cart)) : null;
 				set({
 					cart: serializableCart,
 					items: serializableCart?.lines?.edges?.map((edge: any) => edge.node) || [],
 					cost: serializableCart?.cost || undefined,
 				});
-				// Manually update localStorage to ensure it's saved
-				if (typeof window !== "undefined") {
-					const storage = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-					localStorage.setItem(
-						STORAGE_KEY,
-						JSON.stringify({
-							...storage,
-							state: { ...storage.state, cart: serializableCart },
-						})
-					);
-				}
 			},
 			setIsOpen: (open) => set({ isOpen: open }),
 			openCart: () => set({ isOpen: true }),
@@ -167,14 +155,25 @@ export const useCart = create<CartStore>()(
 			setHydrated: (hydrated) => set({ isHydrated: hydrated }),
 			toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
 			hydrate: () => {
-				const storage = localStorage.getItem(STORAGE_KEY);
-				if (storage) {
-					const { state } = JSON.parse(storage);
-					if (state?.cart) {
-						get().setCart(state.cart);
+				if (typeof window === "undefined") return;
+
+				try {
+					const storage = localStorage.getItem("cart-storage");
+					if (storage) {
+						const { state } = JSON.parse(storage);
+						if (state?.cart) {
+							set({
+								cart: state.cart,
+								items: state.cart?.lines?.edges?.map((edge: any) => edge.node) || [],
+								cost: state.cart?.cost || undefined,
+								isHydrated: true,
+							});
+						}
 					}
+				} catch (error) {
+					console.error("Error hydrating cart:", error);
+					set({ isHydrated: true });
 				}
-				set({ isHydrated: true });
 			},
 
 			addToCart: async ({ merchandiseId, quantity }) => {
@@ -279,41 +278,12 @@ export const useCart = create<CartStore>()(
 			},
 		}),
 		{
-			name: STORAGE_KEY,
-			storage: createJSONStorage(() => {
-				if (typeof window !== "undefined") {
-					return {
-						getItem: (key) => {
-							const data = localStorage.getItem(key);
-							return data ? JSON.parse(data) : null;
-						},
-						setItem: (key, value) => {
-							localStorage.setItem(key, JSON.stringify(value));
-						},
-						removeItem: (key) => localStorage.removeItem(key),
-					};
-				}
-				return {
-					getItem: () => null,
-					setItem: () => {},
-					removeItem: () => {},
-				};
-			}),
-
+			name: "cart-storage",
+			skipHydration: true,
 			partialize: (state) => ({
 				cart: state.cart,
 				isOpen: state.isOpen,
 			}),
-			version: 1,
-			onRehydrateStorage: () => (state) => {
-				if (state) {
-					state.setHydrated(true);
-					// Verify cart data integrity
-					if (state.cart && (!state.cart.id || !state.cart.lines)) {
-						state.setCart(null);
-					}
-				}
-			},
 		}
 	)
 );
