@@ -1,41 +1,50 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Filter, SlidersHorizontal } from "lucide-react";
-import { FilterSidebar } from "./filter-sidebar";
-import type { FilterOptions } from "./filter-sidebar";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SlidersHorizontal } from "lucide-react";
 
 interface FilterBarProps {
-	categories: string[];
-	brands: string[];
-	onFilterChange?: (filters: FilterOptions) => void;
+	onSearch: (value: string) => void;
+	onSort: (value: string) => void;
+	onFilterClick: () => void;
+	sortOptions?: {
+		label: string;
+		value: string;
+	}[];
 }
 
-export function FilterBar({ categories, brands, onFilterChange }: FilterBarProps) {
+export function FilterBar({
+	onSearch,
+	onSort,
+	onFilterClick,
+	sortOptions = [
+		{ label: "Latest", value: "latest" },
+		{ label: "Price: Low to High", value: "price-asc" },
+		{ label: "Price: High to Low", value: "price-desc" },
+		{ label: "Name: A to Z", value: "title-asc" },
+		{ label: "Name: Z to A", value: "title-desc" },
+	],
+}: FilterBarProps) {
 	return (
-		<div className="sticky top-[64px] z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-			<div className="flex h-14 items-center px-4 gap-4">
-				<Sheet>
-					<SheetTrigger asChild>
-						<Button variant="outline" size="sm" className="flex items-center gap-2">
-							<Filter className="h-4 w-4" />
-							<span>Filters</span>
-						</Button>
-					</SheetTrigger>
-					<SheetContent side="left" className="w-[300px] sm:w-[400px]">
-						<FilterSidebar categories={categories} brands={brands} onFilterChange={onFilterChange} />
-					</SheetContent>
-				</Sheet>
-
-				{/* Active Filters Pills */}
-				<div className="flex items-center gap-2 overflow-x-auto">
-					<Button variant="secondary" size="sm" className="flex items-center gap-2">
-						<SlidersHorizontal className="h-3 w-3" />
-						<span>Price: $0 - $3000</span>
-					</Button>
-				</div>
-			</div>
+		<div className="flex items-center gap-4 p-4 bg-background border rounded-lg">
+			<Input placeholder="Search products..." className="max-w-xs" onChange={(e) => onSearch(e.target.value)} />
+			<Select onValueChange={onSort}>
+				<SelectTrigger className="max-w-[200px]">
+					<SelectValue placeholder="Sort by" />
+				</SelectTrigger>
+				<SelectContent>
+					{sortOptions.map((option) => (
+						<SelectItem key={option.value} value={option.value}>
+							{option.label}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+			<Button variant="outline" size="icon" className="ml-auto lg:hidden" onClick={onFilterClick}>
+				<SlidersHorizontal className="h-4 w-4" />
+			</Button>
 		</div>
 	);
-}
+} 

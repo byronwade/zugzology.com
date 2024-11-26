@@ -1,12 +1,11 @@
 import { Suspense } from "react";
-import { getMainMenu } from "@/actions/getMainMenu";
-import { searchProducts } from "@/actions/search";
+import { getMainMenu } from "@/lib/actions/getMainMenu";
 import { Header } from "./header";
 
 // This is a Server Component
 async function HeaderServer() {
 	const menu = await getMainMenu();
-	return <Header initialMenu={menu?.items || []} search={searchProducts} />;
+	return <Header initialMenu={menu?.items || []} />;
 }
 
 // This is a Client Component wrapper

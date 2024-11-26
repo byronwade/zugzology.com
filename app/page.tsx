@@ -1,20 +1,52 @@
+"use client";
+
+import { Suspense } from "react";
+import { unstable_cache } from "next/cache";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { getAllProducts } from "@/lib/actions/getTaxonomyData";
+import { ProductsList } from "@/components/products/products-list";
+import { ProductListLayout } from "@/components/layouts/product-list-layout";
+import type { Product } from "@/lib/types/shopify";
+
 export const runtime = "edge";
 export const preferredRegion = "auto";
 export const revalidate = 0;
 
-import { Suspense } from "react";
-
-// Add loading state
-const loading = (
-	<div className="flex items-center justify-center min-h-screen">
-		<div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-	</div>
+// Cache featured products query
+const getFeaturedProducts = unstable_cache(
+	async (): Promise<Product[]> => {
+		const products = await getAllProducts();
+		return products.slice(0, 6); // Return first 6 products
+	},
+	["featured-products"],
+	{ revalidate: 3600 } // Cache for 1 hour
 );
 
-export default async function Home() {
+function FeaturedProducts({ products }: { products: Product[] }) {
 	return (
-		<Suspense fallback={loading}>
-			<div>Home</div>
-		</Suspense>
+		<ProductListLayout
+			filters={{
+				categories: ["Mushrooms", "Spores", "Equipment", "Supplies"],
+				brands: ["Zugzology", "Other Brands"],
+			}}
+			header={{
+				title: "Featured Products",
+				description: "Check out our most popular items",
+			}}
+		>
+			<ProductsList products={products} />
+		</ProductListLayout>
+	);
+}
+
+export default async function Home() {
+	const products = await getFeaturedProducts();
+
+	return (
+		<main>
+			<Suspense fallback={<LoadingSpinner />}>
+				<FeaturedProducts products={products} />
+			</Suspense>
+		</main>
 	);
 }

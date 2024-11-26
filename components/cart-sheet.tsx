@@ -1,16 +1,14 @@
-"use client";
-
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCart } from "@/lib/stores/cart";
 import { formatPrice } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "../ui/button";
-import { ScrollArea } from "../ui/scroll-area";
+import { Button } from "./ui/button";
+import { ScrollArea } from "./ui/scroll-area";
 
 export function CartSheet() {
 	const cart = useCart();
-	const cartItems = cart.items;
+	const cartItems = cart.items || [];
 	const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
 	if (!cart.isOpen) return null;
@@ -34,7 +32,7 @@ export function CartSheet() {
 												{item.merchandise.product.title}
 											</Link>
 											<div className="text-sm text-gray-500">Quantity: {item.quantity}</div>
-											<div className="text-sm font-medium">{formatPrice(Number(item.cost.totalAmount.amount), item.cost.totalAmount.currencyCode)}</div>
+											<div className="text-sm font-medium">{formatPrice(item.cost.totalAmount.amount, item.cost.totalAmount.currencyCode)}</div>
 										</div>
 										<Button variant="ghost" size="icon" onClick={() => cart.removeItem(item.id)}>
 											Remove
@@ -46,7 +44,7 @@ export function CartSheet() {
 						<div className="border-t pt-4">
 							<div className="flex justify-between text-sm">
 								<span>Subtotal</span>
-								<span className="font-medium">{formatPrice(cart.cost ? Number(cart.cost.subtotalAmount.amount) : 0, cart.cost?.subtotalAmount.currencyCode || "USD")}</span>
+								<span className="font-medium">{formatPrice(cart.cost?.subtotalAmount.amount || 0, cart.cost?.subtotalAmount.currencyCode || "USD")}</span>
 							</div>
 							<Button asChild className="w-full mt-4">
 								<Link href="/cart" onClick={() => cart.toggleCart()}>

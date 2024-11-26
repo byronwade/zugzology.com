@@ -2,16 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/stores/cart";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 
 export function CartButton() {
-	const { cart, openCart } = useCart();
-	const itemCount = cart?.totalQuantity || 0;
+	const cart = useCart();
+	const itemCount = cart.items.reduce((total, item) => total + item.quantity, 0);
 
 	return (
-		<Button variant="outline" size="sm" className="h-8 w-8 relative" onClick={openCart}>
-			<ShoppingCart className="h-4 w-4" />
-			{itemCount > 0 && <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-600 text-xs text-white flex items-center justify-center">{itemCount}</span>}
+		<Button variant="ghost" size="icon" className="relative" onClick={() => cart.toggleCart()}>
+			<ShoppingBag className="h-6 w-6" />
+			{itemCount > 0 && <div className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-blue-600 text-[11px] font-medium text-white flex items-center justify-center">{itemCount}</div>}
 		</Button>
 	);
 }

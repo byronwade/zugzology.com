@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { CartButton } from "@/components/cart/cart-button";
 import { CartSheet } from "@/components/cart/cart-sheet";
-import { Autocomplete } from "./autocomplete";
+import { SearchBar } from "@/components/search/search-bar";
 import { useTheme } from "next-themes";
-import type { Product } from "@/lib/types/shopify";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -19,7 +18,6 @@ interface HeaderProps {
 		title: string;
 		url: string;
 	}>;
-	search: (query: string) => Promise<Product[]>;
 }
 
 // Define microdosing products
@@ -41,7 +39,7 @@ const microdoseProducts = [
 	},
 ];
 
-export function Header({ initialMenu, search }: HeaderProps) {
+export function Header({ initialMenu }: HeaderProps) {
 	const { theme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 	const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -67,8 +65,8 @@ export function Header({ initialMenu, search }: HeaderProps) {
 							<span className="hidden md:inline text-lg font-bold">Zugzology</span>
 						</Link>
 					</div>
-					<div className="flex-1 mx-2">
-						<Autocomplete onSearch={search} onSearchSubmit={search} />
+					<div className="w-full max-w-xl flex-1 md:flex">
+						<SearchBar />
 					</div>
 					<div className="flex items-center space-x-2">
 						<Button variant="secondary" size="sm" className="h-8 w-8" onClick={() => setTheme(theme === "light" ? "dark" : "light")}>

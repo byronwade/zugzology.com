@@ -4,9 +4,11 @@ import { useEffect } from "react";
 import { useCart } from "@/lib/stores/cart";
 
 export function CartHydration() {
+	const cart = useCart();
+
 	useEffect(() => {
-		useCart.persist.rehydrate();
-	}, []);
+		cart.hydrate();
+	}, [cart]);
 
 	return null;
 }

@@ -1,128 +1,102 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
-import { customerAccessTokenCreateMutation, dedupedRequest } from "../shopify";
+import { type CustomerAccessToken } from "@/lib/types/shopify";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { customerAccessTokenCreateMutation } from "@/lib/shopify/mutations";
+import { shopifyClient } from "@/lib/shopify/client";
 import { useCart } from "@/lib/stores/cart";
 
 interface CustomerData {
-	id: string;
-	firstName?: string;
-	lastName?: string;
-	email: string;
-	orders?: {
-		edges: Array<{
-			node: {
-				id: string;
-				orderNumber: number;
-				totalPrice: string;
-				processedAt: string;
-				fulfillmentStatus: string;
-			};
-		}>;
-	};
+	accessToken: string | null;
+	expiresAt: string | null;
 }
 
 interface CustomerContextType {
-	isAuthenticated: boolean;
 	customer: CustomerData | null;
+	isLoading: boolean;
 	login: (email: string, password: string) => Promise<void>;
-	logout: () => Promise<void>;
-}
-
-interface CustomerResponse {
-	customer: CustomerData;
-}
-
-interface TokenResponse {
-	customerAccessTokenCreate: {
-		customerAccessToken: {
-			accessToken: string;
-		};
-		customerUserErrors: Array<{
-			message: string;
-		}>;
-	};
+	logout: () => void;
 }
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
 
-const getCustomerQuery = `
-	query getCustomer($customerAccessToken: String!) {
-		customer(customerAccessToken: $customerAccessToken) {
-			id
-			firstName
-			lastName
-			email
-			orders(first: 10) {
-				edges {
-					node {
-						id
-						orderNumber
-						totalPrice
-						processedAt
-						fulfillmentStatus
-					}
-				}
-			}
-		}
-	}
-`;
-
 export function CustomerProvider({ children }: { children: React.ReactNode }) {
 	const [customer, setCustomer] = useState<CustomerData | null>(null);
-	const [isAuthenticated, setIsAuthenticated] = useState(false);
-	const { loadCustomerCart, clearCart } = useCart();
+	const [isLoading, setIsLoading] = useState(false);
+	const { setCart } = useCart();
 
 	useEffect(() => {
-		const storedToken = typeof window !== "undefined" ? localStorage.getItem("shopifyCustomerToken") : null;
+		const storedToken = localStorage.getItem("customerAccessToken");
 		if (storedToken) {
-			void fetchCustomerData(storedToken);
+			const token = JSON.parse(storedToken);
+			if (new Date(token.expiresAt) > new Date()) {
+				setCustomer(token);
+			} else {
+				localStorage.removeItem("customerAccessToken");
+			}
 		}
 	}, []);
 
-	async function fetchCustomerData(currentToken: string) {
+	const login = useCallback(async (email: string, password: string) => {
+		setIsLoading(true);
 		try {
-			const { data } = await dedupedRequest<CustomerResponse>(getCustomerQuery, {
-				customerAccessToken: currentToken,
+			const response = await shopifyClient.mutation<{
+				customerAccessTokenCreate: {
+					customerAccessToken: CustomerAccessToken | null;
+					customerUserErrors: Array<{
+						code: string;
+						field: string[];
+						message: string;
+					}>;
+				};
+			}>(customerAccessTokenCreateMutation, {
+				variables: {
+					input: { email, password },
+				},
 			});
 
-			if (data?.customer) {
-				setCustomer(data.customer);
-				setIsAuthenticated(true);
-				await loadCustomerCart(data.customer.id);
-			}
-		} catch (error) {
-			console.error("Error fetching customer data:", error);
-			await logout();
-		}
-	}
+			const { customerAccessToken, customerUserErrors } = response.data?.customerAccessTokenCreate || {};
 
-	async function login(email: string, password: string) {
-		try {
-			const { data } = await dedupedRequest<TokenResponse>(customerAccessTokenCreateMutation, {
-				input: { email, password },
-			});
-
-			const newToken = data?.customerAccessTokenCreate?.customerAccessToken?.accessToken;
-			if (newToken) {
-				localStorage.setItem("shopifyCustomerToken", newToken);
-				await fetchCustomerData(newToken);
-			} else {
-				throw new Error(data?.customerAccessTokenCreate?.customerUserErrors[0]?.message || "Login failed");
+			if (customerUserErrors?.length) {
+				throw new Error(customerUserErrors[0].message);
 			}
+
+			if (!customerAccessToken) {
+				throw new Error("No access token returned");
+			}
+
+			const token = {
+				accessToken: customerAccessToken.accessToken,
+				expiresAt: customerAccessToken.expiresAt,
+			};
+
+			localStorage.setItem("customerAccessToken", JSON.stringify(token));
+			setCustomer(token);
 		} catch (error) {
+			console.error("Login error:", error);
 			throw error;
+		} finally {
+			setIsLoading(false);
 		}
-	}
+	}, []);
 
-	async function logout() {
-		localStorage.removeItem("shopifyCustomerToken");
+	const logout = useCallback(() => {
+		localStorage.removeItem("customerAccessToken");
 		setCustomer(null);
-		setIsAuthenticated(false);
-		clearCart();
-	}
+		setCart(null);
+	}, [setCart]);
 
-	return <CustomerContext.Provider value={{ isAuthenticated, customer, login, logout }}>{children}</CustomerContext.Provider>;
+	const value = useMemo(
+		() => ({
+			customer,
+			isLoading,
+			login,
+			logout,
+		}),
+		[customer, isLoading, login, logout]
+	);
+
+	return <CustomerContext.Provider value={value}>{children}</CustomerContext.Provider>;
 }
 
 export function useCustomer() {

@@ -102,17 +102,17 @@ export type Article = {
 	excerpt?: string;
 	excerptHtml?: string;
 	publishedAt: string;
-	image?: {
-		url: string;
-		altText: string | null;
-		width: number;
-		height: number;
+	blog: {
+		handle: string;
 	};
 	author: {
 		name: string;
 	};
-	blog: {
-		handle: string;
+	image?: {
+		url: string;
+		altText?: string;
+		width: number;
+		height: number;
 	};
 };
 
@@ -245,4 +245,110 @@ export interface ShopifyMenu {
 			url: string;
 		}>;
 	}>;
+}
+
+export interface CustomerAddress {
+	id: string;
+	address1: string;
+	address2?: string;
+	city: string;
+	country: string;
+	zip: string;
+	phone?: string;
+}
+
+export interface Customer {
+	id: string;
+	firstName?: string;
+	lastName?: string;
+	email: string;
+	phone?: string;
+	defaultAddress?: CustomerAddress;
+	addresses?: CustomerAddress[];
+	orders?: {
+		edges: Array<{
+			node: {
+				id: string;
+				orderNumber: number;
+				totalPrice: string;
+				processedAt: string;
+				fulfillmentStatus: string;
+			};
+		}>;
+	};
+}
+
+export interface CartItem {
+	id: string;
+	quantity: number;
+	merchandise: {
+		id: string;
+		title: string;
+		image?: { url: string };
+		product: {
+			handle: string;
+			title: string;
+		};
+	};
+	cost: {
+		totalAmount: {
+			amount: string;
+			currencyCode: string;
+		};
+	};
+}
+
+export interface ShopifyCart {
+	id: string;
+	checkoutUrl: string;
+	totalQuantity: number;
+	lines: {
+		edges: Array<{
+			node: CartItem;
+		}>;
+	};
+	cost?: {
+		subtotalAmount: {
+			amount: string;
+			currencyCode: string;
+		};
+	};
+}
+
+export interface CustomerAccessToken {
+	accessToken: string;
+	expiresAt: string;
+}
+
+export interface CustomerUserError {
+	code: string;
+	field: string[];
+	message: string;
+}
+
+export interface CustomerCreateInput {
+	email: string;
+	password: string;
+	firstName?: string;
+	lastName?: string;
+	acceptsMarketing?: boolean;
+}
+
+export interface CustomerUpdateInput {
+	email?: string;
+	firstName?: string;
+	lastName?: string;
+	password?: string;
+	acceptsMarketing?: boolean;
+}
+
+export interface Blog {
+	id: string;
+	handle: string;
+	title: string;
+	articles: {
+		edges: Array<{
+			node: Article;
+		}>;
+	};
 }

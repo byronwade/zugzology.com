@@ -1,74 +1,83 @@
-import { createStorefrontApiClient, type ClientResponse } from "@shopify/storefront-api-client";
+import { unstable_cache } from "next/cache";
+import { SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_ACCESS_TOKEN } from "./config/constants";
 
-if (!process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN) {
-	throw new Error("NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN is not defined");
-}
+const domain = SHOPIFY_STORE_DOMAIN;
+const storefrontToken = SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+const apiVersion = "2024-01";
 
-if (!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_PUBLIC_TOKEN) {
-	throw new Error("NEXT_PUBLIC_SHOPIFY_STOREFRONT_PUBLIC_TOKEN is not defined");
-}
+const endpoint = `https://${domain}/api/${apiVersion}/graphql.json`;
 
-export const shopifyClient = createStorefrontApiClient({
-	storeDomain: `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}`,
-	publicAccessToken: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_PUBLIC_TOKEN,
-	apiVersion: "2024-01",
+console.log("Shopify Configuration:", {
+	domain,
+	endpoint,
+	hasToken: !!storefrontToken,
 });
 
-export const TAGS = {
-	products: "products",
-	cart: "cart",
-	myceliumsGambit: "myceliums-gambit",
-} as const;
+// Cached Shopify Storefront fetch function
+export const cachedStorefrontFetch = unstable_cache(
+	async <T>({ query, variables, tags = ["shopify"] }: { query: string; variables?: Record<string, unknown>; tags?: string[] }): Promise<T> => {
+		try {
+			console.log("Making Shopify request to:", endpoint);
+			const res = await fetch(endpoint, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"X-Shopify-Storefront-Access-Token": storefrontToken,
+					Accept: "application/json",
+				},
+				body: JSON.stringify({ query, variables }),
+				next: { revalidate: 60 }, // Cache for 60 seconds
+			});
 
-export type ShopifyResponse<T> = ClientResponse<T>;
+			if (!res.ok) {
+				const text = await res.text();
+				throw new Error(`Shopify API error: ${res.status} ${res.statusText}\nResponse: ${text}`);
+			}
 
-const requestCache = new Map();
+			const { data, errors } = await res.json();
 
-export async function dedupedRequest<T>(query: string, variables?: Record<string, unknown>): Promise<ShopifyResponse<T>> {
-	const key = JSON.stringify({ query, variables });
+			if (errors) {
+				console.error("GraphQL Errors:", errors);
+				throw new Error(`Shopify GraphQL Error: ${JSON.stringify(errors, null, 2)}`);
+			}
 
-	if (!requestCache.has(key)) {
-		requestCache.set(key, shopifyClient.request<T>(query, { variables }));
-
-		requestCache.get(key)?.finally(() => {
-			requestCache.delete(key);
-		});
+			return data as T;
+		} catch (error) {
+			console.error("Shopify Storefront API error:", error);
+			throw error;
+		}
+	},
+	["shopify-storefront"],
+	{
+		revalidate: 60,
+		tags: ["shopify"],
 	}
+);
 
-	return requestCache.get(key) as Promise<ShopifyResponse<T>>;
+export const shopifyStorefront = {
+	query: <T>(
+		query: string,
+		{
+			variables,
+			tags = ["shopify"],
+		}: {
+			variables?: Record<string, unknown>;
+			tags?: string[];
+		} = {}
+	) => cachedStorefrontFetch<T>({ query, variables, tags }),
+};
+
+// Helper function to format money
+export function formatMoney(amount: number | string) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+		minimumFractionDigits: 2,
+	}).format(typeof amount === "string" ? parseFloat(amount) : amount);
 }
 
-// Customer authentication mutations
-export const customerAccessTokenCreateMutation = `
-	mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
-		customerAccessTokenCreate(input: $input) {
-			customerAccessToken {
-				accessToken
-				expiresAt
-			}
-			customerUserErrors {
-				code
-				field
-				message
-			}
-		}
-	}
-`;
-
-export const customerCreateMutation = `
-	mutation customerCreate($input: CustomerCreateInput!) {
-		customerCreate(input: $input) {
-			customer {
-				id
-				email
-				firstName
-				lastName
-			}
-			customerUserErrors {
-				code
-				field
-				message
-			}
-		}
-	}
-`;
+// Helper function to generate product image URLs with size
+export function getProductImage(src: string, size: string) {
+	if (!src) return "";
+	return src.replace(/\.(jpg|jpeg|gif|png|bmp|bitmap|tiff|tif)(\?v=\d+)?$/i, `_${size}.$1$2`);
+}

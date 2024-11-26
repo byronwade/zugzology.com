@@ -1,85 +1,88 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { shopifyClient } from "@/lib/shopify";
-import type { Cart } from "@/lib/types/shopify";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { addToCart, removeFromCart, updateCart } from "@/lib/actions/cart";
+import { shopifyClient } from "@/lib/shopify/client";
+import type { ShopifyCart } from "@/lib/types/shopify";
 
-interface CartState {
-	cart: Cart | null;
+// Ensure cart data is serializable
+type SerializableCart = Omit<ShopifyCart, "lines"> & {
+	lines: {
+		edges: Array<{
+			node: {
+				id: string;
+				quantity: number;
+				merchandise: {
+					id: string;
+					title: string;
+					image?: {
+						url: string;
+					};
+					product: {
+						handle: string;
+						title: string;
+					};
+				};
+				cost: {
+					totalAmount: {
+						amount: string;
+						currencyCode: string;
+					};
+				};
+			};
+		}>;
+	};
+};
+
+interface CartStore {
+	cart: SerializableCart | null;
+	isLoading: boolean;
 	isOpen: boolean;
+	isHydrated: boolean;
+	items: Array<{
+		id: string;
+		quantity: number;
+		merchandise: {
+			id: string;
+			title: string;
+			image?: {
+				url: string;
+				altText?: string;
+			};
+			product: {
+				handle: string;
+				title: string;
+			};
+		};
+		cost: {
+			totalAmount: {
+				amount: string;
+				currencyCode: string;
+			};
+		};
+	}>;
+	cost?: {
+		subtotalAmount: {
+			amount: string;
+			currencyCode: string;
+		};
+	};
+	addToCart: (item: { merchandiseId: string; quantity: number }) => Promise<void>;
+	removeItem: (lineId: string) => Promise<void>;
+	updateCart: (lineId: string, quantity: number) => Promise<void>;
+	setIsOpen: (open: boolean) => void;
+	setCart: (cart: SerializableCart | null) => void;
 	openCart: () => void;
 	closeCart: () => void;
-	addToCart: (item: { merchandiseId: string; quantity: number }) => Promise<void>;
-	removeFromCart: (lineId: string) => Promise<void>;
-	updateLineItem: (lineId: string, quantity: number) => Promise<void>;
-	loadCustomerCart: (customerId: string) => Promise<void>;
-	clearCart: () => void;
+	setHydrated: (hydrated: boolean) => void;
+	toggleCart: () => void;
+	hydrate: () => void;
 }
 
-// Create cart mutation
-const createCartMutation = `#graphql
-	mutation cartCreate($input: CartInput!) {
-		cartCreate(input: $input) {
-			cart {
-				id
-				checkoutUrl
-				totalQuantity
-				lines(first: 100) {
-					edges {
-						node {
-							id
-								quantity
-								merchandise {
-									... on ProductVariant {
-										id
-										title
-										product {
-											title
-											handle
-											images(first: 1) {
-												edges {
-													node {
-														url
-														altText
-													}
-												}
-											}
-										}
-									}
-								}
-								cost {
-									totalAmount {
-										amount
-										currencyCode
-									}
-								}
-						}
-					}
-				}
-				cost {
-					totalAmount {
-						amount
-						currencyCode
-					}
-					subtotalAmount {
-						amount
-						currencyCode
-					}
-					totalTaxAmount {
-						amount
-						currencyCode
-					}
-				}
-			}
-		}
-	}
-`;
-
-// Add to cart mutation
-const cartLinesAddMutation = `#graphql
-	mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
-		cartLinesAdd(cartId: $cartId, lines: $lines) {
+const createCartMutation = /* GraphQL */ `
+	mutation CartCreate {
+		cartCreate(input: { lines: [] }) {
 			cart {
 				id
 				checkoutUrl
@@ -93,17 +96,12 @@ const cartLinesAddMutation = `#graphql
 								... on ProductVariant {
 									id
 									title
+									image {
+										url
+									}
 									product {
-										title
 										handle
-										images(first: 1) {
-											edges {
-												node {
-													url
-													altText
-												}
-											}
-										}
+										title
 									}
 								}
 							}
@@ -117,15 +115,11 @@ const cartLinesAddMutation = `#graphql
 					}
 				}
 				cost {
-					totalAmount {
-						amount
-						currencyCode
-					}
 					subtotalAmount {
 						amount
 						currencyCode
 					}
-					totalTaxAmount {
+					totalAmount {
 						amount
 						currencyCode
 					}
@@ -135,280 +129,191 @@ const cartLinesAddMutation = `#graphql
 	}
 `;
 
-// Add update quantity mutation
-const cartLinesUpdateMutation = `#graphql
-  mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
-    cartLinesUpdate(cartId: $cartId, lines: $lines) {
-      cart {
-        id
-        checkoutUrl
-        totalQuantity
-        lines(first: 100) {
-          edges {
-            node {
-              id
-              quantity
-              merchandise {
-                ... on ProductVariant {
-                  id
-                  title
-                  product {
-                    title
-                    handle
-                    images(first: 1) {
-                      edges {
-                        node {
-                          url
-                          altText
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-              cost {
-                totalAmount {
-                  amount
-                  currencyCode
-                }
-              }
-            }
-          }
-        }
-        cost {
-          totalAmount {
-            amount
-            currencyCode
-          }
-          subtotalAmount {
-            amount
-            currencyCode
-          }
-          totalTaxAmount {
-            amount
-            currencyCode
-          }
-        }
-      }
-    }
-  }
-`;
+const STORAGE_KEY = "cart-storage-v1";
 
-// Add remove line items mutation
-const cartLinesRemoveMutation = `#graphql
-  mutation cartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
-    cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
-      cart {
-        id
-        checkoutUrl
-        totalQuantity
-        lines(first: 100) {
-          edges {
-            node {
-              id
-              quantity
-              merchandise {
-                ... on ProductVariant {
-                  id
-                  title
-                  product {
-                    title
-                    handle
-                    images(first: 1) {
-                      edges {
-                        node {
-                          url
-                          altText
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-              cost {
-                totalAmount {
-                  amount
-                  currencyCode
-                }
-              }
-            }
-          }
-        }
-        cost {
-          totalAmount {
-            amount
-            currencyCode
-          }
-          subtotalAmount {
-            amount
-            currencyCode
-          }
-          totalTaxAmount {
-            amount
-            currencyCode
-          }
-        }
-      }
-    }
-  }
-`;
-
-export const useCart = create<CartState>()(
+export const useCart = create<CartStore>()(
 	persist(
 		(set, get) => ({
 			cart: null,
+			isLoading: false,
 			isOpen: false,
+			isHydrated: false,
+			items: [],
+			cost: undefined,
+
+			setCart: (cart) => {
+				// Ensure we're only storing serializable data
+				const serializableCart = cart ? JSON.parse(JSON.stringify(cart)) : null;
+				set({
+					cart: serializableCart,
+					items: serializableCart?.lines?.edges?.map((edge: any) => edge.node) || [],
+					cost: serializableCart?.cost || undefined,
+				});
+				// Manually update localStorage to ensure it's saved
+				if (typeof window !== "undefined") {
+					const storage = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+					localStorage.setItem(
+						STORAGE_KEY,
+						JSON.stringify({
+							...storage,
+							state: { ...storage.state, cart: serializableCart },
+						})
+					);
+				}
+			},
+			setIsOpen: (open) => set({ isOpen: open }),
 			openCart: () => set({ isOpen: true }),
 			closeCart: () => set({ isOpen: false }),
+			setHydrated: (hydrated) => set({ isHydrated: hydrated }),
+			toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
+			hydrate: () => {
+				const storage = localStorage.getItem(STORAGE_KEY);
+				if (storage) {
+					const { state } = JSON.parse(storage);
+					if (state?.cart) {
+						get().setCart(state.cart);
+					}
+				}
+				set({ isHydrated: true });
+			},
 
 			addToCart: async ({ merchandiseId, quantity }) => {
-				const { cart } = get();
 				try {
-					if (!cart) {
-						const response = await shopifyClient.request(createCartMutation, {
-							variables: {
-								input: {
-									lines: [{ merchandiseId, quantity }],
-								},
-							},
-						});
+					set({ isLoading: true });
+					let cartId = get().cart?.id;
 
-						if (response.data?.cartCreate?.cart) {
-							set({
-								cart: response.data.cartCreate.cart,
-								isOpen: true,
-							});
+					// If no cart exists, create one
+					if (!cartId) {
+						const response = await shopifyClient.mutation<{
+							cartCreate: { cart: ShopifyCart };
+						}>(createCartMutation);
+
+						if (!response.data?.cartCreate?.cart) {
+							throw new Error("Failed to create cart: No cart data returned");
 						}
+
+						cartId = response.data.cartCreate.cart.id;
+						if (!cartId) {
+							throw new Error("Failed to get cart ID");
+						}
+
+						get().setCart(response.data.cartCreate.cart as SerializableCart);
+					}
+
+					const updatedCart = await addToCart(cartId, merchandiseId, quantity);
+					if (!updatedCart) {
+						throw new Error("Failed to update cart");
+					}
+
+					get().setCart(updatedCart as SerializableCart);
+					set({ isOpen: true });
+				} catch (error) {
+					console.error("Failed to add to cart:", error);
+					if (error instanceof Error && error.message.includes("No cart found")) {
+						get().setCart(null);
+						return get().addToCart({ merchandiseId, quantity });
+					}
+					throw error;
+				} finally {
+					set({ isLoading: false });
+				}
+			},
+
+			removeItem: async (lineId) => {
+				try {
+					set({ isLoading: true });
+					const cartId = get().cart?.id;
+					if (!cartId) {
+						throw new Error("No cart found");
+					}
+
+					const updatedCart = await removeFromCart(cartId, [lineId]);
+					if (!updatedCart) {
+						throw new Error("Failed to remove from cart");
+					}
+
+					if (updatedCart.lines.edges.length === 0) {
+						get().setCart(updatedCart as SerializableCart);
+						set({ isOpen: false });
 					} else {
-						const response = await shopifyClient.request(cartLinesAddMutation, {
-							variables: {
-								cartId: cart.id,
-								lines: [{ merchandiseId, quantity }],
-							},
-						});
-
-						if (response.data?.cartLinesAdd?.cart) {
-							set({
-								cart: response.data.cartLinesAdd.cart,
-								isOpen: true,
-							});
-						}
+						get().setCart(updatedCart as SerializableCart);
 					}
 				} catch (error) {
-					console.error("Error adding to cart:", error);
+					console.error("Failed to remove from cart:", error);
+					if (error instanceof Error && error.message.includes("No cart found")) {
+						get().setCart(null);
+					}
 					throw error;
+				} finally {
+					set({ isLoading: false });
 				}
 			},
 
-			updateLineItem: async (lineId: string, quantity: number) => {
-				const { cart } = get();
-				if (!cart) return;
-
+			updateCart: async (lineId, quantity) => {
 				try {
-					const response = await shopifyClient.request(cartLinesUpdateMutation, {
-						variables: {
-							cartId: cart.id,
-							lines: [
-								{
-									id: lineId,
-									quantity: quantity,
-								},
-							],
-						},
-					});
-
-					if (response.data?.cartLinesUpdate?.cart) {
-						set({ cart: response.data.cartLinesUpdate.cart });
+					set({ isLoading: true });
+					const cartId = get().cart?.id;
+					if (!cartId) {
+						throw new Error("No cart found");
 					}
+
+					if (quantity === 0) {
+						return get().removeItem(lineId);
+					}
+
+					const updatedCart = await updateCart(cartId, lineId, quantity);
+					if (!updatedCart) {
+						throw new Error("Failed to update cart");
+					}
+
+					get().setCart(updatedCart as SerializableCart);
 				} catch (error) {
-					console.error("Error updating cart:", error);
+					console.error("Failed to update cart:", error);
+					if (error instanceof Error && error.message.includes("No cart found")) {
+						get().setCart(null);
+					}
 					throw error;
+				} finally {
+					set({ isLoading: false });
 				}
-			},
-
-			removeFromCart: async (lineId: string) => {
-				const { cart } = get();
-				if (!cart) return;
-
-				try {
-					const response = await shopifyClient.request(cartLinesRemoveMutation, {
-						variables: {
-							cartId: cart.id,
-							lineIds: [lineId],
-						},
-					});
-
-					if (response.data?.cartLinesRemove?.cart) {
-						set({ cart: response.data.cartLinesRemove.cart });
-					}
-				} catch (error) {
-					console.error("Error removing from cart:", error);
-					throw error;
-				}
-			},
-
-			loadCustomerCart: async (customerId: string) => {
-				try {
-					const response = await shopifyClient.request(cartLinesAddMutation, {
-						variables: { customerId },
-					});
-
-					if (response?.data?.customer?.cart) {
-						set({ cart: response.data.customer.cart });
-					}
-				} catch (error) {
-					console.error("Error loading customer cart:", error);
-				}
-			},
-
-			clearCart: () => {
-				set({ cart: null });
 			},
 		}),
 		{
-			name: "shopping-cart",
-			skipHydration: true,
-			storage: {
-				getItem: (name) => {
-					try {
-						if (typeof window === "undefined") return null;
-						const str = localStorage.getItem(name);
-						return str ? JSON.parse(str) : null;
-					} catch {
-						return null;
-					}
-				},
-				setItem: (name, value) => {
-					try {
-						if (typeof window !== "undefined") {
-							localStorage.setItem(name, JSON.stringify(value));
-						}
-					} catch (err) {
-						console.error("Error saving cart to localStorage:", err);
-					}
-				},
-				removeItem: (name) => {
-					try {
-						if (typeof window !== "undefined") {
-							localStorage.removeItem(name);
-						}
-					} catch (err) {
-						console.error("Error removing cart from localStorage:", err);
-					}
-				},
-			},
+			name: STORAGE_KEY,
+			storage: createJSONStorage(() => {
+				if (typeof window !== "undefined") {
+					return {
+						getItem: (key) => {
+							const data = localStorage.getItem(key);
+							return data ? JSON.parse(data) : null;
+						},
+						setItem: (key, value) => {
+							localStorage.setItem(key, JSON.stringify(value));
+						},
+						removeItem: (key) => localStorage.removeItem(key),
+					};
+				}
+				return {
+					getItem: () => null,
+					setItem: () => {},
+					removeItem: () => {},
+				};
+			}),
+
 			partialize: (state) => ({
 				cart: state.cart,
 				isOpen: state.isOpen,
-				openCart: state.openCart,
-				closeCart: state.closeCart,
-				addToCart: state.addToCart,
-				removeFromCart: state.removeFromCart,
-				updateLineItem: state.updateLineItem,
-				loadCustomerCart: state.loadCustomerCart,
-				clearCart: state.clearCart,
 			}),
-			// prettier-ignore: This line will not be formatted
+			version: 1,
+			onRehydrateStorage: () => (state) => {
+				if (state) {
+					state.setHydrated(true);
+					// Verify cart data integrity
+					if (state.cart && (!state.cart.id || !state.cart.lines)) {
+						state.setCart(null);
+					}
+				}
+			},
 		}
 	)
 );
