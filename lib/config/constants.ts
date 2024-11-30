@@ -7,3 +7,6 @@ export const CACHE_TIMES = {
 	menu: 3600,
 	blog: 300,
 } as const;
+
+export const SITE_NAME = "Your Store Name";
+export const SITE_DESCRIPTION = "Your store description";

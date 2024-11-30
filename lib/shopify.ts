@@ -5,9 +5,14 @@ export function getStorefrontApiUrl(): string {
 
 // Helper function to get public access token headers
 export function getPublicTokenHeaders(): HeadersInit {
+	const token = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+	if (!token) {
+		throw new Error("Missing Shopify Storefront Access Token");
+	}
+
 	return {
 		"Content-Type": "application/json",
-		"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_PUBLIC_ACCESS_TOKEN!,
+		"X-Shopify-Storefront-Access-Token": token,
 	};
 }
 
@@ -16,35 +21,30 @@ export const PRODUCT_FRAGMENT = `#graphql
   fragment ProductFragment on Product {
     id
     title
-    description
     handle
+    description
     availableForSale
-    priceRange {
-      minVariantPrice {
-        amount
-        currencyCode
-      }
-    }
-    images(first: 1) {
-      edges {
-        node {
-          url
-          altText
-          width
-          height
-        }
-      }
-    }
     variants(first: 1) {
       edges {
         node {
           id
           title
           availableForSale
+          quantityAvailable
           price {
             amount
             currencyCode
           }
+        }
+      }
+    }
+    images(first: 10) {
+      edges {
+        node {
+          url
+          altText
+          width
+          height
         }
       }
     }
@@ -66,23 +66,37 @@ export const COLLECTION_FRAGMENT = `#graphql
   }
 `;
 
-// Helper function to make GraphQL requests
+// Helper function to make GraphQL requests with better error handling
 export async function shopifyFetch<T>({ query, variables = {}, cache = "force-cache" }: { query: string; variables?: Record<string, unknown>; cache?: RequestCache }): Promise<{ data: T }> {
 	try {
-		const result = await fetch(getStorefrontApiUrl(), {
+		console.log("Shopify API Request:", {
+			url: getStorefrontApiUrl(),
+			variables,
+			query: query.slice(0, 100) + "...", // Log first 100 chars of query
+		});
+
+		const response = await fetch(getStorefrontApiUrl(), {
 			method: "POST",
 			headers: getPublicTokenHeaders(),
 			body: JSON.stringify({ query, variables }),
 			cache,
 		});
 
-		if (!result.ok) {
-			throw new Error(`Failed to fetch from Shopify: ${result.statusText}`);
+		const json = await response.json();
+		console.log("Shopify API Raw Response:", json);
+
+		if (json.errors) {
+			const errorMessage = json.errors.map((e: any) => e.message).join(", ");
+			console.error("Shopify GraphQL Errors:", errorMessage);
+			if (errorMessage.includes("Not Found")) {
+				return { data: {} as T };
+			}
+			throw new Error(errorMessage);
 		}
 
-		return await result.json();
+		return { data: json.data || ({} as T) };
 	} catch (error) {
-		console.error("Error fetching from Shopify:", error);
+		console.error("Shopify API Error:", error);
 		throw error;
 	}
 }

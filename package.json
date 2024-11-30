@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"dev": "next dev --turbopack -p 3001",
+		"dev": "next dev -p 3001",
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint"
@@ -12,11 +12,12 @@
 		"@headlessui/react": "^1.7.17",
 		"@heroicons/react": "^2.0.18",
 		"@tanstack/react-query": "^5.8.4",
+		"babel-plugin-react-compiler": "^19.0.0-beta-df7b47d-20241124",
 		"clsx": "^2.0.0",
 		"lucide-react": "^0.292.0",
-		"next": "14.0.3",
-		"react": "^18.2.0",
-		"react-dom": "^18.2.0",
+		"next": "^15.0.4-canary.32",
+		"react": "^19.0.0-rc-7670501b-20241124",
+		"react-dom": "^19.0.0-rc-7670501b-20241124",
 		"tailwind-merge": "^2.0.0",
 		"tailwindcss-animate": "^1.0.7",
 		"turbo": "^2.3.3"

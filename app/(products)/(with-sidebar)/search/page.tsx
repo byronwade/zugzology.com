@@ -1,5 +1,6 @@
+import React, { Suspense } from "react";
 import { unstable_cache } from "next/cache";
-import { Suspense } from "react";
+import Image from "next/image";
 
 interface SearchResult {
 	id: string;
@@ -126,7 +127,7 @@ export default function SearchPage({ searchParams }: { searchParams: { q?: strin
 	const query = searchParams.q || "";
 
 	return (
-		<div className="container mx-auto px-4 py-8">
+		<div className="w-full max-w-none px-4 py-8">
 			<div className="max-w-2xl mx-auto">
 				<h1 className="text-3xl font-bold mb-8">Search Results</h1>
 				<form action="/search" method="GET" className="mb-8">
