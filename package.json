@@ -15,7 +15,11 @@
 		"babel-plugin-react-compiler": "^19.0.0-beta-df7b47d-20241124",
 		"clsx": "^2.0.0",
 		"lucide-react": "^0.292.0",
+<<<<<<< HEAD
 		"next": "^15.0.4-canary.31",
+=======
+		"next": "^15.0.4-canary.32",
+>>>>>>> fae339299d7c36f74097585aff30db77f2e11300
 		"react": "^19.0.0-rc-7670501b-20241124",
 		"react-dom": "^19.0.0-rc-7670501b-20241124",
 		"tailwind-merge": "^2.0.0",

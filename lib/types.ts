@@ -1,38 +1,46 @@
+export interface ShopifyProductOption {
+	id: string;
+	name: string;
+	values: string[];
+}
+
 export interface ShopifyProduct {
 	id: string;
 	title: string;
 	description: string;
 	handle: string;
 	availableForSale: boolean;
+	productType: string;
+	vendor: string;
+	tags: string[];
+	rating?: number;
+	reviewsCount?: number;
+	options: ShopifyProductOption[];
 	priceRange: {
 		minVariantPrice: {
 			amount: string;
 			currencyCode: string;
 		};
-	};
-	images: {
-		edges: {
-			node: {
-				url: string;
-				altText: string | null;
-				width: number;
-				height: number;
-			};
-		}[];
+		maxVariantPrice: {
+			amount: string;
+			currencyCode: string;
+		};
 	};
 	variants: {
-		edges: {
-			node: {
-				id: string;
-				title: string;
-				availableForSale: boolean;
-				price: {
-					amount: string;
-					currencyCode: string;
-				};
-			};
-		}[];
+		edges: Array<{
+			node: ShopifyProductVariant;
+		}>;
 	};
+	images: {
+		edges: Array<{
+			node: ShopifyImage;
+		}>;
+	};
+	metafields?: Array<{
+		key: string;
+		value: string;
+	}>;
+	publishedAt: string;
 }
 
 export interface ShopifyCollection {
@@ -40,6 +48,11 @@ export interface ShopifyCollection {
 	title: string;
 	description: string;
 	handle: string;
+	products: {
+		edges: Array<{
+			node: ShopifyProduct;
+		}>;
+	};
 	image?: {
 		url: string;
 		altText: string | null;
@@ -48,49 +61,35 @@ export interface ShopifyCollection {
 	};
 }
 
-export interface CartLine {
+export interface ShopifyProductVariant {
 	id: string;
-	quantity: number;
-	merchandise: {
-		id: string;
-		title: string;
-		price: {
-			amount: string;
-			currencyCode: string;
-		};
-		product: {
-			title: string;
-			images: {
-				edges: {
-					node: {
-						url: string;
-						altText: string | null;
-					};
-				}[];
-			};
-		};
+	title: string;
+	availableForSale: boolean;
+	quantityAvailable: number;
+	price: {
+		amount: string;
+		currencyCode: string;
+	};
+	compareAtPrice?: {
+		amount: string;
+		currencyCode: string;
+	};
+	selectedOptions: Array<{
+		name: string;
+		value: string;
+	}>;
+	image?: {
+		url: string;
+		altText: string | null;
+		width?: number;
+		height?: number;
 	};
 }
 
-export interface Cart {
-	id: string;
-	lines: {
-		edges: {
-			node: CartLine;
-		}[];
-	};
-	cost: {
-		subtotalAmount: {
-			amount: string;
-			currencyCode: string;
-		};
-		totalAmount: {
-			amount: string;
-			currencyCode: string;
-		};
-		totalTaxAmount: {
-			amount: string;
-			currencyCode: string;
-		};
-	};
+export interface ShopifyImage {
+	url: string;
+	altText: string | null;
+	width?: number;
+	height?: number;
+	variantIds?: string[];
 }

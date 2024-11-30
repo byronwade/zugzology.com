@@ -17,6 +17,7 @@ const nextConfig = {
 			{
 				protocol: "https",
 				hostname: "cdn.shopify.com",
+				pathname: "/**",
 			},
 			{
 				protocol: "https",
@@ -24,6 +25,13 @@ const nextConfig = {
 			},
 		],
 		dangerouslyAllowSVG: true,
+		deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+		imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+	},
+	logging: {
+		fetches: {
+			fullUrl: true,
+		},
 	},
 };
 

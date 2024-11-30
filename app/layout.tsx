@@ -1,3 +1,4 @@
+import { Providers } from "./providers";
 import { Header } from "@/components/header/header";
 import "./globals.css";
 import type { Metadata } from "next";
@@ -13,9 +14,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body suppressHydrationWarning>
-				<Header />
-				<main className="min-h-screen">{children}</main>
+			<head />
+			<body>
+				<Providers>
+					<Header />
+					<main className="min-h-screen">{children}</main>
+				</Providers>
 			</body>
 		</html>
 	);
