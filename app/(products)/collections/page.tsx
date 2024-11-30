@@ -76,44 +76,6 @@ function ProductList({ products }: { products: Product[] }) {
 	);
 }
 
-export const metadata: Metadata = {
-	title: "All Products | Mushroom Growing Supplies",
-	description: "Browse our complete collection of mushroom growing supplies. Find grow bags, substrates, and essential cultivation equipment.",
-	openGraph: {
-		title: "All Products | Mushroom Growing Supplies",
-		description: "Browse our complete collection of mushroom growing supplies. Find grow bags, substrates, and essential cultivation equipment.",
-		type: "website",
-	},
-};
-
-// Add JSON-LD script
-export function generateJsonLd(products: Product[]) {
-	return {
-		"@context": "https://schema.org",
-		"@type": "ItemList",
-		itemListElement: products.map((product, index) => ({
-			"@type": "ListItem",
-			position: index + 1,
-			item: {
-				"@type": "Product",
-				name: product.title,
-				description: product.description,
-				image: product.image,
-				brand: {
-					"@type": "Brand",
-					name: product.brand,
-				},
-				offers: {
-					"@type": "Offer",
-					price: product.price,
-					priceCurrency: "USD",
-					availability: "https://schema.org/OutOfStock",
-				},
-			},
-		})),
-	};
-}
-
 async function ProductsContent() {
 	const products = await getProducts();
 
@@ -155,4 +117,58 @@ export default function ProductsPage() {
 			</div>
 		</div>
 	);
+}
+
+export const metadata: Metadata = {
+	title: "Product Collections | Mushroom Growing Supplies",
+	description: "Explore our curated collections of mushroom growing supplies. Find everything you need for successful cultivation in one place.",
+	openGraph: {
+		title: "Product Collections | Mushroom Growing Supplies",
+		description: "Explore our curated collections of mushroom growing supplies. Find everything you need for successful cultivation in one place.",
+		type: "website",
+	},
+};
+
+// Add JSON-LD for collection page
+const collectionJsonLd = {
+	"@context": "https://schema.org",
+	"@type": "CollectionPage",
+	name: "Mushroom Growing Supply Collections",
+	description: "Curated collections of mushroom growing supplies and equipment",
+	provider: {
+		"@type": "Organization",
+		name: "Zugzology",
+		url: "https://zugzology.com",
+	},
+};
+
+// Add the generateJsonLd function before using it
+function generateJsonLd(products: Product[]) {
+	return {
+		"@context": "https://schema.org",
+		"@type": "CollectionPage",
+		mainEntity: {
+			"@type": "ItemList",
+			itemListElement: products.map((product, index) => ({
+				"@type": "ListItem",
+				position: index + 1,
+				item: {
+					"@type": "Product",
+					name: product.title,
+					description: product.description,
+					image: product.image,
+					brand: {
+						"@type": "Brand",
+						name: product.brand,
+					},
+					offers: {
+						"@type": "Offer",
+						price: product.price,
+						priceCurrency: "USD",
+						availability: "https://schema.org/OutOfStock",
+					},
+				},
+			})),
+		},
+	};
 }

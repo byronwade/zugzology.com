@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 
@@ -121,6 +122,29 @@ async function SearchResults({ query }: { query: string }) {
 		</div>
 	);
 }
+
+export const metadata: Metadata = {
+	title: "Search Products | Mushroom Growing Supplies",
+	description: "Search our complete catalog of mushroom growing supplies and equipment. Find exactly what you need for successful cultivation.",
+	robots: {
+		index: false, // Usually better to not index search pages
+	},
+};
+
+// Add JSON-LD for search
+const searchJsonLd = {
+	"@context": "https://schema.org",
+	"@type": "WebSite",
+	url: "https://zugzology.com",
+	potentialAction: {
+		"@type": "SearchAction",
+		target: {
+			"@type": "EntryPoint",
+			urlTemplate: "https://zugzology.com/search?q={search_term_string}",
+		},
+		"query-input": "required name=search_term_string",
+	},
+};
 
 export default function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
 	const query = searchParams.q || "";
