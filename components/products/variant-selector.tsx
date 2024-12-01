@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { ShopifyProduct, ShopifyProductVariant } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
+import { Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface VariantSelectorProps {
 	product: ShopifyProduct;
@@ -49,12 +51,12 @@ export function VariantSelector({ product, selectedVariant, onVariantChange }: V
 
 	return (
 		<div className="space-y-6">
-			<div className="text-xl font-semibold text-gray-900 dark:text-gray-100">Variants</div>
+			<div className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">Variants</div>
 
 			{product.options.map((option) => (
 				<div key={option.id} className="space-y-4">
 					<div className="flex justify-between items-center">
-						<Label className="text-lg font-medium text-gray-900 dark:text-gray-100">{option.name}</Label>
+						<Label className="text-lg font-medium text-neutral-900 dark:text-neutral-100">{option.name}</Label>
 					</div>
 
 					<div className="space-y-4">
@@ -71,8 +73,8 @@ export function VariantSelector({ product, selectedVariant, onVariantChange }: V
 									key={variant.id}
 									className={`
 										border rounded-lg p-4 space-y-3
-										${isSelected ? "border-primary bg-primary/5" : "border-gray-200"}
-										${!available && "opacity-50"}
+										${isSelected ? "border-primary bg-primary/5" : "border-neutral-200"}
+										${!available && "border-amber-500"}
 									`}
 								>
 									<div className="flex justify-between items-start">
@@ -81,19 +83,26 @@ export function VariantSelector({ product, selectedVariant, onVariantChange }: V
 												<input type="radio" name={option.name} value={variantOption.value} checked={isSelected} onChange={() => handleOptionChange(option.name, variantOption.value)} className="text-primary mt-1" />
 												<div>
 													<div className="font-medium">{variantOption.value}</div>
-													<div className="text-sm text-gray-500">{variant.title}</div>
+													<div className="text-sm text-neutral-500">{variant.title}</div>
 												</div>
 											</div>
 										</div>
 										<div className="text-right">
 											<div className="font-medium">Price</div>
-											<div className="text-lg">${formatPrice(variant.price.amount)}</div>
+											<div className="text-lg">{formatPrice(parseFloat(variant.price.amount))}</div>
 										</div>
 									</div>
 
-									<div className="flex justify-between text-sm text-gray-500">
-										<div>Quantity: {quantity}</div>
-										<div>{available ? "In stock" : "Out of stock"}</div>
+									<div className="flex justify-between text-sm">
+										<div className="text-neutral-500">Quantity: {quantity}</div>
+										{!available ? (
+											<div className="flex items-center gap-1 text-amber-600">
+												<Clock className="h-4 w-4" />
+												<span>Pre-order</span>
+											</div>
+										) : (
+											<div className="text-green-600">In stock</div>
+										)}
 									</div>
 								</div>
 							);
@@ -102,7 +111,7 @@ export function VariantSelector({ product, selectedVariant, onVariantChange }: V
 				</div>
 			))}
 
-			<div className="text-sm text-gray-500 mt-4">Total inventory across all locations: {totalInventory} available</div>
+			<div className="text-sm text-neutral-500 mt-4">Total inventory across all locations: {totalInventory} available</div>
 		</div>
 	);
 }

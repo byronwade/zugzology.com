@@ -1,18 +1,32 @@
+// At the top of the file, add these constants
+const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+const storefrontAccessToken = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+const apiVersion = "2024-01"; // Using latest Shopify API version
+
+// Add these type definitions at the top of the file
+interface ShopifyFetchOptions {
+	query: string;
+	variables?: Record<string, unknown>;
+	cache?: RequestCache;
+}
+
 // Helper function to get GraphQL API URL
 export function getStorefrontApiUrl(): string {
-	return `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql`;
+	if (!domain) {
+		throw new Error("Missing NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN environment variable");
+	}
+	return `https://${domain}/api/${apiVersion}/graphql`;
 }
 
 // Helper function to get public access token headers
 export function getPublicTokenHeaders(): HeadersInit {
-	const token = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN;
-	if (!token) {
-		throw new Error("Missing Shopify Storefront Access Token");
+	if (!storefrontAccessToken) {
+		throw new Error("Missing NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN environment variable");
 	}
 
 	return {
 		"Content-Type": "application/json",
-		"X-Shopify-Storefront-Access-Token": token,
+		"X-Shopify-Storefront-Access-Token": storefrontAccessToken,
 	};
 }
 
@@ -67,36 +81,46 @@ export const COLLECTION_FRAGMENT = `#graphql
 `;
 
 // Helper function to make GraphQL requests with better error handling
-export async function shopifyFetch<T>({ query, variables = {}, cache = "force-cache" }: { query: string; variables?: Record<string, unknown>; cache?: RequestCache }): Promise<{ data: T }> {
+export async function shopifyFetch<T>({ query, variables, cache }: ShopifyFetchOptions): Promise<{ data: T }> {
 	try {
-		console.log("Shopify API Request:", {
-			url: getStorefrontApiUrl(),
-			variables,
-			query: query.slice(0, 100) + "...", // Log first 100 chars of query
-		});
-
-		const response = await fetch(getStorefrontApiUrl(), {
-			method: "POST",
-			headers: getPublicTokenHeaders(),
-			body: JSON.stringify({ query, variables }),
-			cache,
-		});
-
-		const json = await response.json();
-		console.log("Shopify API Raw Response:", json);
-
-		if (json.errors) {
-			const errorMessage = json.errors.map((e: any) => e.message).join(", ");
-			console.error("Shopify GraphQL Errors:", errorMessage);
-			if (errorMessage.includes("Not Found")) {
-				return { data: {} as T };
-			}
-			throw new Error(errorMessage);
+		if (!domain || !storefrontAccessToken) {
+			console.error("Missing required environment variables:", {
+				domain: !!domain,
+				token: !!storefrontAccessToken,
+			});
+			throw new Error("Shopify environment variables are not properly configured");
 		}
 
-		return { data: json.data || ({} as T) };
+		const url = `https://${domain}/api/${apiVersion}/graphql.json`;
+		console.log("Attempting fetch to:", url); // Debug log
+
+		const response = await fetch(url, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Shopify-Storefront-Access-Token": storefrontAccessToken,
+			},
+			body: JSON.stringify({
+				query,
+				variables,
+			}),
+			cache: cache ?? "force-cache",
+		});
+
+		if (!response.ok) {
+			throw new Error(`Shopify API responded with status ${response.status}`);
+		}
+
+		const json = await response.json();
+
+		// Check for GraphQL errors
+		if (json.errors) {
+			throw new Error(`Shopify GraphQL Error: ${JSON.stringify(json.errors, null, 2)}`);
+		}
+
+		return json;
 	} catch (error) {
-		console.error("Shopify API Error:", error);
+		console.error("Shopify Fetch Error:", error);
 		throw error;
 	}
 }

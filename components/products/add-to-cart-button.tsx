@@ -1,40 +1,76 @@
 "use client";
 
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useCart } from "@/lib/providers/cart-provider";
+import { Loader2, ShoppingCart, Clock } from "lucide-react";
+import { useState, useCallback } from "react";
+import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 interface AddToCartButtonProps {
-	productId: string;
-	variantId?: string;
-	available: boolean;
-	checkoutUrl?: string;
+	variantId: string;
+	availableForSale: boolean;
+	quantity: number;
+	className?: string;
+	hasVariants?: boolean;
+	productHandle?: string;
 }
 
-export function AddToCartButton({ productId, variantId, available, checkoutUrl }: AddToCartButtonProps) {
-	const [quantity, setQuantity] = useState(1);
+export function AddToCartButton({ variantId, availableForSale, quantity, className = "", hasVariants = false, productHandle = "" }: AddToCartButtonProps) {
+	const { addItem } = useCart();
+	const [isLoading, setIsLoading] = useState(false);
+	const isPreOrder = quantity <= 0;
+	const router = useRouter();
 
-	const handleBuyNow = () => {
-		if (checkoutUrl) {
-			window.location.href = checkoutUrl;
+	const handleClick = useCallback(async () => {
+		if (hasVariants && productHandle) {
+			router.push(`/products/${productHandle}`);
+			return;
 		}
-	};
+
+		if (!hasVariants) {
+			if (!variantId || isLoading) return;
+
+			setIsLoading(true);
+
+			try {
+				const merchandiseId = variantId.includes("gid://shopify/ProductVariant/") ? variantId : `gid://shopify/ProductVariant/${variantId}`;
+
+				await addItem({
+					merchandiseId,
+					quantity: 1,
+					isPreOrder,
+				});
+			} catch (error) {
+				console.error("Add to cart error:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		}
+	}, [variantId, addItem, isPreOrder, isLoading, hasVariants, productHandle, router]);
+
+	// Determine button variant and style based on type
+	const buttonStyle = cn(
+		"relative w-full transition-colors",
+		{
+			"bg-blue-600 hover:bg-blue-700 text-white": hasVariants,
+			"bg-amber-600 hover:bg-amber-700 text-white": isPreOrder && !hasVariants,
+			"bg-primary hover:bg-primary/90": !hasVariants && !isPreOrder,
+		},
+		className
+	);
 
 	return (
-		<div className="space-y-2">
-			<div className="flex items-center gap-2">
-				<select value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="border rounded px-2 py-1">
-					{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-						<option key={num} value={num}>
-							{num}
-						</option>
-					))}
-				</select>
-				<button onClick={() => console.log("Add to cart:", { productId, variantId, quantity })} disabled={!available} className="w-full bg-yellow-400 hover:bg-yellow-500 py-2 px-4 rounded-full text-sm font-medium disabled:opacity-50">
-					Add to Cart
-				</button>
-			</div>
-			<button onClick={handleBuyNow} disabled={!available || !checkoutUrl} className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-full text-sm font-medium disabled:opacity-50">
-				Buy Now on Shopify
-			</button>
-		</div>
+		<Button onClick={handleClick} disabled={isLoading || (!availableForSale && !isPreOrder)} className={buttonStyle} size="lg">
+			{isLoading ? (
+				<Loader2 className="h-4 w-4 animate-spin" />
+			) : (
+				<div className="flex items-center justify-center gap-2">
+					{isPreOrder ? <Clock className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+					<span>{hasVariants ? "Select Options" : isPreOrder ? "Pre-Order Now" : "Add to Cart"}</span>
+				</div>
+			)}
+		</Button>
 	);
 }
+

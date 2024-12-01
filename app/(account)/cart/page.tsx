@@ -1,5 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
+import { formatPrice } from "@/lib/utils";
+import Image from "next/image";
 
 interface CartItem {
 	id: string;
@@ -65,7 +67,7 @@ function CartItem({ item }: { item: CartItem }) {
 			<img src={item.image} alt={item.title} className="w-20 h-20 object-cover rounded" />
 			<div className="ml-4 flex-grow">
 				<h3 className="font-semibold">{item.title}</h3>
-				<p className="text-gray-600">Quantity: {item.quantity}</p>
+				<p className="text-neutral-600">Quantity: {item.quantity}</p>
 				<p className="font-bold">${item.price.toFixed(2)}</p>
 			</div>
 			<button className="text-red-600 hover:text-red-800">Remove</button>
@@ -75,7 +77,7 @@ function CartItem({ item }: { item: CartItem }) {
 
 function CartSummary({ cart }: { cart: Cart }) {
 	return (
-		<div className="bg-gray-50 p-6 rounded-lg">
+		<div className="bg-neutral-50 p-6 rounded-lg">
 			<h3 className="text-lg font-semibold mb-4">Order Summary</h3>
 			<div className="space-y-2">
 				<div className="flex justify-between">

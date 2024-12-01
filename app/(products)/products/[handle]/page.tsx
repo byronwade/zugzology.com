@@ -1,46 +1,74 @@
-import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import React from "react";
 import { getProduct } from "@/lib/actions/shopify";
+import { notFound } from "next/navigation";
+import { ErrorBoundary } from "@/components/error-boundary";
 import type { Metadata } from "next";
+import { ProductContentClient } from "@/components/products/product-content-client";
+import { Suspense } from "react";
 
-export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
-	const product = await getProduct(params.handle);
+interface ProductPageProps {
+	params: {
+		handle: string;
+	};
+}
 
-	if (!product) {
-		return {
-			title: "Product Not Found",
-			description: "The requested product could not be found",
-			robots: {
-				index: false,
-			},
-		};
-	}
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+	const nextjs15 = await params;
+	const product = await getProduct(nextjs15.handle);
+	if (!product) return notFound();
 
 	return {
-		title: `${product.title} | Mushroom Growing Supplies`,
+		title: product.title,
 		description: product.description,
 		openGraph: {
 			title: product.title,
 			description: product.description,
-			images: [{ url: product.images.edges[0]?.node.url }],
-			type: "website",
-			siteName: "Zugzology",
-			url: `https://zugzology.com/products/${params.handle}`,
-		},
-		alternates: {
-			canonical: `https://zugzology.com/products/${params.handle}`,
+			images:
+				product.images?.edges?.map(({ node }) => ({
+					url: node.url,
+					width: node.width,
+					height: node.height,
+					alt: node.altText || product.title,
+				})) || [],
 		},
 	};
 }
 
-// Add JSON-LD for product
-function generateProductJsonLd(product: any) {
-	return {
+function LoadingFallback() {
+	return (
+		<div className="w-full h-screen flex items-center justify-center">
+			<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+		</div>
+	);
+}
+
+export default async function ProductPage({ params }: ProductPageProps) {
+	const nextjs15 = await params;
+	const product = await getProduct(nextjs15.handle);
+
+	if (!product) {
+		console.error("Product not found:", nextjs15.handle);
+		return notFound();
+	}
+
+	// Validate required product data
+	const hasRequiredData = product.variants?.edges?.length > 0;
+
+	if (!hasRequiredData) {
+		console.error("Product missing required data:", {
+			handle: nextjs15.handle,
+			hasVariants: Boolean(product.variants?.edges?.length),
+			hasImages: Boolean(product.images?.edges?.length),
+		});
+		return notFound();
+	}
+
+	const productJsonLd = {
 		"@context": "https://schema.org",
 		"@type": "Product",
 		name: product.title,
 		description: product.description,
-		image: product.images.edges[0]?.node.url,
+		image: product.images?.edges?.map(({ node }) => node.url) || [],
 		offers: {
 			"@type": "Offer",
 			price: product.priceRange.minVariantPrice.amount,
@@ -48,19 +76,15 @@ function generateProductJsonLd(product: any) {
 			availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
 		},
 	};
-}
-
-export default async function ProductPage({ params }: { params: { handle: string } }) {
-	const product = await getProduct(params.handle);
-
-	if (!product) notFound();
 
 	return (
-		<div className="container mx-auto px-4 py-8">
-			<div className="max-w-4xl mx-auto">
-				<h1 className="text-3xl font-bold mb-4">{product.title}</h1>
-				{/* Add your product detail view here */}
-			</div>
+		<div className="w-full px-4 py-8 bg-neutral-50 dark:bg-neutral-900">
+			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
+			<ErrorBoundary fallback={<div className="text-center text-red-600 dark:text-red-400">Error loading product</div>}>
+				<Suspense fallback={<LoadingFallback />}>
+					<ProductContentClient product={product} />
+				</Suspense>
+			</ErrorBoundary>
 		</div>
 	);
 }

@@ -1,23 +1,25 @@
 "use client";
 
-import React from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface SortSelectProps {
-	onSort: (value: string) => void;
+export interface SortSelectProps {
+	value?: string;
+	onValueChange: (value: string) => void;
 }
 
-export function SortSelect({ onSort }: SortSelectProps) {
+export function SortSelect({ value, onValueChange }: SortSelectProps) {
 	return (
-		<div className="flex items-center gap-2">
-			<label htmlFor="sort" className="text-sm">
-				Sort by:
-			</label>
-			<select id="sort" className="rounded-md border border-gray-300 py-1 pl-3 pr-10 text-sm" defaultValue="featured" onChange={(e) => onSort(e.target.value)}>
-				<option value="featured">Featured</option>
-				<option value="newest">Newest</option>
-				<option value="price-asc">Price: Low to High</option>
-				<option value="price-desc">Price: High to Low</option>
-			</select>
-		</div>
+		<Select value={value} onValueChange={onValueChange}>
+			<SelectTrigger className="w-[120px] sm:w-[180px]">
+				<SelectValue placeholder="Sort by" />
+			</SelectTrigger>
+			<SelectContent className="min-w-[180px]">
+				<SelectItem value="featured">Featured</SelectItem>
+				<SelectItem value="price-asc">Price: Low to High</SelectItem>
+				<SelectItem value="price-desc">Price: High to Low</SelectItem>
+				<SelectItem value="name-asc">Name: A to Z</SelectItem>
+				<SelectItem value="name-desc">Name: Z to A</SelectItem>
+			</SelectContent>
+		</Select>
 	);
-}
+} 

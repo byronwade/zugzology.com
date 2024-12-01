@@ -93,3 +93,82 @@ export interface ShopifyImage {
 	height?: number;
 	variantIds?: string[];
 }
+
+export interface ShopifyBlogArticle {
+	id: string;
+	title: string;
+	handle: string;
+	content: string;
+	contentHtml: string;
+	excerpt: string;
+	publishedAt: string;
+	author: {
+		name: string;
+	};
+	image?: {
+		url: string;
+		altText: string;
+		width: number;
+		height: number;
+	};
+}
+
+export interface ShopifyBlog {
+	id: string;
+	title: string;
+	handle: string;
+	articles: {
+		edges: Array<{
+			node: ShopifyBlogArticle;
+		}>;
+	};
+}
+
+export interface CartItem {
+	merchandiseId: string;
+	quantity: number;
+	isPreOrder?: boolean;
+}
+
+export interface ShopifyCart {
+	id: string;
+	checkoutUrl: string;
+	totalQuantity: number;
+	cost: {
+		subtotalAmount: {
+			amount: string;
+			currencyCode: string;
+		};
+		totalAmount: {
+			amount: string;
+			currencyCode: string;
+		};
+	};
+	lines: {
+		edges: Array<{
+			node: {
+				id: string;
+				quantity: number;
+				cost: {
+					totalAmount: {
+						amount: string;
+						currencyCode: string;
+					};
+				};
+				merchandise: {
+					id: string;
+					title: string;
+					product: {
+						title: string;
+					};
+					image?: {
+						url: string;
+						altText: string | null;
+						width: number;
+						height: number;
+					};
+				};
+			};
+		}>;
+	};
+}

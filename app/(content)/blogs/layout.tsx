@@ -1,27 +1,29 @@
-import Link from "next/link";
+import { getBlogs } from "@/lib/actions/shopify";
+import { BlogNavigation } from "./blog-navigation";
 
-const categories = [
-	{ id: "research", label: "Research" },
-	{ id: "lifestyle", label: "Lifestyle" },
-	{ id: "tech", label: "Technology" },
-];
+export const metadata = {
+	title: "Blog | Zugzology",
+	description: "Read our latest articles about mushroom cultivation and research",
+};
 
-export default function BlogsLayout({ children }: { children: React.ReactNode }) {
+export default async function BlogsLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
+	const blogs = await getBlogs();
+
+	const categories = [
+		{ id: "all", label: "All Posts", path: "/blogs" },
+		...blogs.map((blog) => ({
+			id: blog.handle,
+			label: blog.title,
+			path: `/blogs/${blog.handle}`,
+		})),
+	];
+
 	return (
-		<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-			<div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-				<nav className="mb-8">
-					<ul className="flex space-x-4">
-						{categories.map((category) => (
-							<li key={category.id}>
-								<Link href={`/blogs/${category.id}`} className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
-									{category.label}
-								</Link>
-							</li>
-						))}
-					</ul>
-				</nav>
+		<div className="min-h-screen w-full bg-neutral-50 dark:bg-neutral-900">
+			<div className="w-full mx-auto">
+				<BlogNavigation categories={categories} />
 				{children}
+				{modal}
 			</div>
 		</div>
 	);

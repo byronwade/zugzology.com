@@ -1,11 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Star } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { formatPrice } from "@/lib/utils";
 import { ProductGallery } from "./product-gallery";
 import { PurchaseOptions } from "./purchase-options";
 import { ShopifyProduct, ShopifyProductVariant } from "@/lib/types";
-import { formatPrice } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
+import { AddToCartButton } from "@/components/products/add-to-cart-button";
+import { useCart } from "@/lib/providers/cart-provider";
+import { Loader2, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface ProductContentClientProps {
 	product: ShopifyProduct;
@@ -16,6 +21,15 @@ interface SelectedOptions {
 }
 
 export function ProductContentClient({ product }: ProductContentClientProps) {
+	const [mounted, setMounted] = useState(false);
+	const [selectedVariant, setSelectedVariant] = useState(product.variants.edges[0].node);
+	const [quantity, setQuantity] = useState(1);
+	const { addItem, isLoading } = useCart();
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
 	if (!product.options || !product.variants.edges || !product.images.edges) {
 		return <div>Product data is incomplete</div>;
 	}
@@ -23,13 +37,8 @@ export function ProductContentClient({ product }: ProductContentClientProps) {
 	const hasMultipleVariants = product.variants.edges.length > 1;
 	const hasOptions = product.options.some((option) => option.values.length > 1);
 
-	const [selectedVariant, setSelectedVariant] = useState<ShopifyProductVariant>(() => {
-		const availableVariant = product.variants.edges.find(({ node }) => node.availableForSale)?.node;
-		return availableVariant || product.variants.edges[0]?.node;
-	});
-
-	const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>(
-		() =>
+	const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>(() => {
+		return (
 			selectedVariant?.selectedOptions?.reduce(
 				(acc, option) => ({
 					...acc,
@@ -37,11 +46,14 @@ export function ProductContentClient({ product }: ProductContentClientProps) {
 				}),
 				{} as SelectedOptions
 			) || {}
-	);
+		);
+	});
 
 	const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
 	useEffect(() => {
+		if (!mounted) return;
+
 		// Find variant that matches all selected options
 		const matchingVariant = product.variants.edges.find(({ node }) => node.selectedOptions?.every((option) => selectedOptions[option.name] === option.value))?.node;
 
@@ -56,7 +68,15 @@ export function ProductContentClient({ product }: ProductContentClientProps) {
 				setSelectedImageIndex(variantImageIndex);
 			}
 		}
-	}, [selectedOptions, product.variants.edges, product.images.edges]);
+	}, [selectedOptions, product.variants.edges, product.images.edges, mounted]);
+
+	if (!mounted) {
+		return (
+			<div className="w-full h-screen flex items-center justify-center">
+				<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+			</div>
+		);
+	}
 
 	const images = product.images.edges.map(({ node }) => ({
 		url: node.url,
@@ -72,69 +92,179 @@ export function ProductContentClient({ product }: ProductContentClientProps) {
 		}));
 	};
 
+	const handleAddToCart = async () => {
+		if (!selectedVariant?.id) {
+			console.error("Cannot add to cart: No variant selected", {
+				productTitle: product.title,
+				productId: product.id,
+			});
+			toast.error("Please select a product variant");
+			return;
+		}
+
+		// Ensure the variant ID is in the correct format
+		const variantId = selectedVariant.id;
+
+		console.log("Attempting to add to cart:", {
+			productTitle: product.title,
+			productId: product.id,
+			variantId,
+			variantTitle: selectedVariant.title,
+			quantity,
+			availableForSale: selectedVariant.availableForSale,
+			variant: selectedVariant,
+		});
+
+		try {
+			await addItem({
+				merchandiseId: variantId,
+				quantity,
+				isPreOrder: !selectedVariant.availableForSale,
+			});
+		} catch (error) {
+			console.error("Error in handleAddToCart:", {
+				error,
+				productTitle: product.title,
+				productId: product.id,
+				variantId,
+				variant: selectedVariant,
+			});
+			toast.error("Failed to add to cart");
+		}
+	};
+
 	return (
-		<div className="grid grid-cols-1 md:grid-cols-12 gap-8 w-full max-w-full mx-auto">
-			<ProductGallery images={images} title={product.title} selectedIndex={selectedImageIndex} onImageSelect={setSelectedImageIndex} />
+		<main className="max-w-full mx-auto" itemScope itemType="https://schema.org/Product">
+			<nav aria-label="Breadcrumb" className="mb-4">
+				<ol className="flex items-center space-x-2 text-sm">
+					<li>
+						<a href="/" className="text-neutral-500 hover:text-neutral-700">
+							Home
+						</a>
+					</li>
+					<li className="text-neutral-500">/</li>
+					<li>
+						<a href="/products" className="text-neutral-500 hover:text-neutral-700">
+							Products
+						</a>
+					</li>
+					<li className="text-neutral-500">/</li>
+					<li className="text-neutral-900" aria-current="page">
+						{product.title}
+					</li>
+				</ol>
+			</nav>
 
-			{/* Product Details */}
-			<div className="col-span-1 md:col-span-4 flex flex-col">
-				<div className="mb-4">
-					<h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">{product.title}</h1>
-					<div className="mt-4">
-						<div className="text-3xl font-bold text-gray-900 dark:text-gray-100">${formatPrice(selectedVariant?.price?.amount || product.priceRange.minVariantPrice.amount)}</div>
-						{selectedVariant?.compareAtPrice && <div className="text-sm text-gray-500 line-through">${formatPrice(selectedVariant.compareAtPrice.amount)}</div>}
+			<div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
+				{/* Product Gallery */}
+				<section aria-label="Product gallery" className="col-span-1 md:col-span-5 lg:col-span-5">
+					<div className="sticky top-8">
+						<ProductGallery images={images} title={product.title} selectedIndex={selectedImageIndex} onImageSelect={setSelectedImageIndex} />
 					</div>
-				</div>
+				</section>
 
-				{/* Variant Selection - Only show if there are multiple variants */}
-				{hasMultipleVariants && hasOptions && (
-					<div className="space-y-6">
-						{product.options.map(
-							(option) =>
-								option.values.length > 1 && (
-									<div key={option.id} className="space-y-3">
-										<label className="text-sm font-medium text-gray-900 dark:text-gray-100">{option.name}</label>
-										<div className="flex flex-wrap gap-2">
-											{option.values.map((value) => {
-												const isSelected = selectedOptions[option.name] === value;
-												const isAvailable = product.variants.edges.some(({ node }) => node.selectedOptions.some((opt) => opt.name === option.name && opt.value === value) && node.availableForSale);
+				{/* Product Info */}
+				<section aria-label="Product information" className="col-span-1 md:col-span-4 lg:col-span-4">
+					<div className="space-y-4">
+						{product.vendor && (
+							<a href="#" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+								Visit the {product.vendor} Store
+							</a>
+						)}
+						<h1 className="text-2xl font-medium" itemProp="name">
+							{product.title}
+						</h1>
 
-												return (
-													<button
-														key={`${option.name}-${value}`}
-														onClick={() => handleOptionChange(option.name, value)}
-														disabled={!isAvailable}
-														className={`
-														px-4 py-2 rounded-md
-														${isSelected ? "bg-primary text-white ring-2 ring-primary" : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"}
-														${!isAvailable && "opacity-50 cursor-not-allowed"}
-														hover:opacity-90 transition-all
-														${option.name.toLowerCase() === "color" ? "flex items-center gap-2" : ""}
-													`}
-													>
-														{option.name.toLowerCase() === "color" && <span className="w-4 h-4 rounded-full border border-gray-300" style={{ backgroundColor: value.toLowerCase() }} />}
-														{value}
-													</button>
-												);
-											})}
-										</div>
+						<div className="flex items-baseline gap-2">
+							<meta itemProp="priceCurrency" content="USD" />
+							<span className="text-2xl font-medium" itemProp="price">
+								{formatPrice(parseFloat(selectedVariant?.price?.amount || product.priceRange.minVariantPrice.amount))}
+							</span>
+							{selectedVariant?.compareAtPrice && <span className="text-sm text-neutral-500 line-through">{formatPrice(parseFloat(selectedVariant.compareAtPrice.amount))}</span>}
+						</div>
+
+						<Separator className="my-4" />
+
+						<div className="prose prose-sm dark:prose-invert" itemProp="description">
+							<div dangerouslySetInnerHTML={{ __html: product.description }} />
+						</div>
+
+						{/* Variant Selection */}
+						{hasMultipleVariants && hasOptions && (
+							<form className="space-y-4">
+								{product.options.map((option) => (
+									<div key={option.name} className="space-y-2">
+										<label htmlFor={option.name} className="block text-sm font-medium">
+											{option.name}
+										</label>
+										<select id={option.name} name={option.name} value={selectedOptions[option.name] || ""} onChange={(e) => handleOptionChange(option.name, e.target.value)} className="w-full p-2 border rounded-lg bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700">
+											{option.values.map((value) => (
+												<option key={value} value={value}>
+													{value}
+												</option>
+											))}
+										</select>
 									</div>
-								)
+								))}
+							</form>
 						)}
 					</div>
-				)}
+				</section>
 
-				{/* Product description */}
-				<div className="mt-8">
-					<h2 className="text-lg font-medium mb-4">About this item</h2>
-					<div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: product.description }} />
+				{/* Purchase Options */}
+				<section aria-label="Purchase options" className="col-span-1 md:col-span-3 lg:col-span-3">
+					<div className="sticky top-8">
+						<div className="bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 p-6 shadow-sm">
+							<PurchaseOptions product={product} selectedVariant={selectedVariant} onVariantChange={setSelectedVariant} />
+						</div>
+					</div>
+				</section>
+			</div>
+
+			<Separator className="my-8" />
+
+			{/* Product Details */}
+			<section aria-label="Product details" className="max-w-4xl mx-auto">
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+					<div>
+						<h2 className="text-xl font-bold mb-4">Technical Details</h2>
+						<div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-6">
+							<dl className="grid grid-cols-3 gap-4">
+								{product.vendor && (
+									<>
+										<dt className="text-sm text-neutral-500 dark:text-neutral-400">Brand</dt>
+										<dd className="text-sm col-span-2" itemProp="brand">
+											{product.vendor}
+										</dd>
+									</>
+								)}
+								{product.productType && (
+									<>
+										<dt className="text-sm text-neutral-500 dark:text-neutral-400">Category</dt>
+										<dd className="text-sm col-span-2" itemProp="category">
+											{product.productType}
+										</dd>
+									</>
+								)}
+								<dt className="text-sm text-neutral-500 dark:text-neutral-400">Availability</dt>
+								<dd className="text-sm col-span-2">
+									<link itemProp="availability" href={product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"} />
+									{product.availableForSale ? "In Stock" : "Out of Stock"}
+								</dd>
+							</dl>
+						</div>
+					</div>
+
+					<div>
+						<h2 className="text-xl font-bold mb-4">About This Item</h2>
+						<div className="bg-neutral-50 dark:bg-neutral-800 rounded-lg p-6">
+							<div className="prose prose-sm dark:prose-invert">
+								<div dangerouslySetInnerHTML={{ __html: product.description }} />
+							</div>
+						</div>
+					</div>
 				</div>
-			</div>
-
-			{/* Purchase Options */}
-			<div className="col-span-1 md:col-span-2">
-				<PurchaseOptions product={product} selectedVariant={selectedVariant} onVariantChange={setSelectedVariant} />
-			</div>
-		</div>
+			</section>
+		</main>
 	);
 }

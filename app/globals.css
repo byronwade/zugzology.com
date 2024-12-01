@@ -10,6 +10,61 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+                                /* Improved scrollbar utilities */
+                                .scrollbar-hide {
+                                  scrollbar-width: none;
+                                  /* Firefox */
+                                  -ms-overflow-style: none;
+                
+                                  /* IE and Edge */
+                                  &::-webkit-scrollbar {
+                                    display: none;
+                                    /* Chrome, Safari and Opera */
+                                  }
+                                }
+                
+                                /* Custom horizontal scrollbar for when needed */
+                                .scrollbar-thin {
+                                  scrollbar-width: thin;
+                
+                                  &::-webkit-scrollbar {
+                                    height: 6px;
+                                    width: 6px;
+                                  }
+                
+                                  &::-webkit-scrollbar-track {
+                                    background: transparent;
+                                  }
+                
+                                  &::-webkit-scrollbar-thumb {
+                                    background-color: rgba(0, 0, 0, 0.2);
+                                    border-radius: 3px;
+                                  }
+                                }
+                
+                                /* Custom animation for scroll indicator */
+                                @keyframes gentlePulse {
+                
+                                  0%,
+                                  100% {
+                                    opacity: 0.8;
+                                    transform: translateX(-4px);
+                                  }
+                
+                                  50% {
+                                    opacity: 1;
+                                    transform: translateX(0);
+                                  }
+                                }
+                
+                                .animate-gentle-pulse {
+                                  animation: gentlePulse 1.5s ease-in-out infinite;
+                                }
+                                }
+                
+                                /* Add smooth scrolling to root */
+                                :root {
+                                  scroll-behavior: smooth;
 }
 
 @layer base {
@@ -91,4 +146,17 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+    /* Prevent iOS keyboard from popping up on sheet open */
+    [data-no-focus="true"] * {
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+  
+    [data-no-focus="true"] input,
+    [data-no-focus="true"] textarea,
+    [data-no-focus="true"] select,
+    [data-no-focus="true"] button {
+      -webkit-user-select: text;
+      -webkit-touch-callout: default;
+    }
 }

@@ -1,4 +1,3 @@
-import { Sidebar } from "@/components/sidebar/sidebar";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -21,13 +20,6 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function ProductsLayout({ children, params }: { children: React.ReactNode; params?: { handle?: string } }) {
-	const showSidebar = !params?.handle;
-
-	return (
-		<div className="flex">
-			{showSidebar && <Sidebar />}
-			<div className={`flex-1 ${showSidebar ? "" : "w-full"}`}>{children}</div>
-		</div>
-	);
+export default function ProductsLayout({ children }: { children: React.ReactNode; params?: { handle?: string } }) {
+	return <>{children}</>;
 }

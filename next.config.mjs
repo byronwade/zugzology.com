@@ -3,7 +3,6 @@ const nextConfig = {
 	experimental: {
 		ppr: true,
 		inlineCss: true,
-		reactCompiler: true,
 	},
 	typescript: {
 		ignoreBuildErrors: true,
@@ -19,6 +18,12 @@ const nextConfig = {
 				hostname: "cdn.shopify.com",
 				pathname: "/**",
 			},
+			{
+				protocol: "https",
+				hostname: "images.unsplash.com",
+				pathname: "/**",
+			},
+
 			{
 				protocol: "https",
 				hostname: "placehold.co",
