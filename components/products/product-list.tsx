@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductCard } from "@/components/products/product-card";
+import { ProductCard } from "./product-card";
 import { cn } from "@/lib/utils";
 import type { ShopifyProduct } from "@/lib/types";
 

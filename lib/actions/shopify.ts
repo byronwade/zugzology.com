@@ -680,49 +680,50 @@ export async function getCart(cartId: string): Promise<ShopifyCart | null> {
 	}
 }
 
-export async function createCart(): Promise<ShopifyCart> {
+export async function createCart(lines?: CartItem[]): Promise<ShopifyCart> {
 	try {
 		const { data } = await shopifyFetch<{ cartCreate: { cart: ShopifyCart } }>({
 			query: `
-				mutation CartCreate {
-					cartCreate {
-						cart {
-							id
-							checkoutUrl
-							totalQuantity
-							cost {
-								subtotalAmount {
-									amount
-									currencyCode
+					mutation CartCreate($input: CartInput) {
+						cartCreate(input: $input) {
+							cart {
+								id
+								checkoutUrl
+								totalQuantity
+								cost {
+									subtotalAmount {
+										amount
+										currencyCode
+									}
+									totalAmount {
+										amount
+										currencyCode
+									}
 								}
-								totalAmount {
-									amount
-									currencyCode
-								}
-							}
-							lines(first: 100) {
-								edges {
-									node {
-										id
-										quantity
-										cost {
-											totalAmount {
-												amount
-												currencyCode
-											}
-										}
-										merchandise {
-											... on ProductVariant {
-												id
-												title
-												product {
-													title
+								lines(first: 100) {
+									edges {
+										node {
+											id
+											quantity
+											cost {
+												totalAmount {
+													amount
+													currencyCode
 												}
-												image {
-													url
-													altText
-													width
-													height
+											}
+											merchandise {
+												... on ProductVariant {
+													id
+													title
+													product {
+														title
+													}
+													image {
+														url
+														altText
+														width
+														height
+													}
 												}
 											}
 										}
@@ -731,8 +732,17 @@ export async function createCart(): Promise<ShopifyCart> {
 							}
 						}
 					}
-				}
-			`,
+				`,
+			variables: lines
+				? {
+						input: {
+							lines: lines.map((line) => ({
+								merchandiseId: line.merchandiseId,
+								quantity: line.quantity,
+							})),
+						},
+				  }
+				: undefined,
 		});
 
 		return data.cartCreate.cart;

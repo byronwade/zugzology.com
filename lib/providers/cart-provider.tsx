@@ -9,11 +9,13 @@ interface CartContext {
 	cart: ShopifyCart | null;
 	isLoading: boolean;
 	isOpen: boolean;
+	isInitialized: boolean;
 	openCart: () => void;
 	closeCart: () => void;
 	addItem: (item: CartItem) => Promise<void>;
 	updateItem: (lineId: string, quantity: number) => Promise<void>;
 	removeItem: (lineId: string) => Promise<void>;
+	createNewCart: (items: CartItem[]) => Promise<ShopifyCart | null>;
 }
 
 const CartContext = createContext<CartContext | null>(null);
@@ -212,17 +214,41 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 		}
 	};
 
+	const createNewCart = async (items: CartItem[]) => {
+		setIsLoading(true);
+		try {
+			const formattedItems = items.map((item) => ({
+				merchandiseId: item.merchandiseId.includes("gid://shopify/ProductVariant/") ? item.merchandiseId : `gid://shopify/ProductVariant/${item.merchandiseId}`,
+				quantity: item.quantity,
+			}));
+
+			const newCart = await createCart(formattedItems);
+			if (!newCart) {
+				throw new Error("Failed to create cart");
+			}
+			return newCart;
+		} catch (error) {
+			console.error("Error creating new cart:", error);
+			toast.error("Failed to create checkout");
+			return null;
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
 	return (
 		<CartContext.Provider
 			value={{
 				cart,
 				isLoading,
 				isOpen,
+				isInitialized,
 				openCart,
 				closeCart,
 				addItem,
 				updateItem,
 				removeItem,
+				createNewCart,
 			}}
 		>
 			{children}

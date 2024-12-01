@@ -2,46 +2,71 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Header } from "@/components/header/header";
 import { Providers } from "./providers";
+import { SearchProvider } from "@/lib/providers/search-provider";
+import { InitializeSearch } from "@/components/search";
+import { MainContent } from "@/components/search/main-content";
+import { getProducts } from "@/lib/actions/shopify";
 
-export const metadata: Metadata = {
-	title: {
-		template: "%s | Zugzology",
-		default: "Zugzology - Premium Mushroom Cultivation Supplies",
-	},
-	description: "Premium mushroom cultivation supplies and equipment. Find everything you need for successful mushroom growing.",
-	metadataBase: new URL("https://zugzology.com"),
-	openGraph: {
-		type: "website",
-		locale: "en_US",
+// Add function to fetch global settings
+async function getGlobalSettings() {
+	// Fetch from your CMS or Shopify
+	return {
 		siteName: "Zugzology",
-		images: [
-			{
-				url: "https://zugzology.com/og-image.jpg",
-				width: 1200,
-				height: 630,
-				alt: "Zugzology - Premium Mushroom Cultivation Supplies",
-			},
-		],
-	},
-	twitter: {
-		card: "summary_large_image",
-		site: "@zugzology",
-	},
-	robots: {
-		index: true,
-		follow: true,
-		googleBot: {
+		siteDescription: "Premium mushroom cultivation supplies and equipment.",
+		socialLinks: {
+			twitter: "@zugzology",
+			facebook: "zugzology",
+			instagram: "zugzology",
+		},
+		googleVerificationId: "YOUR_GOOGLE_VERIFICATION_ID",
+	};
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+	const settings = await getGlobalSettings();
+
+	return {
+		title: {
+			template: `%s | ${settings.siteName}`,
+			default: `${settings.siteName} - Premium Mushroom Cultivation Supplies`,
+		},
+		description: settings.siteDescription,
+		metadataBase: new URL("https://zugzology.com"),
+		openGraph: {
+			type: "website",
+			locale: "en_US",
+			siteName: settings.siteName,
+			images: [
+				{
+					url: "https://zugzology.com/og-image.jpg",
+					width: 1200,
+					height: 630,
+					alt: "Zugzology - Premium Mushroom Cultivation Supplies",
+				},
+			],
+		},
+		twitter: {
+			card: "summary_large_image",
+			site: settings.socialLinks.twitter,
+		},
+		robots: {
 			index: true,
 			follow: true,
-			"max-image-preview": "large",
+			googleBot: {
+				index: true,
+				follow: true,
+				"max-image-preview": "large",
+			},
 		},
-	},
-	alternates: {
-		canonical: "https://zugzology.com",
-	},
-};
+		alternates: {
+			canonical: "https://zugzology.com",
+		},
+	};
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+	const products = await getProducts();
+
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
@@ -51,20 +76,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 				{/* Prevent zoom on input focus */}
 				<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-
-				{/* Favicon */}
-				<link rel="icon" href="/favicon.ico" sizes="any" />
-				<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-
-				{/* PWA manifest */}
-				<link rel="manifest" href="/manifest.json" />
 			</head>
 			<body>
 				<Providers>
-					<Header />
-					<main id="main-content" role="main">
-						{children}
-					</main>
+					<SearchProvider>
+						<InitializeSearch products={products || []} />
+						<Header />
+						<MainContent>{children}</MainContent>
+					</SearchProvider>
 				</Providers>
 			</body>
 		</html>

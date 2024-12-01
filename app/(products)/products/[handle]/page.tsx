@@ -3,7 +3,9 @@ import { getProduct } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
 import type { Metadata } from "next";
-import { ProductContent } from "@/components/products/product-content";
+import { ProductContent } from "@/components/products/sections/product-content";
+import { SearchOverlay } from "@/components/search";
+import { Suspense } from "react";
 
 interface ProductPageProps {
 	params: {

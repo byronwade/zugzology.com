@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { formatPrice } from "@/lib/utils";
+import Link from "next/link";
+import { formatPrice, cn } from "@/lib/utils";
 import type { ShopifyProduct } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import { AddToCartButton } from "@/components/products/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "lucide-react";
+import { useSearch } from "@/lib/providers/search-provider";
 
 interface ProductCardProps {
 	product: ShopifyProduct;
@@ -19,7 +19,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, collectionHandle, view = "grid", variantId, availableForSale = false, quantity = 0 }: ProductCardProps) {
-	const router = useRouter();
+	const { setSearchQuery } = useSearch();
 	const firstImage = product.images?.edges?.[0]?.node;
 	const price = product.priceRange?.minVariantPrice?.amount || "0";
 	const productUrl = `/products/${product.handle}`;
@@ -28,18 +28,11 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 	const actualQuantity = quantity || firstVariant?.quantityAvailable || 0;
 	const isPreOrder = actualQuantity <= 0;
 
-	// Check for both multiple variants and option types
-	const hasVariants = product.variants?.edges?.length > 1 || product.options?.length > 1 || (product.options?.length === 1 && product.options[0]?.values?.length > 1);
+	// Updated variant check to be more precise
+	const hasVariants = product.variants?.edges?.length > 1 || product.options?.some((option) => option?.values?.length > 1 || (option?.name !== "Title" && option?.values?.length > 0));
 
-	const handleClick = (e: React.MouseEvent) => {
-		// If the click is on the button or its children, prevent navigation
-		if ((e.target as HTMLElement).closest("button")) {
-			e.preventDefault();
-			return;
-		}
-
-		e.preventDefault();
-		router.push(productUrl);
+	const handleNavigate = () => {
+		setSearchQuery("");
 	};
 
 	const ImageContainer = ({ children, isListView = false }: { children: React.ReactNode; isListView?: boolean }) => (
@@ -85,18 +78,18 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 	);
 
 	return view === "grid" ? (
-		<div className="group py-4 cursor-pointer" onClick={handleClick}>
+		<Link href={productUrl} className="group py-4 block" onClick={handleNavigate}>
 			<ImageContainer>
 				<ProductImage />
 			</ImageContainer>
 			<ProductInfo />
-		</div>
+		</Link>
 	) : (
-		<div className="flex group py-4 cursor-pointer" onClick={handleClick}>
+		<Link href={productUrl} className="flex group py-4 block" onClick={handleNavigate}>
 			<ImageContainer isListView>
 				<ProductImage isListView />
 			</ImageContainer>
 			<ProductInfo isListView />
-		</div>
+		</Link>
 	);
 }
