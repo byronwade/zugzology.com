@@ -20,7 +20,7 @@ interface SelectedOptions {
 	[key: string]: string;
 }
 
-export function ProductContentClient({ product }: ProductContentClientProps) {
+function ProductContentClient({ product }: ProductContentClientProps) {
 	const [mounted, setMounted] = useState(false);
 	const [selectedVariant, setSelectedVariant] = useState(product.variants.edges[0].node);
 	const [quantity, setQuantity] = useState(1);
@@ -134,7 +134,7 @@ export function ProductContentClient({ product }: ProductContentClientProps) {
 	};
 
 	return (
-		<main className="max-w-full mx-auto" itemScope itemType="https://schema.org/Product">
+		<main className="max-w-full mx-auto p-4" itemScope itemType="https://schema.org/Product">
 			<nav aria-label="Breadcrumb" className="mb-4">
 				<ol className="flex items-center space-x-2 text-sm">
 					<li>
@@ -268,3 +268,6 @@ export function ProductContentClient({ product }: ProductContentClientProps) {
 		</main>
 	);
 }
+
+export { ProductContentClient };
+export default ProductContentClient;

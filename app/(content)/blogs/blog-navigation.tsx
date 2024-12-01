@@ -15,7 +15,7 @@ export function BlogNavigation({ categories }: { categories: Category[] }) {
 	return (
 		<nav className="sticky top-98 z-10 bg-neutral-50/80 dark:bg-neutral-900/80 backdrop-blur-sm border-b dark:border-neutral-800">
 			<div className="max-w-full mx-auto px-4">
-				<ul className="flex space-x-8 overflow-x-auto scrollbar-hide">
+				<ul className="flex space-x-4 overflow-x-auto scrollbar-hide">
 					{categories.map((category) => {
 						const isActive = pathname === category.path || (category.path !== "/blogs" && pathname.startsWith(category.path));
 

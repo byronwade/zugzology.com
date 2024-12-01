@@ -12,48 +12,118 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: { blog: string; slug: string } }): Promise<Metadata> {
-	const blog = await getBlogByHandle(params.blog);
-	const article = blog?.articles.edges.find(({ node }) => node.handle === params.slug)?.node;
+	const nextjs15Params = await params;
+	const blog = await getBlogByHandle(nextjs15Params.blog);
+	const article = blog?.articles.edges.find(({ node }) => node.handle === nextjs15Params.slug)?.node;
 
 	if (!article) return notFound();
 
+	const title = `${article.title} | Zugzology Blog`;
+	const description = article.excerpt;
+
 	return {
-		title: `${article.title} | Zugzology Blog`,
-		description: article.excerpt,
+		title,
+		description,
+		keywords: `mushroom cultivation, ${article.title.toLowerCase()}, mushroom growing, research`,
 		openGraph: {
-			title: article.title,
-			description: article.excerpt,
+			title,
+			description,
 			type: "article",
+			url: `https://zugzology.com/blogs/${nextjs15Params.blog}/${nextjs15Params.slug}`,
+			siteName: "Zugzology",
+			locale: "en_US",
 			authors: [article.author.name],
 			publishedTime: article.publishedAt,
+			modifiedTime: article.publishedAt,
+			section: nextjs15Params.blog,
 			images: article.image
 				? [
 						{
 							url: article.image.url,
 							width: article.image.width,
 							height: article.image.height,
-							alt: article.image.altText,
+							alt: article.image.altText || article.title,
 						},
 				  ]
 				: [],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title,
+			description,
+			images: article.image ? [article.image.url] : [],
+		},
+		alternates: {
+			canonical: `https://zugzology.com/blogs/${nextjs15Params.blog}/${nextjs15Params.slug}`,
+		},
+		robots: {
+			index: true,
+			follow: true,
+			googleBot: {
+				index: true,
+				follow: true,
+				"max-video-preview": -1,
+				"max-image-preview": "large",
+				"max-snippet": -1,
+			},
 		},
 	};
 }
 
 export default async function BlogPostPage({ params }: { params: { blog: string; slug: string } }) {
-	const nextjs15 = await params;
-	const blog = await getBlogByHandle(nextjs15.blog);
-	const article = blog?.articles.edges.find(({ node }) => node.handle === nextjs15.slug)?.node;
+	const nextjs15Params = await params;
+	const blog = await getBlogByHandle(nextjs15Params.blog);
+	const article = blog?.articles.edges.find(({ node }) => node.handle === nextjs15Params.slug)?.node;
 
 	if (!article) {
 		return notFound();
 	}
 
+	const articleJsonLd = {
+		"@context": "https://schema.org",
+		"@type": "BlogPosting",
+		"@id": `https://zugzology.com/blogs/${nextjs15Params.blog}/${nextjs15Params.slug}`,
+		headline: article.title,
+		description: article.excerpt,
+		articleBody: article.content,
+		url: `https://zugzology.com/blogs/${nextjs15Params.blog}/${nextjs15Params.slug}`,
+		datePublished: article.publishedAt,
+		dateModified: article.publishedAt,
+		author: {
+			"@type": "Person",
+			name: article.author.name,
+		},
+		publisher: {
+			"@type": "Organization",
+			name: "Zugzology",
+			logo: {
+				"@type": "ImageObject",
+				url: "https://zugzology.com/logo.png",
+			},
+		},
+		image: article.image
+			? {
+					"@type": "ImageObject",
+					url: article.image.url,
+					width: article.image.width,
+					height: article.image.height,
+					caption: article.image.altText,
+			  }
+			: undefined,
+		mainEntityOfPage: {
+			"@type": "WebPage",
+			"@id": `https://zugzology.com/blogs/${nextjs15Params.blog}/${nextjs15Params.slug}`,
+		},
+		articleSection: nextjs15Params.blog,
+		keywords: ["mushroom cultivation", "mushroom growing", "research", article.title.toLowerCase()],
+	};
+
 	return (
 		<div className="container mx-auto px-4 py-16 max-w-4xl">
-			<Link prefetch={true} href={`/blogs/${nextjs15.blog}`} className="inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 mb-8 transition-colors">
+			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+			<Link prefetch={true} href={`/blogs/${nextjs15Params.blog}`} className="inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 mb-8 transition-colors">
 				<ArrowLeft className="mr-2 h-4 w-4" />
-				Back to {nextjs15.blog} articles
+				Back to {nextjs15Params.blog} articles
 			</Link>
 
 			<article className="prose prose-lg dark:prose-invert mx-auto">
@@ -79,7 +149,7 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 				<Suspense fallback={<Skeleton className="w-full aspect-video rounded-lg" />}>
 					{article.image && (
 						<div className="mb-8 aspect-video relative overflow-hidden rounded-lg">
-							<Image src={article.image.url} alt={article.image.altText || article.title} fill className="object-cover" />
+							<Image src={article.image.url} alt={article.image.altText || article.title} fill className="object-cover" priority />
 						</div>
 					)}
 				</Suspense>

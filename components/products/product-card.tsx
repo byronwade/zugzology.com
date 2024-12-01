@@ -85,14 +85,14 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 	);
 
 	return view === "grid" ? (
-		<div className="group p-4 cursor-pointer" onClick={handleClick}>
+		<div className="group py-4 cursor-pointer" onClick={handleClick}>
 			<ImageContainer>
 				<ProductImage />
 			</ImageContainer>
 			<ProductInfo />
 		</div>
 	) : (
-		<div className="flex group p-4 cursor-pointer" onClick={handleClick}>
+		<div className="flex group py-4 cursor-pointer" onClick={handleClick}>
 			<ImageContainer isListView>
 				<ProductImage isListView />
 			</ImageContainer>

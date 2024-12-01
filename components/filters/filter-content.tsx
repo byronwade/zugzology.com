@@ -1,53 +1,37 @@
 "use client";
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { Suspense } from "react";
+import { useFilters } from "./use-filters";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Package2, DollarSign, Tags } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-
-export interface FilterState {
-	sort: string;
-	availability: string;
-	price: string;
-	category: string[];
-}
-
-const DEFAULT_FILTERS = {
-	sort: "featured",
-	availability: "all",
-	price: "all",
-	category: [] as string[],
-} as const;
-
-interface FilterContentProps {
-	filters: FilterState;
-	onFilterChange: (key: keyof FilterState, value: string | string[]) => void;
-}
+import { Separator } from "@/components/ui/separator";
 
 const PRODUCT_CATEGORIES = [
-	{ label: "Grow Bags", value: "grow bag" },
+	{ label: "Grow Bags", value: "grow-bag" },
 	{ label: "Substrates", value: "substrate" },
 	{ label: "Tools", value: "tool" },
 	{ label: "Spores", value: "spore" },
-	{ label: "Liquid Culture", value: "liquid culture" },
+	{ label: "Liquid Culture", value: "liquid-culture" },
 	{ label: "Merch", value: "merch" },
-	{ label: "Gift Cards", value: "gift card" },
+	{ label: "Gift Cards", value: "gift-card" },
 ] as const;
 
-export function FilterContent({ filters, onFilterChange }: FilterContentProps) {
+function FilterContentInner() {
+	const { filters, handleFilterChange } = useFilters();
+
 	return (
-		<ScrollArea className="h-[calc(100vh-10rem)]">
-			<div className="space-y-6 px-1">
+		<ScrollArea className="h-[calc(100vh-10rem)] pr-4">
+			<div className="space-y-8">
 				{/* Availability Filter */}
 				<div className="space-y-4">
 					<div className="flex items-center gap-2 text-sm font-medium">
 						<Package2 className="h-4 w-4" />
 						<h3>Availability</h3>
 					</div>
-					<RadioGroup value={filters.availability} onValueChange={(value) => onFilterChange("availability", value)} className="gap-3">
+					<RadioGroup value={filters.availability} onValueChange={(value) => handleFilterChange("availability", value)} className="gap-3">
 						<div className="flex items-center space-x-2">
 							<RadioGroupItem value="all" id="all" />
 							<Label htmlFor="all">All Items</Label>
@@ -71,7 +55,7 @@ export function FilterContent({ filters, onFilterChange }: FilterContentProps) {
 						<DollarSign className="h-4 w-4" />
 						<h3>Price Range</h3>
 					</div>
-					<RadioGroup value={filters.price} onValueChange={(value) => onFilterChange("price", value)} className="gap-3">
+					<RadioGroup value={filters.price} onValueChange={(value) => handleFilterChange("price", value)} className="gap-3">
 						<div className="flex items-center space-x-2">
 							<RadioGroupItem value="all" id="price-all" />
 							<Label htmlFor="price-all">All Prices</Label>
@@ -106,13 +90,7 @@ export function FilterContent({ filters, onFilterChange }: FilterContentProps) {
 					<div className="space-y-3">
 						{PRODUCT_CATEGORIES.map(({ label, value }) => (
 							<label key={value} className="flex items-center space-x-3 text-sm hover:text-foreground">
-								<Checkbox
-									checked={filters.category?.includes(value)}
-									onCheckedChange={(checked) => {
-										const newCategories = checked ? [...(filters.category || []), value] : filters.category?.filter((c) => c !== value) || [];
-										onFilterChange("category", newCategories);
-									}}
-								/>
+								<Checkbox checked={filters.category === value} onCheckedChange={(checked) => handleFilterChange("category", checked ? value : null)} />
 								<span>{label}</span>
 							</label>
 						))}
@@ -120,5 +98,13 @@ export function FilterContent({ filters, onFilterChange }: FilterContentProps) {
 				</div>
 			</div>
 		</ScrollArea>
+	);
+}
+
+export function FilterContent() {
+	return (
+		<Suspense fallback={<div>Loading filters...</div>}>
+			<FilterContentInner />
+		</Suspense>
 	);
 }

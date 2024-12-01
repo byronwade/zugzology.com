@@ -53,7 +53,7 @@ export function ProductList({ products, view = "grid", className }: ProductListP
 	}
 
 	return (
-		<div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4", className)} role="region" aria-label="Products Grid">
+		<div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4", className)} role="region" aria-label="Products Grid">
 			{products.map((product) => (
 				<div key={product.id} className="relative bg-background rounded-lg">
 					{renderProduct(product)}

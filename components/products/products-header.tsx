@@ -45,16 +45,18 @@ export function ProductsHeader({ title, description, count, onViewChange, view =
 						</SheetTrigger>
 						<SheetContent side="right" className="w-full sm:max-w-md">
 							<SheetHeader className="border-b pb-4 mb-4">
-								<div className="flex items-center justify-between">
-									<SheetTitle>Filters</SheetTitle>
-									{hasActiveFilters && (
-										<Button variant="ghost" size="sm" onClick={clearFilters} className="text-sm">
-											Clear All
-										</Button>
-									)}
+								<div className="flex items-center justify-between gap-4">
+									<div className="flex items-center gap-2">
+										<SheetTitle>Filters</SheetTitle>
+										{hasActiveFilters && (
+											<Button variant="ghost" size="sm" onClick={clearFilters} className="text-sm">
+												Clear All
+											</Button>
+										)}
+									</div>
 								</div>
 							</SheetHeader>
-							<FilterContent filters={filters} onFilterChange={handleFilterChange} />
+							<FilterContent />
 						</SheetContent>
 					</Sheet>
 					<div className="flex items-center border rounded-md overflow-hidden">

@@ -3,8 +3,7 @@ import { getProduct } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
 import type { Metadata } from "next";
-import { ProductContentClient } from "@/components/products/product-content-client";
-import { Suspense } from "react";
+import { ProductContent } from "@/components/products/product-content";
 
 interface ProductPageProps {
 	params: {
@@ -12,34 +11,63 @@ interface ProductPageProps {
 	};
 }
 
+export const runtime = "edge";
+export const preferredRegion = "auto";
+export const dynamic = "force-dynamic";
+export const revalidate = 60; // Cache for 1 minute
+
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
 	const nextjs15 = await params;
 	const product = await getProduct(nextjs15.handle);
 	if (!product) return notFound();
 
+	const title = `${product.title} | Premium Mushroom Growing Supplies`;
+	const description = product.description || `Shop our premium ${product.title.toLowerCase()}. Find high-quality mushroom growing supplies and equipment.`;
+	const url = `https://zugzology.com/products/${product.handle}`;
+
 	return {
-		title: product.title,
-		description: product.description,
+		title,
+		description,
+		keywords: `mushroom growing, ${product.title.toLowerCase()}, mushroom supplies, cultivation equipment`,
 		openGraph: {
-			title: product.title,
-			description: product.description,
-			images:
-				product.images?.edges?.map(({ node }) => ({
-					url: node.url,
-					width: node.width,
-					height: node.height,
-					alt: node.altText || product.title,
-				})) || [],
+			title,
+			description,
+			url,
+			siteName: "Zugzology",
+			type: "website",
+			locale: "en_US",
+			images: product.images?.edges?.[0]?.node
+				? [
+						{
+							url: product.images.edges[0].node.url,
+							width: 1200,
+							height: 630,
+							alt: product.images.edges[0].node.altText || product.title,
+						},
+				  ]
+				: [],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title,
+			description,
+			images: product.images?.edges?.[0]?.node ? [product.images.edges[0].node.url] : [],
+		},
+		alternates: {
+			canonical: url,
+		},
+		robots: {
+			index: true,
+			follow: true,
+			googleBot: {
+				index: true,
+				follow: true,
+				"max-video-preview": -1,
+				"max-image-preview": "large",
+				"max-snippet": -1,
+			},
 		},
 	};
-}
-
-function LoadingFallback() {
-	return (
-		<div className="w-full h-screen flex items-center justify-center">
-			<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
-		</div>
-	);
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
@@ -47,44 +75,53 @@ export default async function ProductPage({ params }: ProductPageProps) {
 	const product = await getProduct(nextjs15.handle);
 
 	if (!product) {
-		console.error("Product not found:", nextjs15.handle);
-		return notFound();
+		notFound();
 	}
 
-	// Validate required product data
-	const hasRequiredData = product.variants?.edges?.length > 0;
+	// Safely get price data with fallbacks
+	const minPrice = product.priceRange?.minVariantPrice?.amount || "0";
+	const maxPrice = product.priceRange?.maxVariantPrice?.amount || minPrice;
+	const currencyCode = product.priceRange?.minVariantPrice?.currencyCode || "USD";
 
-	if (!hasRequiredData) {
-		console.error("Product missing required data:", {
-			handle: nextjs15.handle,
-			hasVariants: Boolean(product.variants?.edges?.length),
-			hasImages: Boolean(product.images?.edges?.length),
-		});
-		return notFound();
-	}
+	// Get the first variant's data safely
+	const firstVariant = product.variants?.edges?.[0]?.node;
+	const firstImage = product.images?.edges?.[0]?.node;
 
 	const productJsonLd = {
 		"@context": "https://schema.org",
 		"@type": "Product",
 		name: product.title,
 		description: product.description,
-		image: product.images?.edges?.map(({ node }) => node.url) || [],
+		image: firstImage?.url || [],
+		url: `https://zugzology.com/products/${product.handle}`,
+		identifier: firstVariant?.id || "",
+		brand: {
+			"@type": "Brand",
+			name: product.vendor || "Zugzology",
+		},
 		offers: {
-			"@type": "Offer",
-			price: product.priceRange.minVariantPrice.amount,
-			priceCurrency: product.priceRange.minVariantPrice.currencyCode,
+			"@type": "AggregateOffer",
 			availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+			priceCurrency: currencyCode,
+			lowPrice: minPrice,
+			highPrice: maxPrice,
+			offerCount: product.variants?.edges?.length || 1,
+			offers:
+				product.variants?.edges?.map(({ node }) => ({
+					"@type": "Offer",
+					price: node.price?.amount || minPrice,
+					priceCurrency: node.price?.currencyCode || currencyCode,
+					availability: node.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+					url: `https://zugzology.com/products/${product.handle}?variant=${node.id}`,
+					itemCondition: "https://schema.org/NewCondition",
+				})) || [],
 		},
 	};
 
 	return (
-		<div className="w-full px-4 py-8 bg-neutral-50 dark:bg-neutral-900">
+		<>
 			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
-			<ErrorBoundary fallback={<div className="text-center text-red-600 dark:text-red-400">Error loading product</div>}>
-				<Suspense fallback={<LoadingFallback />}>
-					<ProductContentClient product={product} />
-				</Suspense>
-			</ErrorBoundary>
-		</div>
+			<ProductContent product={product} />
+		</>
 	);
 }

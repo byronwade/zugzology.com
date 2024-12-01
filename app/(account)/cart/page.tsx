@@ -52,7 +52,7 @@ const getCart = unstable_cache(
 	},
 	["cart"],
 	{
-		revalidate: 0, // Don't cache cart data
+		revalidate: 60,
 		tags: ["cart"],
 	}
 );
@@ -128,7 +128,9 @@ async function CartContent() {
 	);
 }
 
-export default function CartPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CartPage() {
 	return (
 		<div className="container mx-auto px-4 py-8">
 			<h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
