@@ -190,7 +190,7 @@ export function HeaderClient({ initialMenuItems }: HeaderClientProps) {
 					<div className="flex-1 relative min-w-0">
 						<form onSubmit={handleSearchSubmit} className="relative w-full">
 							<div className="relative">
-								<Input type="text" className={cn("w-full pr-10 pl-10 text-[16px] h-8 sm:h-10 transition-colors", isSearching && "ring-2 ring-primary", "focus:outline-none focus:ring-2 focus:ring-primary")} placeholder={searchPlaceholder} value={searchQuery} onChange={handleSearchChange} onFocus={handleSearchFocus} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false" />
+								<Input type="text" className={cn("w-full pr-4 pl-10 text-[16px] h-8 sm:h-10 transition-colors", isSearching && "ring-2 ring-primary", "focus:outline-none focus:ring-2 focus:ring-primary")} placeholder={searchPlaceholder} value={searchQuery} onChange={handleSearchChange} onFocus={handleSearchFocus} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false" />
 								<Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4", isSearching ? "text-primary" : "text-muted-foreground")} />
 								{searchQuery && (
 									<Button type="button" variant="ghost" size="icon" onClick={handleSearchClear} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 hover:bg-neutral-100 dark:hover:bg-neutral-800">
