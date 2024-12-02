@@ -104,7 +104,7 @@ export function ProductContentClient({ product }: ProductContentClientProps) {
 			<div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
 				{/* Product Gallery */}
 				<section aria-label="Product gallery" className="col-span-1 md:col-span-5 lg:col-span-5">
-					<div className="sticky top-[110px] pt-4">
+					<div className="sticky top-[106px] pt-4">
 						<ProductGallery images={images} title={product.title} selectedIndex={selectedImageIndex} onImageSelect={setSelectedImageIndex} />
 					</div>
 				</section>

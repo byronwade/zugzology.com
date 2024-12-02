@@ -6,6 +6,7 @@ import { SearchProvider } from "@/lib/providers/search-provider";
 import { InitializeSearch } from "@/components/search";
 import { MainContent } from "@/components/search/main-content";
 import { getProducts } from "@/lib/actions/shopify";
+import { Footer } from "@/components/footer/footer";
 
 // Add function to fetch global settings
 async function getGlobalSettings() {
@@ -83,6 +84,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 						<InitializeSearch products={products || []} />
 						<Header />
 						<MainContent>{children}</MainContent>
+						<Footer />
 					</SearchProvider>
 				</Providers>
 			</body>

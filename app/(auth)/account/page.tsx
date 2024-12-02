@@ -175,9 +175,9 @@ export default function AccountPage() {
 	}, []);
 
 	return (
-		<div className="flex h-[calc(100vh-98px)] overflow-hidden bg-background">
+		<div className="flex h-[calc(100vh-106px)] overflow-hidden bg-background">
 			{/* Sidebar */}
-			<aside className={`bg-muted w-64 h-full fixed left-0 top-[98px] z-40 transition-transform duration-300 ease-in-out transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
+			<aside className={`bg-muted w-64 h-full fixed left-0 top-[106px] z-40 transition-transform duration-300 ease-in-out transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
 				<div className="flex flex-col h-full">
 					<div className="flex items-center justify-between p-4 border-b">
 						<h1 className="text-2xl font-bold">Account</h1>
@@ -209,7 +209,7 @@ export default function AccountPage() {
 			</aside>
 
 			{/* Main content */}
-			<main className="overflow-x-hidden overflow-y-auto bg-background md:ml-64 pt-[98px]">
+			<main className="overflow-x-hidden overflow-y-auto bg-background md:ml-64 pt-[106px]">
 				<div className="w-full mx-auto px-4 py-8">
 					<div className="flex items-center justify-between mb-6">
 						<div className="flex items-center space-x-4">
