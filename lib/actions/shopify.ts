@@ -1,7 +1,10 @@
 "use server";
 
-import type { ShopifyProduct, ShopifyCollection, ShopifyBlog, ShopifyBlogArticle, ShopifyCart, CartItem } from "../types";
-import { shopifyFetch } from "@/lib/shopify";
+import type { ShopifyProduct, ShopifyCollection, ShopifyBlog, ShopifyBlogArticle, ShopifyCart, CartItem, ProductWithEdges } from "../types";
+import { shopifyFetch as importedShopifyFetch } from "@/lib/shopify";
+import { SHOPIFY_STOREFRONT_ACCESS_TOKEN, SHOPIFY_STORE_DOMAIN } from "@/lib/constants";
+import { revalidateTag } from "next/cache";
+import { cookies } from "next/headers";
 
 // Types for error handling
 interface ShopifyError extends Error {
@@ -133,6 +136,7 @@ const CART_FRAGMENT = `
   fragment CartFragment on Cart {
     id
     checkoutUrl
+    totalQuantity
     cost {
       subtotalAmount {
         amount
@@ -235,6 +239,42 @@ function logPerformance(startTime: number, operation: string, data?: any) {
 	}
 }
 
+const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`;
+
+// Update shopifyFetch response type
+interface ShopifyResponse<T> {
+	data: T;
+}
+
+async function shopifyFetch<T>({ query, variables = {}, cache = "force-cache", tags = [] }: { query: string; variables?: Record<string, any>; cache?: RequestCache; tags?: string[] }): Promise<ShopifyResponse<T>> {
+	try {
+		const result = await fetch(endpoint, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+			},
+			body: JSON.stringify({ query, variables }),
+			cache,
+			...(tags?.length && { next: { tags } }),
+		});
+
+		if (!result.ok) {
+			throw new Error(`HTTP error! status: ${result.status}`);
+		}
+
+		const body = await result.json();
+
+		if (body.errors) {
+			throw new Error(body.errors[0].message);
+		}
+
+		return body;
+	} catch (error) {
+		throw error;
+	}
+}
+
 export async function getCollection(handle: string): Promise<ShopifyCollection | null> {
 	if (!handle || typeof handle !== "string") {
 		console.error("Invalid collection handle:", handle);
@@ -290,13 +330,15 @@ export async function getCollections(): Promise<ShopifyCollection[]> {
 	const startTime = performance.now();
 	try {
 		const result = await withRetry(async () => {
-			const { data } = await shopifyFetch<{
-				collections: {
-					edges: Array<{
-						node: ShopifyCollection;
-					}>;
-				};
-			}>({
+			const { data } = await shopifyFetch<
+				ShopifyResponse<{
+					collections: {
+						edges: Array<{
+							node: ShopifyCollection;
+						}>;
+					};
+				}>
+			>({
 				query: `
 					query GetCollections {
 						collections(first: 100) {
@@ -311,7 +353,7 @@ export async function getCollections(): Promise<ShopifyCollection[]> {
 				`,
 				cache: "force-cache",
 			});
-			return data.collections.edges.map((edge) => edge.node);
+			return data.collections.edges.map((edge: { node: ShopifyCollection }) => edge.node);
 		});
 
 		logPerformance(startTime, "Collections", { edges: result });
@@ -506,8 +548,8 @@ export async function getProducts(): Promise<ShopifyProduct[]> {
 		if (result.length > 0) {
 			logPerformance(startTime, "Products", {
 				count: result.length,
-				imagesCount: result.reduce((acc, p) => acc + (p.images?.edges?.length || 0), 0),
-				variantsCount: result.reduce((acc, p) => acc + (p.variants?.edges?.length || 0), 0),
+				imagesCount: result.reduce((acc: number, p: ProductWithEdges) => acc + (p.images?.edges?.length || 0), 0),
+				variantsCount: result.reduce((acc: number, p: ProductWithEdges) => acc + (p.variants?.edges?.length || 0), 0),
 			});
 		}
 
@@ -545,13 +587,13 @@ export async function getBlogs(): Promise<ShopifyBlog[]> {
 				cache: "force-cache",
 			});
 
-			return data.blogs.edges.map(({ node }) => node);
+			return data.blogs.edges.map(({ node }: { node: ShopifyBlog }) => node);
 		});
 
 		if (result.length > 0) {
 			logPerformance(startTime, "Blogs", {
 				count: result.length,
-				articlesCount: result.reduce((acc, blog) => acc + (blog.articles?.edges?.length || 0), 0),
+				articlesCount: result.reduce((acc: number, blog: ShopifyBlog) => acc + (blog.articles?.edges?.length || 0), 0),
 			});
 		}
 
@@ -562,14 +604,11 @@ export async function getBlogs(): Promise<ShopifyBlog[]> {
 	}
 }
 
-export async function getCart(cartId: string): Promise<ShopifyCart | null> {
-	if (!cartId || typeof cartId !== "string") {
-		console.error("Invalid cart ID:", cartId);
-		return null;
-	}
+export async function getCart(cartId: string) {
+	const startTime = performance.now();
 
 	try {
-		const { data } = await shopifyFetch<{ cart: ShopifyCart }>({
+		const res = await shopifyFetch<{ cart: ShopifyCart }>({
 			query: `
 				query GetCart($cartId: ID!) {
 					cart(id: $cartId) {
@@ -580,29 +619,25 @@ export async function getCart(cartId: string): Promise<ShopifyCart | null> {
 			`,
 			variables: { cartId },
 			cache: "no-store",
+			tags: ["cart"],
 		});
 
-		return data.cart;
+		logPerformance(startTime, "Cart", res.data.cart);
+		return res.data.cart;
 	} catch (error) {
-		console.error(
-			"❌ [Cart] Error fetching cart:",
-			error instanceof Error
-				? {
-						message: error.message,
-						stack: error.stack?.split("\n").slice(0, 3),
-				  }
-				: "Unknown error"
-		);
-		return null;
+		handleShopifyError(error);
+		throw error;
 	}
 }
 
-export async function createCart(lines?: CartItem[]): Promise<ShopifyCart | null> {
+export async function createCart() {
+	const startTime = performance.now();
+
 	try {
-		const { data } = await shopifyFetch<{ cartCreate: { cart: ShopifyCart } }>({
+		const res = await shopifyFetch<{ cartCreate: { cart: ShopifyCart } }>({
 			query: `
-				mutation CreateCart($lines: [CartLineInput!]) {
-					cartCreate(input: { lines: $lines }) {
+				mutation CreateCart {
+					cartCreate {
 						cart {
 							...CartFragment
 						}
@@ -610,35 +645,25 @@ export async function createCart(lines?: CartItem[]): Promise<ShopifyCart | null
 				}
 				${CART_FRAGMENT}
 			`,
-			variables: { lines },
 			cache: "no-store",
+			tags: ["cart"],
 		});
 
-		return data.cartCreate.cart;
+		logPerformance(startTime, "Cart Create", res.data.cartCreate.cart);
+		return res.data.cartCreate.cart;
 	} catch (error) {
-		console.error(
-			"❌ [Cart] Error creating cart:",
-			error instanceof Error
-				? {
-						message: error.message,
-						stack: error.stack?.split("\n").slice(0, 3),
-				  }
-				: "Unknown error"
-		);
-		return null;
+		handleShopifyError(error);
+		throw error;
 	}
 }
 
-export async function addToCart(cartId: string, lines: CartItem[]): Promise<ShopifyCart | null> {
-	if (!cartId || !lines?.length) {
-		console.error("Invalid cart parameters:", { cartId, lines });
-		return null;
-	}
+export async function addToCart(cartId: string, lines: CartItem[]) {
+	const startTime = performance.now();
 
 	try {
-		const { data } = await shopifyFetch<{ cartLinesAdd: { cart: ShopifyCart } }>({
+		const res = await shopifyFetch<{ cartLinesAdd: { cart: ShopifyCart } }>({
 			query: `
-				mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+				mutation AddToCart($cartId: ID!, $lines: [CartLineInput!]!) {
 					cartLinesAdd(cartId: $cartId, lines: $lines) {
 						cart {
 							...CartFragment
@@ -649,25 +674,19 @@ export async function addToCart(cartId: string, lines: CartItem[]): Promise<Shop
 			`,
 			variables: { cartId, lines },
 			cache: "no-store",
+			tags: ["cart"],
 		});
 
-		return data.cartLinesAdd.cart;
+		logPerformance(startTime, "Add to Cart", res.data.cartLinesAdd.cart);
+		return res.data.cartLinesAdd.cart;
 	} catch (error) {
-		console.error(
-			"❌ [Cart] Error adding to cart:",
-			error instanceof Error
-				? {
-						message: error.message,
-						stack: error.stack?.split("\n").slice(0, 3),
-				  }
-				: "Unknown error"
-		);
-		return null;
+		handleShopifyError(error);
+		throw error;
 	}
 }
 
 export async function updateCartLine(cartId: string, lineId: string, quantity: number): Promise<ShopifyCart | null> {
-	if (!cartId || !lineId || typeof quantity !== "number") {
+	if (!cartId || !lineId || quantity < 0) {
 		console.error("Invalid cart update parameters:", { cartId, lineId, quantity });
 		return null;
 	}
@@ -872,4 +891,9 @@ export async function getBlogArticle(blogHandle: string, articleHandle: string):
 		);
 		return handleShopifyError(error);
 	}
+}
+
+// Add revalidation helper
+export async function revalidateCache(tags: string[]) {
+	tags.forEach((tag) => revalidateTag(tag));
 }

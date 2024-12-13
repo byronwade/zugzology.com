@@ -124,15 +124,12 @@ export interface ShopifyBlog {
 	};
 }
 
-export interface CartItem {
-	merchandiseId: string;
-	quantity: number;
-	isPreOrder?: boolean;
-}
+export type ShopifyCart = Cart;
 
-export interface ShopifyCart {
+export interface Cart {
 	id: string;
 	checkoutUrl: string;
+	totalQuantity: number;
 	cost: {
 		subtotalAmount: {
 			amount: string;
@@ -182,6 +179,28 @@ export interface ShopifyCart {
 					};
 				};
 			};
+		}>;
+	};
+}
+
+export interface CartItem {
+	merchandiseId: string;
+	quantity: number;
+	isPreOrder?: boolean;
+}
+
+export interface ProductWithEdges extends Omit<ShopifyProduct, "variants" | "images"> {
+	images: {
+		edges: Array<{
+			node: {
+				url: string;
+				altText: string | null;
+			};
+		}>;
+	};
+	variants: {
+		edges: Array<{
+			node: ShopifyProductVariant;
 		}>;
 	};
 }

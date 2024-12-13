@@ -1,53 +1,26 @@
 import { useEffect, useState } from "react";
-import { addToCart, createCart, getCart, removeFromCart, updateCart } from "@/lib/actions/shopify";
-import type { Cart, CartLine } from "@/lib/types";
+import { addToCart, createCart, getCart, removeFromCart, updateCartLine } from "@/lib/actions/shopify";
+import type { Cart } from "@/lib/types";
 
 export function useCart() {
-	const [cartId, setCartId] = useState<string | null>(null);
 	const [cart, setCart] = useState<Cart | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [cartId, setCartId] = useState<string | null>(null);
 
 	useEffect(() => {
-		// Get cart ID from cookies
-		const cartIdFromCookie = document.cookie
-			.split("; ")
-			.find((row) => row.startsWith("cartId="))
-			?.split("=")[1];
-
-		if (cartIdFromCookie) {
-			setCartId(cartIdFromCookie);
-			void fetchCart(cartIdFromCookie);
+		const storedCartId = localStorage.getItem("shopifyCartId");
+		if (storedCartId) {
+			setCartId(storedCartId);
+			getCart(storedCartId).then((cart) => {
+				if (cart) {
+					setCart(cart);
+				} else {
+					localStorage.removeItem("shopifyCartId");
+					setCartId(null);
+				}
+			});
 		}
 	}, []);
-
-	const fetchCart = async (id: string) => {
-		try {
-			setLoading(true);
-			const cartData = await getCart(id);
-			setCart(cartData);
-		} catch (error) {
-			console.error("Error fetching cart:", error);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	const initializeCart = async () => {
-		try {
-			setLoading(true);
-			const newCart = await createCart();
-			if (newCart?.id) {
-				setCartId(newCart.id);
-				setCart(newCart);
-			}
-			return newCart;
-		} catch (error) {
-			console.error("Error creating cart:", error);
-			return null;
-		} finally {
-			setLoading(false);
-		}
-	};
 
 	const addItem = async (variantId: string, quantity: number) => {
 		try {
@@ -55,12 +28,20 @@ export function useCart() {
 			let currentCartId = cartId;
 
 			if (!currentCartId) {
-				const newCart = await initializeCart();
-				if (!newCart?.id) return;
+				const newCart = await createCart();
+				if (!newCart?.id) throw new Error("Failed to create cart");
 				currentCartId = newCart.id;
+				setCartId(currentCartId);
+				localStorage.setItem("shopifyCartId", currentCartId);
 			}
 
-			const updatedCart = await addToCart(currentCartId, variantId, quantity);
+			const updatedCart = await addToCart(currentCartId, [
+				{
+					merchandiseId: variantId,
+					quantity,
+				},
+			]);
+
 			if (updatedCart) {
 				setCart(updatedCart);
 			}
@@ -76,7 +57,7 @@ export function useCart() {
 
 		try {
 			setLoading(true);
-			const updatedCart = await removeFromCart(cartId, [lineId]);
+			const updatedCart = await removeFromCart(cartId, lineId);
 			if (updatedCart) {
 				setCart(updatedCart);
 			}
@@ -92,7 +73,7 @@ export function useCart() {
 
 		try {
 			setLoading(true);
-			const updatedCart = await updateCart(cartId, [{ id: lineId, quantity }]);
+			const updatedCart = await updateCartLine(cartId, lineId, quantity);
 			if (updatedCart) {
 				setCart(updatedCart);
 			}

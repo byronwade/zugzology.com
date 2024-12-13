@@ -10,6 +10,7 @@ import { MainContent } from "@/components/search/main-content";
 import { getProducts } from "@/lib/actions/shopify";
 import { Footer } from "@/components/footer/footer";
 import { Suspense } from "react";
+import { CartProvider } from "@/components/providers/cart-provider";
 
 // Loading components
 function HeaderLoading() {
@@ -133,9 +134,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body>
-				<Providers>
-					<AppContent>{children}</AppContent>
-				</Providers>
+				<CartProvider>
+					<Providers>
+						<AppContent>{children}</AppContent>
+					</Providers>
+				</CartProvider>
 			</body>
 		</html>
 	);

@@ -6,6 +6,7 @@ import { ProductsContentClient } from "@/components/products/products-content-cl
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { InitializeSearch } from "@/components/search";
 
 export const metadata: Metadata = {
 	title: "Search Products | Premium Mushroom Growing Supplies | Zugzology",
@@ -18,20 +19,6 @@ export const metadata: Metadata = {
 		siteName: "Zugzology",
 		type: "website",
 		locale: "en_US",
-		images: [
-			{
-				url: "https://zugzology.com/search-og.jpg",
-				width: 1200,
-				height: 630,
-				alt: "Zugzology Product Search",
-			},
-		],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Search Premium Mushroom Growing Supplies | Zugzology",
-		description: "Search through our extensive catalog of premium mushroom growing supplies.",
-		images: ["https://zugzology.com/search-og.jpg"],
 	},
 	alternates: {
 		canonical: "https://zugzology.com/search",
@@ -53,10 +40,6 @@ export const metadata: Metadata = {
 interface SearchPageProps {
 	searchParams?: {
 		q?: string;
-		sort?: string;
-		category?: string;
-		price?: string;
-		availability?: string;
 	};
 }
 
@@ -86,12 +69,19 @@ const SearchError = () => (
 
 // Search content component
 const SearchContent = async ({ searchParams }: SearchPageProps) => {
-	const nextSearchParams = await searchParams;
-	const query = nextSearchParams?.q || "";
-	let products = [];
+	const params = await searchParams;
+	const query = params?.q || "";
+	const products = await getProducts();
 
-	if (query) {
-		products = await getProducts();
+	if (!products?.length) {
+		return (
+			<div className="w-full min-h-[50vh] flex items-center justify-center">
+				<div className="text-center">
+					<h2 className="text-xl font-semibold mb-2">No Products Found</h2>
+					<p className="text-muted-foreground">Please try again later.</p>
+				</div>
+			</div>
+		);
 	}
 
 	const virtualCollection = {
@@ -105,22 +95,16 @@ const SearchContent = async ({ searchParams }: SearchPageProps) => {
 	};
 
 	return (
-		<ProductsContentClient
-			collection={virtualCollection}
-			searchQuery={query}
-			initialFilters={{
-				sort: nextSearchParams?.sort,
-				category: nextSearchParams?.category,
-				price: nextSearchParams?.price,
-				availability: nextSearchParams?.availability,
-			}}
-		/>
+		<>
+			<InitializeSearch products={products} />
+			<ProductsContentClient collection={virtualCollection} searchQuery={query} />
+		</>
 	);
 };
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-	const nextSearchParams = await searchParams;
-	const query = nextSearchParams?.q || "";
+	const params = await searchParams;
+	const query = params?.q || "";
 
 	return (
 		<ErrorBoundary fallback={<SearchError />}>
@@ -128,9 +112,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 				<h1>{query ? `Search Results for "${query}"` : "Search Products"}</h1>
 			</header>
 
-			<section aria-label="Search Results" className="search-section" itemScope itemType="https://schema.org/SearchResultsPage">
+			<section aria-label="Search Results" className="search-section">
 				<Suspense fallback={<SearchLoading />}>
-					<SearchContent searchParams={nextSearchParams} />
+					<SearchContent searchParams={params} />
 				</Suspense>
 			</section>
 		</ErrorBoundary>
