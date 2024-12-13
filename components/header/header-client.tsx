@@ -16,6 +16,7 @@ import { useSearch } from "@/lib/providers/search-provider";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import type { ShopifyBlog } from "@/lib/types";
 
 interface MenuItem {
 	id: string;
@@ -26,13 +27,7 @@ interface MenuItem {
 
 interface HeaderClientProps {
 	initialMenuItems: MenuItem[];
-}
-
-interface BlogCategory {
-	title: string;
-	description: string;
-	href: string;
-	count: number;
+	blogs: ShopifyBlog[];
 }
 
 interface MicroDosingCard {
@@ -43,7 +38,7 @@ interface MicroDosingCard {
 	tag: string;
 }
 
-export function HeaderClient({ initialMenuItems }: HeaderClientProps) {
+export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 	const { theme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 	const { searchQuery, setSearchQuery, isSearching, allProducts } = useSearch();
@@ -55,6 +50,10 @@ export function HeaderClient({ initialMenuItems }: HeaderClientProps) {
 	useEffect(() => {
 		setMounted(true);
 	}, []);
+
+	if (!mounted) {
+		return null;
+	}
 
 	// Only show cart quantity when both mounted and cart is initialized
 	const cartQuantity = cart?.totalQuantity ?? 0;
@@ -104,39 +103,6 @@ export function HeaderClient({ initialMenuItems }: HeaderClientProps) {
 	const searchPlaceholder = mounted ? (isSearching ? "Filter products..." : `Search ${allProducts.length} products...`) : "Search products...";
 
 	// Add these menu items to server-side data fetching
-	const blogCategories: BlogCategory[] = [
-		{
-			title: "Growing Guides",
-			description: "Step-by-step cultivation tutorials",
-			href: "/blogs/growing-guides",
-			count: 12,
-		},
-		{
-			title: "Research & Science",
-			description: "Latest mycological studies",
-			href: "/blogs/research",
-			count: 8,
-		},
-		{
-			title: "Techniques",
-			description: "Advanced growing methods",
-			href: "/blogs/techniques",
-			count: 15,
-		},
-		{
-			title: "Equipment",
-			description: "Tools and setup guides",
-			href: "/blogs/equipment",
-			count: 6,
-		},
-		{
-			title: "Substrate Guides",
-			description: "Substrate preparation and use",
-			href: "/blogs/substrates",
-			count: 9,
-		},
-	];
-
 	const microDosingCards: MicroDosingCard[] = [
 		{
 			title: "Getting Started",
@@ -213,17 +179,18 @@ export function HeaderClient({ initialMenuItems }: HeaderClientProps) {
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-[300px] p-2">
 								<div className="space-y-2">
-									{blogCategories.map((category) => (
-										<Link key={category.href} href={category.href} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted transition-colors">
+									{blogs?.map((blog) => (
+										<Link key={blog.id} href={`/blogs/${blog.handle}`} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted transition-colors">
 											<div className="flex-1">
 												<div className="flex items-center justify-between">
-													<h3 className="font-medium">{category.title}</h3>
-													<span className="text-xs text-muted-foreground">{category.count} articles</span>
+													<h3 className="font-medium">{blog.title}</h3>
+													<span className="text-xs text-muted-foreground">{blog.articles.edges.length} articles</span>
 												</div>
-												<p className="text-sm text-muted-foreground">{category.description}</p>
+												<p className="text-sm text-muted-foreground">{blog.articles.edges[0]?.node.excerpt || "Explore our articles"}</p>
 											</div>
 										</Link>
 									))}
+									{!blogs?.length && <div className="p-2 text-sm text-muted-foreground">No blogs available</div>}
 								</div>
 							</DropdownMenuContent>
 						</DropdownMenu>
@@ -262,7 +229,7 @@ export function HeaderClient({ initialMenuItems }: HeaderClientProps) {
 
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button variant="secondary" className="h-8 sm:h-10 w-8 sm:w-10 p-0">
+								<Button variant="outline" className="h-8 sm:h-10 w-8 sm:w-10 p-0">
 									<User className="h-4 w-4" />
 								</Button>
 							</DropdownMenuTrigger>

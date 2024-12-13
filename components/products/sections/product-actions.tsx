@@ -9,12 +9,10 @@ import { toast } from "sonner";
 import { formatPrice } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
 
 interface ProductActionsProps {
 	selectedVariant: ShopifyProductVariant;
@@ -26,8 +24,6 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange }: 
 	const { addItem, createNewCart } = useCart();
 	const [isLoading, setIsLoading] = useState(false);
 	const [isBuyingNow, setIsBuyingNow] = useState(false);
-	const [protectionPlan, setProtectionPlan] = useState("");
-	const [giftReceipt, setGiftReceipt] = useState(false);
 
 	const handleAddToCart = async () => {
 		if (!selectedVariant?.id) {
@@ -84,9 +80,32 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange }: 
 		}
 	};
 
+	const handleQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const value = event.target.value;
+
+		// Allow empty input for better UX while typing
+		if (value === "") {
+			onQuantityChange(1);
+			return;
+		}
+
+		const numValue = parseInt(value, 10);
+
+		// Validate the input
+		if (isNaN(numValue) || numValue < 1) {
+			return;
+		}
+
+		// Optional: Limit to available quantity if you want to prevent overordering
+		const maxQuantity = selectedVariant.quantityAvailable || 9999;
+		const finalQuantity = Math.min(numValue, maxQuantity);
+
+		onQuantityChange(finalQuantity);
+	};
+
 	return (
 		<TooltipProvider>
-			<Card className="w-full md:max-w-[400px] mx-auto shadow-lg hover:shadow-xl transition-shadow duration-300">
+			<Card className="w-full mx-auto shadow-lg hover:shadow-xl transition-shadow duration-300">
 				<CardContent className="p-6 space-y-6">
 					{/* Price and Stock Status */}
 					<div className="space-y-1.5">
@@ -126,23 +145,15 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange }: 
 
 					<Separator className="my-4" />
 
-					{/* Quantity Selector */}
+					{/* Updated Quantity Selector */}
 					<div className="space-y-2">
 						<Label htmlFor="quantity" className="text-sm font-medium">
 							Quantity
 						</Label>
-						<Select value={quantity.toString()} onValueChange={(value) => onQuantityChange(Number(value))}>
-							<SelectTrigger id="quantity" className="w-full">
-								<SelectValue placeholder="Select quantity" />
-							</SelectTrigger>
-							<SelectContent>
-								{[...Array(30)].map((_, i) => (
-									<SelectItem key={i + 1} value={(i + 1).toString()}>
-										{i + 1}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+						<div className="flex items-center space-x-2">
+							<Input id="quantity" type="number" min="1" max={selectedVariant.quantityAvailable || 9999} value={quantity} onChange={handleQuantityChange} className="w-24" />
+							{selectedVariant.quantityAvailable && <span className="text-sm text-muted-foreground">Max: {selectedVariant.quantityAvailable}</span>}
+						</div>
 					</div>
 
 					{/* Action Buttons */}
@@ -224,7 +235,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange }: 
 					</div>
 
 					{/* Secure Transaction */}
-					<div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-100">
+					<div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-accent-foreground/10">
 						<h3 className="text-lg font-semibold mb-2 flex items-center">
 							<Shield className="h-5 w-5 mr-2 text-green-600" />
 							Secure Transaction

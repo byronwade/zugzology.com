@@ -12,6 +12,7 @@ interface ShopifyFetchOptions {
 	cache?: RequestCache;
 	isAdminApi?: boolean;
 	isCustomerAccount?: boolean;
+	tags?: string[];
 }
 
 // Helper function to get GraphQL API URL
@@ -69,12 +70,27 @@ function getHeaders(isAdminApi: boolean, isCustomerAccount: boolean): HeadersIni
 	};
 }
 
+// Helper function to format data size
+function formatDataSize(data: any): string {
+	const size = JSON.stringify(data).length / 1024;
+	return `${size.toFixed(2)}KB`;
+}
+
 // Helper function to make GraphQL requests with better error handling
-export async function shopifyFetch<T>({ query, variables, cache, isAdminApi = false, isCustomerAccount = false }: ShopifyFetchOptions): Promise<{ data: T }> {
+export async function shopifyFetch<T>({ query, variables, cache = "force-cache", isAdminApi = false, isCustomerAccount = false }: ShopifyFetchOptions): Promise<{ data: T }> {
 	try {
 		if (!domain) {
 			console.error("Missing required environment variables");
 			throw new Error("Shopify environment variables are not properly configured");
+		}
+
+		// Validate required variables
+		if (variables) {
+			for (const [key, value] of Object.entries(variables)) {
+				if (value === undefined || value === null) {
+					throw new Error(`Required variable "${key}" is missing or invalid`);
+				}
+			}
 		}
 
 		let url;
@@ -86,9 +102,18 @@ export async function shopifyFetch<T>({ query, variables, cache, isAdminApi = fa
 			url = getStorefrontApiUrl();
 		}
 
-		console.log(`Attempting fetch to ${isCustomerAccount ? "Customer Account" : isAdminApi ? "Admin" : "Storefront"} API:`, url);
-		console.log("Request headers:", getHeaders(isAdminApi, isCustomerAccount));
-		console.log("Request variables:", variables);
+		const apiType = isCustomerAccount ? "Customer Account" : isAdminApi ? "Admin" : "Storefront";
+		const startTime = performance.now();
+
+		// Determine caching strategy based on request type
+		const cacheStrategy = isCustomerAccount ? "no-store" : cache;
+		const revalidationTime = isCustomerAccount
+			? 0
+			: cache === "force-cache"
+			? 3600 // 1 hour for cached requests
+			: cache === "no-store"
+			? 0 // No caching for dynamic requests
+			: 60; // 1 minute default for other cases
 
 		const response = await fetch(url, {
 			method: "POST",
@@ -97,45 +122,56 @@ export async function shopifyFetch<T>({ query, variables, cache, isAdminApi = fa
 				query,
 				variables,
 			}),
-			cache: cache ?? "no-store", // Default to no-store for customer operations
+			cache: cacheStrategy,
+			next: {
+				revalidate: revalidationTime,
+				tags: variables ? [`shopify-${Object.values(variables).join("-")}`] : undefined,
+			},
 		});
 
 		if (!response.ok) {
 			const text = await response.text();
-			console.error("Shopify API Error Response:", {
+			console.error(`❌ [${apiType} API] HTTP Error:`, {
 				status: response.status,
 				statusText: response.statusText,
 				body: text,
+				url,
+				variables,
 			});
 			throw new Error(`Shopify API responded with status ${response.status}: ${text}`);
 		}
 
 		const json = await response.json();
-		console.log("Shopify API Response:", JSON.stringify(json, null, 2));
+		const duration = performance.now() - startTime;
 
-		// Check for GraphQL errors
+		// Enhanced error logging
 		if (json.errors) {
-			console.error("Shopify GraphQL Errors:", json.errors);
-			const errorMessage = json.errors.map((e: any) => e.message).join(", ");
-			throw new Error(`Shopify GraphQL Error: ${errorMessage}`);
+			const errors = json.errors.map((e: any) => e.message);
+			console.error(`❌ [${apiType} API] GraphQL Errors:`, {
+				errors,
+				query: query.slice(0, 200) + "...",
+				variables,
+			});
+			throw new Error(`Shopify GraphQL Error: ${errors.join(", ")}`);
 		}
 
-		// Check for user errors in the response data
-		const userErrors = json.data?.customerAccountCreate?.customerUserErrors || json.data?.customerAccessTokenCreate?.customerUserErrors || json.data?.customerUpdate?.customerUserErrors;
-
-		if (userErrors?.length > 0) {
-			console.error("Shopify User Errors:", userErrors);
-			throw new Error(userErrors[0].message);
+		// Log performance metrics for slow queries
+		if (duration > 100) {
+			console.log(`⚡ [${apiType} API] ${duration.toFixed(2)}ms | Size: ${formatDataSize(json.data)} | Cache: ${cacheStrategy}`);
 		}
 
 		return json;
 	} catch (error) {
-		console.error("Shopify Fetch Error:", {
-			error,
-			stack: error instanceof Error ? error.stack : undefined,
-			query,
-			variables: JSON.stringify(variables, null, 2),
-		});
+		if (error instanceof Error) {
+			console.error("❌ [Shopify API] Error:", {
+				message: error.message,
+				stack: error.stack?.split("\n").slice(0, 3),
+				query: query.slice(0, 200) + "...",
+				variables,
+			});
+		} else {
+			console.error("❌ [Shopify API] Unknown error:", error);
+		}
 		throw error;
 	}
 }

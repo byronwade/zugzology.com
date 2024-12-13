@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 		const { accessToken, expiresAt } = await customerLogin(email, password);
 
 		// Set the access token in an HTTP-only cookie
-		const cookieStore = cookies();
+		const cookieStore = await cookies();
 		await cookieStore.set({
 			name: "customerAccessToken",
 			value: accessToken,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { ProductList } from "@/components/products/product-list";
 import { ProductsHeader } from "@/components/products/products-header";
 import { useViewMode } from "@/hooks/use-view-mode";
@@ -16,6 +17,11 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 	const { view, setView, mounted } = useViewMode();
 	const { debouncedQuery, searchResults, isSearching, allProducts } = useSearch();
 
+	// Memoize products array to prevent unnecessary recalculations
+	const products = useMemo(() => {
+		return isSearching ? searchResults : collection?.products?.edges?.map(({ node }) => node) || [];
+	}, [isSearching, searchResults, collection?.products?.edges]);
+
 	// Show loading state during hydration
 	if (!mounted) {
 		return (
@@ -24,9 +30,6 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 			</div>
 		);
 	}
-
-	// Get products based on search state
-	const products = isSearching ? searchResults : collection?.products?.edges?.map(({ node }) => node) || [];
 
 	// Handle empty results
 	if (isSearching && !products.length) {

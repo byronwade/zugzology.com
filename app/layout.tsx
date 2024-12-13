@@ -1,16 +1,33 @@
+"use server";
+
 import "./globals.css";
 import type { Metadata } from "next";
-import { Header } from "@/components/header/header";
+import Header from "@/components/header/header";
 import { Providers } from "./providers";
 import { SearchProvider } from "@/lib/providers/search-provider";
 import { InitializeSearch } from "@/components/search";
 import { MainContent } from "@/components/search/main-content";
 import { getProducts } from "@/lib/actions/shopify";
 import { Footer } from "@/components/footer/footer";
+import { Suspense } from "react";
 
-// Add function to fetch global settings
+// Loading components
+function HeaderLoading() {
+	return <div className="w-full h-16 bg-background animate-pulse" />;
+}
+
+function MainLoading() {
+	return <div className="flex-1 bg-background animate-pulse" />;
+}
+
+function FooterLoading() {
+	return <div className="w-full h-24 bg-background animate-pulse" />;
+}
+
+// Optimized global settings with cache
 async function getGlobalSettings() {
-	// Fetch from your CMS or Shopify
+	"use cache";
+
 	return {
 		siteName: "Zugzology",
 		siteDescription: "Premium mushroom cultivation supplies and equipment.",
@@ -23,16 +40,38 @@ async function getGlobalSettings() {
 	};
 }
 
+// Optimized products fetch with parallel loading and caching
+async function getCachedProducts() {
+	"use cache";
+
+	try {
+		return await getProducts();
+	} catch (error) {
+		console.error("Failed to fetch products:", error);
+		return [];
+	}
+}
+
 export async function generateMetadata(): Promise<Metadata> {
 	const settings = await getGlobalSettings();
 
 	return {
+		metadataBase: new URL("https://zugzology.com"),
 		title: {
 			template: `%s | ${settings.siteName}`,
 			default: `${settings.siteName} - Premium Mushroom Cultivation Supplies`,
 		},
 		description: settings.siteDescription,
-		metadataBase: new URL("https://zugzology.com"),
+		applicationName: settings.siteName,
+		keywords: ["mushroom cultivation", "mycology supplies", "cultivation equipment"],
+		authors: [{ name: "Zugzology" }],
+		creator: "Zugzology",
+		publisher: "Zugzology",
+		formatDetection: {
+			email: false,
+			address: false,
+			telephone: false,
+		},
 		openGraph: {
 			type: "website",
 			locale: "en_US",
@@ -57,35 +96,45 @@ export async function generateMetadata(): Promise<Metadata> {
 				index: true,
 				follow: true,
 				"max-image-preview": "large",
+				"max-video-preview": -1,
+				"max-snippet": -1,
 			},
 		},
 		alternates: {
 			canonical: "https://zugzology.com",
 		},
+		verification: {
+			google: settings.googleVerificationId,
+		},
 	};
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-	const products = await getProducts();
+// Server Component for the app content
+async function AppContent({ children }: { children: React.ReactNode }) {
+	const products = await getCachedProducts();
 
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<head>
-				{/* Preconnect to important domains */}
-				<link rel="preconnect" href="https://fonts.googleapis.com" />
-				<link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
+		<SearchProvider>
+			<InitializeSearch products={products || []} />
+			<Suspense fallback={<HeaderLoading />}>
+				<Header />
+			</Suspense>
+			<Suspense fallback={<MainLoading />}>
+				<MainContent>{children}</MainContent>
+			</Suspense>
+			<Suspense fallback={<FooterLoading />}>
+				<Footer />
+			</Suspense>
+		</SearchProvider>
+	);
+}
 
-				{/* Prevent zoom on input focus */}
-				<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-			</head>
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+	return (
+		<html lang="en" suppressHydrationWarning>
 			<body>
 				<Providers>
-					<SearchProvider>
-						<InitializeSearch products={products || []} />
-						<Header />
-						<MainContent>{children}</MainContent>
-						<Footer />
-					</SearchProvider>
+					<AppContent>{children}</AppContent>
 				</Providers>
 			</body>
 		</html>

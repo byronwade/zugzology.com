@@ -1,10 +1,11 @@
+"use cache";
+
 import React from "react";
 import { getProduct } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
 import type { Metadata } from "next";
 import { ProductContent } from "@/components/products/sections/product-content";
-import { SearchOverlay } from "@/components/search";
 import { Suspense } from "react";
 
 interface ProductPageProps {
@@ -13,19 +14,43 @@ interface ProductPageProps {
 	};
 }
 
-export const runtime = "edge";
-export const preferredRegion = "auto";
-export const dynamic = "force-dynamic";
-export const revalidate = 60; // Cache for 1 minute
+// Loading component for better UX
+const ProductLoading = () => (
+	<div className="w-full h-screen animate-pulse">
+		<div className="max-w-screen-xl mx-auto px-4">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+				<div className="aspect-square bg-gray-200 rounded-lg" />
+				<div className="space-y-4">
+					<div className="h-8 w-3/4 bg-gray-200 rounded" />
+					<div className="h-4 w-1/2 bg-gray-200 rounded" />
+					<div className="h-24 w-full bg-gray-200 rounded" />
+					<div className="h-12 w-full bg-gray-200 rounded" />
+				</div>
+			</div>
+		</div>
+	</div>
+);
 
+// Error fallback component
+const ProductError = () => (
+	<div className="w-full min-h-[50vh] flex items-center justify-center">
+		<div className="text-center">
+			<h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+			<p className="text-muted-foreground">Unable to load product information</p>
+		</div>
+	</div>
+);
+
+// Generate metadata for the product
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
-	const nextjs15 = await params;
-	const product = await getProduct(nextjs15.handle);
+	const nextParams = await params;
+	const product = await getProduct(nextParams.handle);
 	if (!product) return notFound();
 
 	const title = `${product.title} | Premium Mushroom Growing Supplies`;
 	const description = product.description || `Shop our premium ${product.title.toLowerCase()}. Find high-quality mushroom growing supplies and equipment.`;
 	const url = `https://zugzology.com/products/${product.handle}`;
+	const firstImage = product.images?.edges?.[0]?.node;
 
 	return {
 		title,
@@ -38,13 +63,13 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 			siteName: "Zugzology",
 			type: "website",
 			locale: "en_US",
-			images: product.images?.edges?.[0]?.node
+			images: firstImage
 				? [
 						{
-							url: product.images.edges[0].node.url,
+							url: firstImage.url,
 							width: 1200,
 							height: 630,
-							alt: product.images.edges[0].node.altText || product.title,
+							alt: firstImage.altText || product.title,
 						},
 				  ]
 				: [],
@@ -53,7 +78,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 			card: "summary_large_image",
 			title,
 			description,
-			images: product.images?.edges?.[0]?.node ? [product.images.edges[0].node.url] : [],
+			images: firstImage ? [firstImage.url] : [],
 		},
 		alternates: {
 			canonical: url,
@@ -72,58 +97,26 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 	};
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
-	const nextjs15 = await params;
-	const product = await getProduct(nextjs15.handle);
+// Product content component
+const ProductDetails = async ({ handle }: { handle: string }) => {
+	const nextHandle = await handle;
+	const product = await getProduct(nextHandle);
 
 	if (!product) {
-		notFound();
+		return notFound();
 	}
 
-	// Safely get price data with fallbacks
-	const minPrice = product.priceRange?.minVariantPrice?.amount || "0";
-	const maxPrice = product.priceRange?.maxVariantPrice?.amount || minPrice;
-	const currencyCode = product.priceRange?.minVariantPrice?.currencyCode || "USD";
+	return <ProductContent product={product} />;
+};
 
-	// Get the first variant's data safely
-	const firstVariant = product.variants?.edges?.[0]?.node;
-	const firstImage = product.images?.edges?.[0]?.node;
-
-	const productJsonLd = {
-		"@context": "https://schema.org",
-		"@type": "Product",
-		name: product.title,
-		description: product.description,
-		image: firstImage?.url || [],
-		url: `https://zugzology.com/products/${product.handle}`,
-		identifier: firstVariant?.id || "",
-		brand: {
-			"@type": "Brand",
-			name: product.vendor || "Zugzology",
-		},
-		offers: {
-			"@type": "AggregateOffer",
-			availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-			priceCurrency: currencyCode,
-			lowPrice: minPrice,
-			highPrice: maxPrice,
-			offerCount: product.variants?.edges?.length || 1,
-			offers:
-				product.variants?.edges?.map(({ node }) => ({
-					"@type": "Offer",
-					price: node.price?.amount || minPrice,
-					priceCurrency: node.price?.currencyCode || currencyCode,
-					availability: node.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-					url: `https://zugzology.com/products/${product.handle}?variant=${node.id}`,
-					itemCondition: "https://schema.org/NewCondition",
-				})) || [],
-		},
-	};
+export default async function ProductPage({ params }: ProductPageProps) {
+	const nextParams = await params;
 
 	return (
-		<>
-			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
-			<ProductContent product={product} />
-		</>
+		<ErrorBoundary fallback={<ProductError />}>
+			<Suspense fallback={<ProductLoading />}>
+				<ProductDetails handle={nextParams.handle} />
+			</Suspense>
+		</ErrorBoundary>
 	);
 }

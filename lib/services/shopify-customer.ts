@@ -194,57 +194,58 @@ export async function customerRegister(firstName: string, lastName: string, emai
 	}
 }
 
-export async function getCustomerData(customerAccessToken: string) {
-	console.log("Fetching customer data");
-
-	try {
-		const response = await shopifyFetch<{
-			customer: {
+// Define the customer data type
+interface CustomerData {
+	id: string;
+	firstName: string;
+	lastName: string;
+	email: string;
+	phone: string | null;
+	acceptsMarketing: boolean;
+	defaultAddress: {
+		id: string;
+		address1: string;
+		address2: string | null;
+		city: string;
+		province: string;
+		country: string;
+		zip: string;
+	} | null;
+	addresses: {
+		edges: Array<{
+			node: {
 				id: string;
-				firstName: string;
-				lastName: string;
-				email: string;
-				phone: string | null;
-				acceptsMarketing: boolean;
-				defaultAddress: {
-					id: string;
-					address1: string;
-					address2: string | null;
-					city: string;
-					province: string;
-					country: string;
-					zip: string;
-				} | null;
-				addresses: {
-					edges: Array<{
-						node: {
-							id: string;
-							address1: string;
-							address2: string | null;
-							city: string;
-							province: string;
-							country: string;
-							zip: string;
-						};
-					}>;
-				};
-				orders: {
-					edges: Array<{
-						node: {
-							id: string;
-							orderNumber: number;
-							processedAt: string;
-							financialStatus: string;
-							fulfillmentStatus: string;
-							currentTotalPrice: {
-								amount: string;
-								currencyCode: string;
-							};
-						};
-					}>;
+				address1: string;
+				address2: string | null;
+				city: string;
+				province: string;
+				country: string;
+				zip: string;
+			};
+		}>;
+	};
+	orders: {
+		edges: Array<{
+			node: {
+				id: string;
+				orderNumber: number;
+				processedAt: string;
+				financialStatus: string;
+				fulfillmentStatus: string;
+				currentTotalPrice: {
+					amount: string;
+					currencyCode: string;
 				};
 			};
-		}>({
+		}>;
+	};
+}
+
+export async function getCustomerData(customerAccessToken: string): Promise<CustomerData> {
+	const startTime = performance.now();
+
+	try {
+		const response = await shopifyFetch<{ customer: CustomerData }>({
 			query: CUSTOMER_QUERY,
 			variables: {
 				customerAccessToken,
@@ -252,13 +253,11 @@ export async function getCustomerData(customerAccessToken: string) {
 			isCustomerAccount: false,
 		});
 
-		console.log("Customer data fetched successfully");
+		const duration = performance.now() - startTime;
+		console.log(`⚡ [Customer] Data fetched in ${duration.toFixed(2)}ms`);
 		return response.data.customer;
 	} catch (error) {
-		console.error("Error fetching customer data:", {
-			error,
-			stack: error instanceof Error ? error.stack : undefined,
-		});
+		console.error("❌ [Customer] Error:", error instanceof Error ? error.message : "Unknown error");
 		throw error;
 	}
 }

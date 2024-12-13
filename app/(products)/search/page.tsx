@@ -1,14 +1,11 @@
+"use cache";
+
 import React from "react";
 import { getProducts } from "@/lib/actions/shopify";
 import { ProductsContentClient } from "@/components/products/products-content-client";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-
-// Add server runtime optimizations
-export const runtime = "edge";
-export const preferredRegion = "auto";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export const metadata: Metadata = {
 	title: "Search Products | Premium Mushroom Growing Supplies | Zugzology",
@@ -53,53 +50,89 @@ export const metadata: Metadata = {
 	},
 };
 
+interface SearchPageProps {
+	searchParams?: {
+		q?: string;
+		sort?: string;
+		category?: string;
+		price?: string;
+		availability?: string;
+	};
+}
+
 // Loading component for better UX
-function SearchLoading() {
-	return (
-		<div className="w-full h-screen animate-pulse">
-			<div className="max-w-screen-xl mx-auto px-4">
-				<div className="h-8 w-1/4 bg-gray-200 rounded mb-4" />
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-					{[...Array(12)].map((_, i) => (
-						<div key={i} className="bg-gray-200 rounded-lg h-64" />
-					))}
-				</div>
+const SearchLoading = () => (
+	<div className="w-full h-screen animate-pulse">
+		<div className="max-w-screen-xl mx-auto px-4">
+			<div className="h-8 w-1/4 bg-gray-200 rounded mb-4" />
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+				{[...Array(12)].map((_, i) => (
+					<div key={i} className="bg-gray-200 rounded-lg h-64" />
+				))}
 			</div>
 		</div>
-	);
-}
+	</div>
+);
 
-interface SearchPageProps {
-	searchParams?: { q?: string };
-}
+// Error fallback component
+const SearchError = () => (
+	<div className="w-full min-h-[50vh] flex items-center justify-center">
+		<div className="text-center">
+			<h2 className="text-xl font-semibold mb-2">Search Error</h2>
+			<p className="text-muted-foreground">Unable to perform search. Please try again.</p>
+		</div>
+	</div>
+);
 
-export default async function SearchPage({ searchParams }: SearchPageProps) {
-	const nextjs15 = await searchParams;
-	const query = nextjs15?.q || "";
+// Search content component
+const SearchContent = async ({ searchParams }: SearchPageProps) => {
+	const nextSearchParams = await searchParams;
+	const query = nextSearchParams?.q || "";
+	let products = [];
 
-	// Create virtual collection for search results
+	if (query) {
+		products = await getProducts();
+	}
+
 	const virtualCollection = {
 		id: "search",
 		handle: "search",
-		title: "Search Results",
+		title: query ? `Search Results for "${query}"` : "Search Products",
 		description: "",
 		products: {
-			edges: [],
+			edges: products.map((product) => ({ node: product })),
 		},
 	};
 
 	return (
-		<>
+		<ProductsContentClient
+			collection={virtualCollection}
+			searchQuery={query}
+			initialFilters={{
+				sort: nextSearchParams?.sort,
+				category: nextSearchParams?.category,
+				price: nextSearchParams?.price,
+				availability: nextSearchParams?.availability,
+			}}
+		/>
+	);
+};
+
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+	const nextSearchParams = await searchParams;
+	const query = nextSearchParams?.q || "";
+
+	return (
+		<ErrorBoundary fallback={<SearchError />}>
 			<header className="sr-only">
 				<h1>{query ? `Search Results for "${query}"` : "Search Products"}</h1>
 			</header>
 
 			<section aria-label="Search Results" className="search-section" itemScope itemType="https://schema.org/SearchResultsPage">
-				{/* Search results with client-side interactions */}
 				<Suspense fallback={<SearchLoading />}>
-					<ProductsContentClient collection={virtualCollection} />
+					<SearchContent searchParams={nextSearchParams} />
 				</Suspense>
 			</section>
-		</>
+		</ErrorBoundary>
 	);
 }

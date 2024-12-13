@@ -3,6 +3,7 @@ const nextConfig = {
 	experimental: {
 		ppr: true,
 		inlineCss: true,
+		dynamicIO: true,
 	},
 	typescript: {
 		ignoreBuildErrors: true,

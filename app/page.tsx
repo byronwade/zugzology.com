@@ -3,55 +3,52 @@ import { getProducts } from "@/lib/actions/shopify";
 import type { Metadata } from "next";
 import { ProductsContentClient } from "@/components/products/products-content-client";
 
-// Add server runtime optimizations
-export const runtime = "edge";
-export const preferredRegion = "auto";
-export const revalidate = 60; // Cache for 1 minute
-
-export const metadata: Metadata = {
-	title: "Zugzology - Premium Mushroom Cultivation Supplies & Equipment",
-	description: "Your trusted source for premium mushroom cultivation supplies and equipment. Find everything you need for successful mushroom growing, from spores to substrates. Expert guidance and top-quality products.",
-	keywords: "mushroom cultivation, mushroom growing supplies, mushroom spores, mushroom substrate, cultivation equipment, growing kits, mycology supplies",
-	openGraph: {
+export function generateMetadata(): Promise<Metadata> {
+	return {
 		title: "Zugzology - Premium Mushroom Cultivation Supplies & Equipment",
-		description: "Your trusted source for premium mushroom cultivation supplies and equipment. Expert guidance and top-quality products.",
-		url: "https://zugzology.com",
-		siteName: "Zugzology",
-		type: "website",
-		locale: "en_US",
-		images: [
-			{
-				url: "https://zugzology.com/og-image.jpg",
-				width: 1200,
-				height: 630,
-				alt: "Zugzology - Premium Mushroom Cultivation Supplies",
-			},
-		],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Premium Mushroom Cultivation Supplies & Equipment",
-		description: "Your trusted source for premium mushroom cultivation supplies and equipment.",
-		images: ["https://zugzology.com/og-image.jpg"],
-	},
-	alternates: {
-		canonical: "https://zugzology.com",
-	},
-	robots: {
-		index: true,
-		follow: true,
-		nocache: true,
-		googleBot: {
+		description: "Your trusted source for premium mushroom cultivation supplies and equipment. Find everything you need for successful mushroom growing, from spores to substrates. Expert guidance and top-quality products.",
+		keywords: "mushroom cultivation, mushroom growing supplies, mushroom spores, mushroom substrate, cultivation equipment, growing kits, mycology supplies",
+		openGraph: {
+			title: "Zugzology - Premium Mushroom Cultivation Supplies & Equipment",
+			description: "Your trusted source for premium mushroom cultivation supplies and equipment. Expert guidance and top-quality products.",
+			url: "https://zugzology.com",
+			siteName: "Zugzology",
+			type: "website",
+			locale: "en_US",
+			images: [
+				{
+					url: "https://zugzology.com/og-image.jpg",
+					width: 1200,
+					height: 630,
+					alt: "Zugzology - Premium Mushroom Cultivation Supplies",
+				},
+			],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: "Premium Mushroom Cultivation Supplies & Equipment",
+			description: "Your trusted source for premium mushroom cultivation supplies and equipment.",
+			images: ["https://zugzology.com/og-image.jpg"],
+		},
+		alternates: {
+			canonical: "https://zugzology.com",
+		},
+		robots: {
 			index: true,
 			follow: true,
-			"max-video-preview": -1,
-			"max-image-preview": "large",
-			"max-snippet": -1,
+			nocache: true,
+			googleBot: {
+				index: true,
+				follow: true,
+				"max-video-preview": -1,
+				"max-image-preview": "large",
+				"max-snippet": -1,
+			},
 		},
-	},
-	verification: {
-		google: "YOUR_GOOGLE_VERIFICATION_ID", // Add your Google verification ID
-	},
+		verification: {
+			google: "YOUR_GOOGLE_VERIFICATION_ID", // Add your Google verification ID
+		},
+	};
 };
 
 // Loading component for better UX
@@ -109,7 +106,7 @@ async function getSiteSettings() {
 	};
 }
 
-export default async function Home() {
+export default function Home() {
 	const siteSettings = await getSiteSettings();
 
 	// Fetch featured products

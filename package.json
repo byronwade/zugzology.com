@@ -6,7 +6,8 @@
 		"dev": "next dev --turbopack -p 3001",
 		"build": "next build",
 		"start": "next start",
-		"lint": "next lint"
+		"lint": "next lint",
+		"scan": "next dev & npx react-scan@latest localhost:3001"
 	},
 	"dependencies": {
 		"@headlessui/react": "^1.7.17",
@@ -41,6 +42,8 @@
 		"@radix-ui/react-tooltip": "^1.1.4",
 		"@tailwindcss/typography": "^0.5.15",
 		"@tanstack/react-query": "^5.8.4",
+		"@tanstack/react-virtual": "^3.11.1",
+		"@tanstack/virtual-core": "^3.10.9",
 		"babel-plugin-react-compiler": "^19.0.0-beta-df7b47d-20241124",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.0.0",
@@ -56,6 +59,7 @@
 		"react-dom": "^19.0.0-rc-7670501b-20241124",
 		"react-hook-form": "^7.53.2",
 		"react-resizable-panels": "^2.1.7",
+		"react-scan": "^0.0.45",
 		"recharts": "^2.13.3",
 		"sonner": "^1.7.0",
 		"tailwind-merge": "^2.0.0",

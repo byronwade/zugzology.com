@@ -1,15 +1,11 @@
+"use server";
+
 import { getCollection } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";
 import { ProductsContentClient } from "@/components/products/products-content-client";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import type { ShopifyProduct, ShopifyCollection } from "@/lib/types";
-
-// Preload critical data
-export const runtime = "edge";
-export const preferredRegion = "auto";
-export const dynamic = "force-dynamic";
-export const revalidate = 60; // Cache for 1 minute
 
 // Loading component for better UX
 function CollectionLoading() {
@@ -28,13 +24,14 @@ function CollectionLoading() {
 }
 
 // Optimize collection data structure
-function optimizeCollectionData(collection: ShopifyCollection): ShopifyCollection {
+function optimizeCollectionData(collection: ShopifyCollection | null): ShopifyCollection | null {
+	if (!collection) return null;
+
 	return {
 		...collection,
 		products: {
 			edges: collection.products.edges.map(({ node }) => ({
 				node: {
-					...node,
 					id: node.id,
 					title: node.title,
 					handle: node.handle,
@@ -42,13 +39,16 @@ function optimizeCollectionData(collection: ShopifyCollection): ShopifyCollectio
 					priceRange: node.priceRange,
 					productType: node.productType,
 					publishedAt: node.publishedAt,
+					availableForSale: node.availableForSale,
+					options: node.options,
+					vendor: node.vendor,
+					tags: node.tags,
+					variants: {
+						edges: node.variants.edges,
+					},
 					images: {
 						edges: node.images.edges.slice(0, 1), // Only keep first image for initial render
 					},
-					variants: {
-						edges: node.variants.edges, // Keep all variants for filtering
-					},
-					availableForSale: node.availableForSale,
 				},
 			})),
 		},
@@ -67,78 +67,98 @@ interface CollectionPageProps {
 	};
 }
 
+// Fetch collection data with caching
+async function getCollectionData(slug: string): Promise<ShopifyCollection | null> {
+	"use cache";
+
+	if (!slug || typeof slug !== "string") {
+		console.error("Invalid collection handle:", slug);
+		return null;
+	}
+
+	const handle = slug.toLowerCase().trim();
+	const startTime = performance.now();
+
+	try {
+		const collection = await getCollection(handle);
+
+		if (!collection) {
+			console.error(`Collection not found: ${handle}`);
+			return null;
+		}
+
+		const optimizedCollection = optimizeCollectionData(collection);
+		const duration = performance.now() - startTime;
+
+		if (duration > 100) {
+			console.log(`⚡ [Collection Data] ${duration.toFixed(2)}ms | Size: ${(JSON.stringify(optimizedCollection).length / 1024).toFixed(2)}KB`);
+		}
+
+		return optimizedCollection;
+	} catch (error) {
+		console.error(
+			`Error fetching collection ${handle}:`,
+			error instanceof Error
+				? {
+						message: error.message,
+						stack: error.stack?.split("\n").slice(0, 3),
+				  }
+				: "Unknown error"
+		);
+		return null;
+	}
+}
+
 // Generate metadata for the collection
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
 	const nextjs15 = await params;
-	const collection = await getCollection(nextjs15.slug);
-	if (!collection) return notFound();
+	if (!nextjs15?.slug) {
+		return {
+			title: "Collection Not Found",
+			description: "The requested collection could not be found.",
+		};
+	}
 
-	const title = `${collection.title} | Premium Mushroom Growing Supplies`;
-	const description = collection.description || `Shop our premium ${collection.title.toLowerCase()} collection. Find high-quality mushroom growing supplies and equipment.`;
-	const url = `https://zugzology.com/collections/${collection.handle}`;
+	const collection = await getCollectionData(nextjs15.slug);
+	if (!collection) {
+		return {
+			title: "Collection Not Found",
+			description: "The requested collection could not be found.",
+		};
+	}
 
 	return {
-		title,
-		description,
-		keywords: `mushroom growing, ${collection.title.toLowerCase()}, mushroom supplies, cultivation equipment`,
-		openGraph: {
-			title,
-			description,
-			url,
-			siteName: "Zugzology",
-			type: "website",
-			locale: "en_US",
-			images: collection.image
-				? [
-						{
-							url: collection.image.url,
-							width: 1200,
-							height: 630,
-							alt: `${collection.title} Collection - Premium Mushroom Growing Supplies`,
-						},
-				  ]
-				: [],
-		},
-		twitter: {
-			card: "summary_large_image",
-			title,
-			description,
-			images: collection.image ? [collection.image.url] : [],
-		},
-		alternates: {
-			canonical: url,
-		},
-		robots: {
-			index: true,
-			follow: true,
-			googleBot: {
-				index: true,
-				follow: true,
-				"max-video-preview": -1,
-				"max-image-preview": "large",
-				"max-snippet": -1,
-			},
-		},
+		title: collection.title,
+		description: collection.description || `Shop ${collection.title} at Zugzology`,
 	};
 }
 
-export default async function CollectionPage({ params, searchParams: rawSearchParams = {} }: CollectionPageProps) {
+// Collection page component with proper Suspense boundaries
+async function CollectionContent({ params, searchParams }: CollectionPageProps) {
 	const nextjs15 = await params;
-	const searchParams = await rawSearchParams;
-	const collection = await getCollection(nextjs15.slug);
+	const nextjs15Search = await searchParams;
 
-	if (!collection) {
-		notFound();
+	if (!nextjs15?.slug) {
+		return notFound();
 	}
 
-	// Optimize collection data for initial render
-	const optimizedCollection = optimizeCollectionData(collection);
+	const collection = await getCollectionData(nextjs15.slug);
+
+	if (!collection) {
+		return notFound();
+	}
 
 	return (
-		<>
-			<Suspense fallback={<CollectionLoading />}>
-				<ProductsContentClient collection={optimizedCollection} searchQuery={searchParams?.sort} />
-			</Suspense>
-		</>
+		<Suspense fallback={<CollectionLoading />}>
+			<ProductsContentClient collection={collection} searchQuery={nextjs15Search?.sort} />
+		</Suspense>
+	);
+}
+
+export default async function CollectionPage(props: CollectionPageProps) {
+	return (
+		<Suspense fallback={<CollectionLoading />}>
+			<CollectionContent {...props} />
+		</Suspense>
 	);
 }

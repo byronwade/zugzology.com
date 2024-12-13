@@ -1,15 +1,14 @@
+"use cache";
+
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getBlogByHandle } from "@/lib/actions/shopify";
-import type { ShopifyBlogArticle } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-
-export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: { blog: string; slug: string } }): Promise<Metadata> {
 	const nextjs15Params = await params;
@@ -71,13 +70,21 @@ export async function generateMetadata({ params }: { params: { blog: string; slu
 }
 
 export default async function BlogPostPage({ params }: { params: { blog: string; slug: string } }) {
+	const startTime = performance.now();
 	const nextjs15Params = await params;
 	const blog = await getBlogByHandle(nextjs15Params.blog);
 	const article = blog?.articles.edges.find(({ node }) => node.handle === nextjs15Params.slug)?.node;
 
-	if (!article) {
+	if (!article || !article.contentHtml) {
+		console.log(`❌ [Blog Post] Not found: ${params.blog}/${params.slug}`);
 		return notFound();
 	}
+
+	const duration = performance.now() - startTime;
+	console.log(`⚡ [Blog Post ${article.title}] ${duration.toFixed(2)}ms`, {
+		hasImage: !!article.image,
+		contentSize: (article.contentHtml.length / 1024).toFixed(2) + "KB",
+	});
 
 	const articleJsonLd = {
 		"@context": "https://schema.org",

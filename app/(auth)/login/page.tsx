@@ -9,14 +9,15 @@ export const metadata: Metadata = {
 };
 
 interface LoginPageProps {
-	searchParams: { registered?: string; from?: string };
+	searchParams: Promise<{ registered?: string; from?: string }>;
 }
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-	const isRegistered = Boolean(searchParams.registered);
-	const from = searchParams.from;
+export default async function LoginPage(props: LoginPageProps) {
+    const searchParams = await props.searchParams;
+    const isRegistered = Boolean(searchParams.registered);
+    const from = searchParams.from;
 
-	return (
+    return (
 		<div className="w-full max-w-[400px] mx-auto p-4">
 			{isRegistered && (
 				<Alert className="mb-8">

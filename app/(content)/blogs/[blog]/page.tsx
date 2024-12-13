@@ -1,3 +1,5 @@
+"use cache";
+
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -6,11 +8,9 @@ import type { Metadata } from "next";
 import { getBlogByHandle } from "@/lib/actions/shopify";
 import type { ShopifyBlogArticle } from "@/lib/types";
 
-export const revalidate = 3600;
-
 export async function generateMetadata({ params }: { params: { blog: string } }): Promise<Metadata> {
-	const nextjs15 = await params;
-	const blog = await getBlogByHandle(nextjs15.blog);
+	const nextParams = await params;
+	const blog = await getBlogByHandle(nextParams.blog);
 	if (!blog) return notFound();
 
 	return {
@@ -27,7 +27,7 @@ interface BlogCardProps {
 function BlogCard({ article, blogHandle }: BlogCardProps) {
 	return (
 		<article className="bg-white dark:bg-neutral-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-			<Link prefetch={true} href={`/blogs/${blogHandle}/${article.handle}`}>
+			<Link href={`/blogs/${blogHandle}/${article.handle}`}>
 				<div className="p-6">
 					{article.image && (
 						<div className="mb-4 aspect-video relative overflow-hidden rounded-lg">
@@ -48,34 +48,48 @@ function BlogCard({ article, blogHandle }: BlogCardProps) {
 	);
 }
 
+// Loading component
+const BlogLoading = () => (
+	<div className="min-h-screen w-full">
+		<div className="max-w-[1800px] mx-auto px-4 py-8">
+			<div className="h-12 bg-neutral-200 dark:bg-neutral-700 rounded w-1/4 mb-8" />
+			<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+				{[...Array(8)].map((_, i) => (
+					<div key={i} className="animate-pulse">
+						<div className="aspect-video bg-neutral-200 dark:bg-neutral-700 rounded-lg mb-4" />
+						<div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-3/4 mb-2" />
+						<div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-1/2" />
+					</div>
+				))}
+			</div>
+		</div>
+	</div>
+);
+
 export default async function BlogCategoryPage({ params }: { params: { blog: string } }) {
-	const nextjs15 = await params;
-	const blog = await getBlogByHandle(nextjs15.blog);
+	const startTime = performance.now();
+	const nextParams = await params;
+	const blog = await getBlogByHandle(nextParams.blog);
 
 	if (!blog) {
+		console.log(`❌ [Blog Category] Not found: ${params.blog}`);
 		return notFound();
 	}
 
 	// Sort articles by date
 	const articles = blog.articles.edges.map(({ node }) => node).sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
+	const duration = performance.now() - startTime;
+	console.log(`⚡ [Blog Category ${blog.title}] ${duration.toFixed(2)}ms`, {
+		articles: articles.length,
+		hasImages: articles.filter((a) => a.image).length,
+	});
+
 	return (
-		<div className="min-h-screen w-full">
-			<div className="max-w-[1800px] mx-auto px-4 py-8">
-				<h1 className="text-4xl font-bold mb-8 text-neutral-900 dark:text-neutral-100">{blog.title}</h1>
-				<Suspense
-					fallback={
-						<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-							{[...Array(8)].map((_, i) => (
-								<div key={i} className="animate-pulse">
-									<div className="aspect-video bg-neutral-200 dark:bg-neutral-700 rounded-lg mb-4" />
-									<div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-3/4 mb-2" />
-									<div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-1/2" />
-								</div>
-							))}
-						</div>
-					}
-				>
+		<Suspense fallback={<BlogLoading />}>
+			<div className="min-h-screen w-full">
+				<div className="max-w-[1800px] mx-auto px-4 py-8">
+					<h1 className="text-4xl font-bold mb-8 text-neutral-900 dark:text-neutral-100">{blog.title}</h1>
 					<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 						{articles.length > 0 ? (
 							articles.map((article) => <BlogCard key={article.id} article={article} blogHandle={blog.handle} />)
@@ -85,8 +99,8 @@ export default async function BlogCategoryPage({ params }: { params: { blog: str
 							</div>
 						)}
 					</div>
-				</Suspense>
+				</div>
 			</div>
-		</div>
+		</Suspense>
 	);
 }

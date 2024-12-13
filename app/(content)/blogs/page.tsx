@@ -10,8 +10,6 @@ export const metadata: Metadata = {
 	description: "Read our latest articles about mushroom cultivation and research",
 };
 
-export const revalidate = 3600;
-
 interface BlogPost extends ShopifyBlogArticle {
 	blogHandle: string;
 }

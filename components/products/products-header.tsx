@@ -21,7 +21,7 @@ export function ProductsHeader({ title, description, count, onViewChange, view =
 	const { filters, hasActiveFilters, handleFilterChange, clearFilters } = useFilters();
 
 	return (
-		<section className="sticky top-[106px] md:top-[106px] bg-background z-10 border-b py-2 px-4">
+		<section className="sticky top-[98px] md:top-[106px] bg-background z-10 border-b py-2 px-4">
 			<div className="flex items-center justify-between gap-4">
 				<div className="flex-1 min-w-0">
 					<h1 className="text-xl font-semibold text-foreground truncate">{title}</h1>

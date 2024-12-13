@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { ShopifyProduct, ShopifyProductVariant } from "@/lib/types";
-import { formatPrice } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Star, Info, Shield, TruckIcon, Gift } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProductInfoProps {
 	product: ShopifyProduct;
@@ -131,7 +129,7 @@ export function ProductInfo({ product, selectedVariant, selectedOptions, onOptio
 				<TableBody>
 					<TableRow>
 						<TableCell className="font-medium">SKU</TableCell>
-						<TableCell>{selectedVariant.id}</TableCell>
+						<TableCell className="text-wrap">{selectedVariant.id}</TableCell>
 					</TableRow>
 					{product.productType && (
 						<TableRow>
@@ -159,7 +157,7 @@ export function ProductInfo({ product, selectedVariant, selectedOptions, onOptio
 				<h2 id="description-heading" className="text-2xl font-bold mb-4">
 					Product Description
 				</h2>
-				<div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: product.description }} />
+				<div className="prose prose-md max-w-none" dangerouslySetInnerHTML={{ __html: product.description }} />
 			</section>
 		</div>
 	);

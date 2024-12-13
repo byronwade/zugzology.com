@@ -133,13 +133,16 @@ export interface CartItem {
 export interface ShopifyCart {
 	id: string;
 	checkoutUrl: string;
-	totalQuantity: number;
 	cost: {
 		subtotalAmount: {
 			amount: string;
 			currencyCode: string;
 		};
 		totalAmount: {
+			amount: string;
+			currencyCode: string;
+		};
+		totalTaxAmount: {
 			amount: string;
 			currencyCode: string;
 		};
@@ -158,14 +161,24 @@ export interface ShopifyCart {
 				merchandise: {
 					id: string;
 					title: string;
-					product: {
-						title: string;
+					price: {
+						amount: string;
+						currencyCode: string;
 					};
-					image?: {
-						url: string;
-						altText: string | null;
-						width: number;
-						height: number;
+					product: {
+						id: string;
+						title: string;
+						handle: string;
+						images: {
+							edges: Array<{
+								node: {
+									url: string;
+									altText: string | null;
+									width: number;
+									height: number;
+								};
+							}>;
+						};
 					};
 				};
 			};
