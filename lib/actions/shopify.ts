@@ -224,6 +224,63 @@ const BLOG_FRAGMENT = `
   }
 `;
 
+// Products fragment for GraphQL queries
+const PRODUCTS_FRAGMENT = `
+  fragment ProductFragment on Product {
+    id
+    title
+    handle
+    description
+    availableForSale
+    productType
+    vendor
+    tags
+    options {
+      id
+      name
+      values
+    }
+    priceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+      maxVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    variants(first: 100) {
+      edges {
+        node {
+          id
+          title
+          availableForSale
+          quantityAvailable
+          selectedOptions {
+            name
+            value
+          }
+          price {
+            amount
+            currencyCode
+          }
+        }
+      }
+    }
+    images(first: 1) {
+      edges {
+        node {
+          url
+          altText
+          width
+          height
+        }
+      }
+    }
+  }
+`;
+
 // Helper function for performance logging
 function logPerformance(startTime: number, operation: string, data?: any) {
 	const duration = performance.now() - startTime;
@@ -459,104 +516,57 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 	}
 }
 
+// Get all products with pagination
 export async function getProducts(): Promise<ShopifyProduct[]> {
 	const startTime = performance.now();
+	const allProducts: ShopifyProduct[] = [];
+	let hasNextPage = true;
+	let cursor: string | null = null;
 
 	try {
-		const result = await withRetry(async () => {
-			const { data } = await shopifyFetch<{
-				products: {
-					edges: Array<{
-						node: ShopifyProduct & {
-							metafields: Array<{
-								value: string;
-							}>;
-						};
-					}>;
-				};
-			}>({
-				query: `
-					query GetProducts {
-						products(first: 100) {
-							edges {
-								node {
-									id
-									title
-									handle
-									description
-									availableForSale
-									productType
-									vendor
-									options {
-										id
-										name
-										values
-									}
-									metafields(identifiers: [
-										{namespace: "custom", key: "rating"}
-									]) {
-										value
-									}
-									priceRange {
-										minVariantPrice {
-											amount
-											currencyCode
-										}
-									}
-									variants(first: 100) {
-										edges {
-											node {
-												id
-												title
-												availableForSale
-												quantityAvailable
-												selectedOptions {
-													name
-													value
-												}
-												price {
-													amount
-													currencyCode
-												}
-											}
-										}
-									}
-									images(first: 10) {
-										edges {
-											node {
-												url
-												altText
-												width
-												height
-											}
-										}
-									}
-								}
+		while (hasNextPage) {
+			const query = `
+				query GetProducts($cursor: String) {
+					products(first: 100, after: $cursor) {
+						pageInfo {
+							hasNextPage
+							endCursor
+						}
+						edges {
+							node {
+								...ProductFragment
 							}
 						}
 					}
-				`,
+				}
+				${PRODUCTS_FRAGMENT}
+			`;
+
+			const response = await shopifyFetch<{
+				products: {
+					pageInfo: { hasNextPage: boolean; endCursor: string };
+					edges: { node: ShopifyProduct }[];
+				};
+			}>({
+				query,
+				variables: cursor ? { cursor } : {},
 				cache: "force-cache",
+				tags: ["products"],
 			});
 
-			return data.products.edges.map(({ node }) => ({
-				...node,
-				rating: parseFloat(node.metafields?.[0]?.value || "0"),
-			}));
-		});
+			const products = response.data.products.edges.map(({ node }) => node);
+			allProducts.push(...products);
 
-		if (result.length > 0) {
-			logPerformance(startTime, "Products", {
-				count: result.length,
-				imagesCount: result.reduce((acc: number, p: ProductWithEdges) => acc + (p.images?.edges?.length || 0), 0),
-				variantsCount: result.reduce((acc: number, p: ProductWithEdges) => acc + (p.variants?.edges?.length || 0), 0),
-			});
+			hasNextPage = response.data.products.pageInfo.hasNextPage;
+			cursor = response.data.products.pageInfo.endCursor;
 		}
 
-		return result;
+		logPerformance(startTime, "getProducts", { edges: allProducts });
+		console.log("[SHOPIFY] Fetched products:", allProducts.length);
+		return allProducts;
 	} catch (error) {
-		console.error("❌ [Products] Error:", error instanceof Error ? error.message : "Unknown error");
-		return handleShopifyError(error) ?? [];
+		console.error("Failed to fetch products:", error);
+		return [];
 	}
 }
 

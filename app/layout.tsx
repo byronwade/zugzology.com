@@ -46,7 +46,9 @@ async function getCachedProducts() {
 	"use cache";
 
 	try {
-		return await getProducts();
+		const products = await getProducts();
+		console.log("[ROOT] Fetched products:", products.length);
+		return products;
 	} catch (error) {
 		console.error("Failed to fetch products:", error);
 		return [];
@@ -116,16 +118,18 @@ async function AppContent({ children }: { children: React.ReactNode }) {
 
 	return (
 		<SearchProvider>
-			<InitializeSearch products={products || []} />
-			<Suspense fallback={<HeaderLoading />}>
-				<Header />
-			</Suspense>
-			<Suspense fallback={<MainLoading />}>
-				<MainContent>{children}</MainContent>
-			</Suspense>
-			<Suspense fallback={<FooterLoading />}>
-				<Footer />
-			</Suspense>
+			<InitializeSearch products={products} />
+			<div className="flex min-h-screen flex-col">
+				<Suspense fallback={<HeaderLoading />}>
+					<Header />
+				</Suspense>
+				<Suspense fallback={<MainLoading />}>
+					<MainContent>{children}</MainContent>
+				</Suspense>
+				<Suspense fallback={<FooterLoading />}>
+					<Footer />
+				</Suspense>
+			</div>
 		</SearchProvider>
 	);
 }

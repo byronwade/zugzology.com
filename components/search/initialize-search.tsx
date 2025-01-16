@@ -8,10 +8,11 @@ export function InitializeSearch({ products }: { products: ShopifyProduct[] }) {
 	const { setAllProducts } = useSearch();
 
 	useEffect(() => {
-		if (products?.length > 0) {
-			console.log("Initializing search with products:", products.length);
-			setAllProducts(products);
-		}
+		console.log("[INITIALIZE] Setting products:", {
+			count: products.length,
+			firstProduct: products[0]?.title,
+		});
+		setAllProducts(products);
 	}, [products, setAllProducts]);
 
 	return null;

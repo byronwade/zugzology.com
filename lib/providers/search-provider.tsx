@@ -1,17 +1,20 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useMemo, useCallback, useEffect, useRef } from "react";
+import { createContext, useContext, useState, ReactNode, useMemo, useCallback, useRef, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { ShopifyProduct } from "@/lib/types";
+import { usePathname } from "next/navigation";
 
 interface SearchContextType {
 	searchQuery: string;
 	debouncedQuery: string;
 	setSearchQuery: (query: string) => void;
 	isSearching: boolean;
+	setIsSearching: (searching: boolean) => void;
 	searchResults: ShopifyProduct[];
 	allProducts: ShopifyProduct[];
 	setAllProducts: (products: ShopifyProduct[]) => void;
+	totalProducts: number;
 }
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined);
@@ -30,49 +33,74 @@ const searchProducts = (products: ShopifyProduct[], query: string): ShopifyProdu
 export function SearchProvider({ children }: { children: ReactNode }) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
-	const productsRef = useRef<ShopifyProduct[]>([]);
+	const [isSearchFocused, setIsSearchFocused] = useState(false);
 	const debouncedQuery = useDebounce(searchQuery, 300);
-	const initRef = useRef(false);
+	const pathname = usePathname();
+
+	// Reset search state when navigating to product or collection pages
+	useEffect(() => {
+		if (pathname.startsWith("/products/") || pathname.startsWith("/collections/")) {
+			setSearchQuery("");
+			setIsSearchFocused(false);
+		}
+	}, [pathname]);
 
 	const handleSetAllProducts = useCallback((products: ShopifyProduct[]) => {
-		if (!Array.isArray(products) || products.length === 0) return;
-
-		// Only update if products are different
-		const currentIds = productsRef.current
-			.map((p) => p.id)
-			.sort()
-			.join(",");
-		const newIds = products
-			.map((p) => p.id)
-			.sort()
-			.join(",");
-
-		if (currentIds !== newIds) {
-			productsRef.current = products;
-			setAllProducts(products);
-			console.log("[SEARCH] Products updated:", products.length);
+		if (!Array.isArray(products)) {
+			console.warn("[SEARCH] Invalid products data:", products);
+			return;
 		}
+
+		setAllProducts(products);
+		console.log("[SEARCH] Products updated:", {
+			count: products.length,
+			firstProduct: products[0]?.title,
+		});
 	}, []);
 
 	const isSearching = useMemo(() => {
-		return Boolean(debouncedQuery.trim());
-	}, [debouncedQuery]);
+		// Don't show search on product/collection pages unless actively searching
+		if (pathname.startsWith("/products/") || pathname.startsWith("/collections/")) {
+			return searchQuery.length > 0;
+		}
+		// Otherwise, show search when focused or has query
+		return searchQuery.length > 0 || isSearchFocused;
+	}, [searchQuery, isSearchFocused, pathname]);
 
 	const searchResults = useMemo(() => {
-		if (!isSearching) return productsRef.current;
-		return searchProducts(productsRef.current, debouncedQuery);
-	}, [isSearching, debouncedQuery]);
+		const results = searchProducts(allProducts, debouncedQuery);
+		console.log("[SEARCH] Results:", {
+			query: debouncedQuery,
+			total: results.length,
+			first: results[0]?.title,
+			path: pathname,
+		});
+		return results;
+	}, [allProducts, debouncedQuery, pathname]);
 
-	// Prevent unnecessary re-renders
+	// Debug logging
+	useEffect(() => {
+		console.log("[SEARCH] State update:", {
+			productsCount: allProducts.length,
+			searchQuery,
+			isSearching,
+			resultsCount: searchResults.length,
+			firstProduct: allProducts[0]?.title,
+			path: pathname,
+		});
+	}, [searchQuery, isSearching, searchResults, allProducts, pathname]);
+
 	const value = useMemo(
 		() => ({
 			searchQuery,
 			debouncedQuery,
 			setSearchQuery,
 			isSearching,
+			setIsSearching: setIsSearchFocused,
 			searchResults,
 			allProducts,
 			setAllProducts: handleSetAllProducts,
+			totalProducts: allProducts.length,
 		}),
 		[searchQuery, debouncedQuery, isSearching, searchResults, allProducts, handleSetAllProducts]
 	);

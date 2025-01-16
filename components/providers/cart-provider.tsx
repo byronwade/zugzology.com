@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Cart } from "@/lib/types";
+import { nanoid } from "nanoid";
 
 interface CartContext {
 	cart: Cart | null;
@@ -24,7 +25,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 	const [shouldInitialize, setShouldInitialize] = useState(true);
 	const mountedRef = useRef(false);
 	const initializingRef = useRef(false);
-	const sessionId = useRef(Math.random().toString(36).substring(7));
+	const sessionId = useRef(nanoid(7));
 	const attemptsRef = useRef(0);
 
 	// Mounting effect
