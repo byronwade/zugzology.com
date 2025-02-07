@@ -6,18 +6,8 @@ import type { Metadata } from "next";
 import { ProductsContentClient } from "@/components/products/products-content-client";
 import { HomeLoading } from "@/components/loading";
 
-// Parallel data fetching
-async function getPageData() {
-	const [products, siteSettings] = await Promise.all([getProducts(), getSiteSettings()]);
-
-	return {
-		products,
-		siteSettings,
-	};
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-	return {
+	return Promise.resolve({
 		title: "Zugzology - Premium Mushroom Cultivation Supplies & Equipment",
 		description: "Your trusted source for premium mushroom cultivation supplies and equipment. Find everything you need for successful mushroom growing, from spores to substrates. Expert guidance and top-quality products.",
 		keywords: "mushroom cultivation, mushroom growing supplies, mushroom spores, mushroom substrate, cultivation equipment, growing kits, mycology supplies",

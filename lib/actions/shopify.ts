@@ -1,7 +1,10 @@
 "use server";
 
-import type { ShopifyProduct, ShopifyCollection, ShopifyBlog, ShopifyBlogArticle, ShopifyCart, CartItem } from "../types";
-import { shopifyFetch } from "@/lib/shopify";
+import type { ShopifyProduct, ShopifyCollection, ShopifyBlog, ShopifyBlogArticle, ShopifyCart, CartItem, ProductWithEdges } from "../types";
+import { shopifyFetch as importedShopifyFetch } from "@/lib/shopify";
+import { SHOPIFY_STOREFRONT_ACCESS_TOKEN, SHOPIFY_STORE_DOMAIN } from "@/lib/constants";
+import { revalidateTag } from "next/cache";
+import { cookies } from "next/headers";
 
 // Types for error handling
 interface ShopifyError extends Error {
@@ -133,6 +136,7 @@ const CART_FRAGMENT = `
   fragment CartFragment on Cart {
     id
     checkoutUrl
+    totalQuantity
     cost {
       subtotalAmount {
         amount
@@ -220,6 +224,63 @@ const BLOG_FRAGMENT = `
   }
 `;
 
+// Products fragment for GraphQL queries
+const PRODUCTS_FRAGMENT = `
+  fragment ProductFragment on Product {
+    id
+    title
+    handle
+    description
+    availableForSale
+    productType
+    vendor
+    tags
+    options {
+      id
+      name
+      values
+    }
+    priceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+      maxVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    variants(first: 100) {
+      edges {
+        node {
+          id
+          title
+          availableForSale
+          quantityAvailable
+          selectedOptions {
+            name
+            value
+          }
+          price {
+            amount
+            currencyCode
+          }
+        }
+      }
+    }
+    images(first: 1) {
+      edges {
+        node {
+          url
+          altText
+          width
+          height
+        }
+      }
+    }
+  }
+`;
+
 // Helper function for performance logging
 function logPerformance(startTime: number, operation: string, data?: any) {
 	const duration = performance.now() - startTime;
@@ -232,6 +293,42 @@ function logPerformance(startTime: number, operation: string, data?: any) {
 
 	if (duration > 100 || stats.count === 0) {
 		console.log(`⚡ [${operation}] ${duration.toFixed(2)}ms`, Object.keys(stats).length ? stats : "");
+	}
+}
+
+const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`;
+
+// Update shopifyFetch response type
+interface ShopifyResponse<T> {
+	data: T;
+}
+
+async function shopifyFetch<T>({ query, variables = {}, cache = "force-cache", tags = [] }: { query: string; variables?: Record<string, any>; cache?: RequestCache; tags?: string[] }): Promise<ShopifyResponse<T>> {
+	try {
+		const result = await fetch(endpoint, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+			},
+			body: JSON.stringify({ query, variables }),
+			cache,
+			...(tags?.length && { next: { tags } }),
+		});
+
+		if (!result.ok) {
+			throw new Error(`HTTP error! status: ${result.status}`);
+		}
+
+		const body = await result.json();
+
+		if (body.errors) {
+			throw new Error(body.errors[0].message);
+		}
+
+		return body;
+	} catch (error) {
+		throw error;
 	}
 }
 
@@ -290,13 +387,15 @@ export async function getCollections(): Promise<ShopifyCollection[]> {
 	const startTime = performance.now();
 	try {
 		const result = await withRetry(async () => {
-			const { data } = await shopifyFetch<{
-				collections: {
-					edges: Array<{
-						node: ShopifyCollection;
-					}>;
-				};
-			}>({
+			const { data } = await shopifyFetch<
+				ShopifyResponse<{
+					collections: {
+						edges: Array<{
+							node: ShopifyCollection;
+						}>;
+					};
+				}>
+			>({
 				query: `
 					query GetCollections {
 						collections(first: 100) {
@@ -311,7 +410,7 @@ export async function getCollections(): Promise<ShopifyCollection[]> {
 				`,
 				cache: "force-cache",
 			});
-			return data.collections.edges.map((edge) => edge.node);
+			return data.collections.edges.map((edge: { node: ShopifyCollection }) => edge.node);
 		});
 
 		logPerformance(startTime, "Collections", { edges: result });
@@ -417,104 +516,57 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 	}
 }
 
+// Get all products with pagination
 export async function getProducts(): Promise<ShopifyProduct[]> {
 	const startTime = performance.now();
+	const allProducts: ShopifyProduct[] = [];
+	let hasNextPage = true;
+	let cursor: string | null = null;
 
 	try {
-		const result = await withRetry(async () => {
-			const { data } = await shopifyFetch<{
-				products: {
-					edges: Array<{
-						node: ShopifyProduct & {
-							metafields: Array<{
-								value: string;
-							}>;
-						};
-					}>;
-				};
-			}>({
-				query: `
-					query GetProducts {
-						products(first: 100) {
-							edges {
-								node {
-									id
-									title
-									handle
-									description
-									availableForSale
-									productType
-									vendor
-									options {
-										id
-										name
-										values
-									}
-									metafields(identifiers: [
-										{namespace: "custom", key: "rating"}
-									]) {
-										value
-									}
-									priceRange {
-										minVariantPrice {
-											amount
-											currencyCode
-										}
-									}
-									variants(first: 100) {
-										edges {
-											node {
-												id
-												title
-												availableForSale
-												quantityAvailable
-												selectedOptions {
-													name
-													value
-												}
-												price {
-													amount
-													currencyCode
-												}
-											}
-										}
-									}
-									images(first: 10) {
-										edges {
-											node {
-												url
-												altText
-												width
-												height
-											}
-										}
-									}
-								}
+		while (hasNextPage) {
+			const query = `
+				query GetProducts($cursor: String) {
+					products(first: 100, after: $cursor) {
+						pageInfo {
+							hasNextPage
+							endCursor
+						}
+						edges {
+							node {
+								...ProductFragment
 							}
 						}
 					}
-				`,
+				}
+				${PRODUCTS_FRAGMENT}
+			`;
+
+			const response = await shopifyFetch<{
+				products: {
+					pageInfo: { hasNextPage: boolean; endCursor: string };
+					edges: { node: ShopifyProduct }[];
+				};
+			}>({
+				query,
+				variables: cursor ? { cursor } : {},
 				cache: "force-cache",
+				tags: ["products"],
 			});
 
-			return data.products.edges.map(({ node }) => ({
-				...node,
-				rating: parseFloat(node.metafields?.[0]?.value || "0"),
-			}));
-		});
+			const products = response.data.products.edges.map(({ node }) => node);
+			allProducts.push(...products);
 
-		if (result.length > 0) {
-			logPerformance(startTime, "Products", {
-				count: result.length,
-				imagesCount: result.reduce((acc, p) => acc + (p.images?.edges?.length || 0), 0),
-				variantsCount: result.reduce((acc, p) => acc + (p.variants?.edges?.length || 0), 0),
-			});
+			hasNextPage = response.data.products.pageInfo.hasNextPage;
+			cursor = response.data.products.pageInfo.endCursor;
 		}
 
-		return result;
+		logPerformance(startTime, "getProducts", { edges: allProducts });
+		console.log("[SHOPIFY] Fetched products:", allProducts.length);
+		return allProducts;
 	} catch (error) {
-		console.error("❌ [Products] Error:", error instanceof Error ? error.message : "Unknown error");
-		return handleShopifyError(error) ?? [];
+		console.error("Failed to fetch products:", error);
+		return [];
 	}
 }
 
@@ -545,13 +597,13 @@ export async function getBlogs(): Promise<ShopifyBlog[]> {
 				cache: "force-cache",
 			});
 
-			return data.blogs.edges.map(({ node }) => node);
+			return data.blogs.edges.map(({ node }: { node: ShopifyBlog }) => node);
 		});
 
 		if (result.length > 0) {
 			logPerformance(startTime, "Blogs", {
 				count: result.length,
-				articlesCount: result.reduce((acc, blog) => acc + (blog.articles?.edges?.length || 0), 0),
+				articlesCount: result.reduce((acc: number, blog: ShopifyBlog) => acc + (blog.articles?.edges?.length || 0), 0),
 			});
 		}
 
@@ -562,14 +614,11 @@ export async function getBlogs(): Promise<ShopifyBlog[]> {
 	}
 }
 
-export async function getCart(cartId: string): Promise<ShopifyCart | null> {
-	if (!cartId || typeof cartId !== "string") {
-		console.error("Invalid cart ID:", cartId);
-		return null;
-	}
+export async function getCart(cartId: string) {
+	const startTime = performance.now();
 
 	try {
-		const { data } = await shopifyFetch<{ cart: ShopifyCart }>({
+		const res = await shopifyFetch<{ cart: ShopifyCart }>({
 			query: `
 				query GetCart($cartId: ID!) {
 					cart(id: $cartId) {
@@ -580,29 +629,25 @@ export async function getCart(cartId: string): Promise<ShopifyCart | null> {
 			`,
 			variables: { cartId },
 			cache: "no-store",
+			tags: ["cart"],
 		});
 
-		return data.cart;
+		logPerformance(startTime, "Cart", res.data.cart);
+		return res.data.cart;
 	} catch (error) {
-		console.error(
-			"❌ [Cart] Error fetching cart:",
-			error instanceof Error
-				? {
-						message: error.message,
-						stack: error.stack?.split("\n").slice(0, 3),
-				  }
-				: "Unknown error"
-		);
-		return null;
+		handleShopifyError(error);
+		throw error;
 	}
 }
 
-export async function createCart(lines?: CartItem[]): Promise<ShopifyCart | null> {
+export async function createCart() {
+	const startTime = performance.now();
+
 	try {
-		const { data } = await shopifyFetch<{ cartCreate: { cart: ShopifyCart } }>({
+		const res = await shopifyFetch<{ cartCreate: { cart: ShopifyCart } }>({
 			query: `
-				mutation CreateCart($lines: [CartLineInput!]) {
-					cartCreate(input: { lines: $lines }) {
+				mutation CreateCart {
+					cartCreate {
 						cart {
 							...CartFragment
 						}
@@ -610,35 +655,25 @@ export async function createCart(lines?: CartItem[]): Promise<ShopifyCart | null
 				}
 				${CART_FRAGMENT}
 			`,
-			variables: { lines },
 			cache: "no-store",
+			tags: ["cart"],
 		});
 
-		return data.cartCreate.cart;
+		logPerformance(startTime, "Cart Create", res.data.cartCreate.cart);
+		return res.data.cartCreate.cart;
 	} catch (error) {
-		console.error(
-			"❌ [Cart] Error creating cart:",
-			error instanceof Error
-				? {
-						message: error.message,
-						stack: error.stack?.split("\n").slice(0, 3),
-				  }
-				: "Unknown error"
-		);
-		return null;
+		handleShopifyError(error);
+		throw error;
 	}
 }
 
-export async function addToCart(cartId: string, lines: CartItem[]): Promise<ShopifyCart | null> {
-	if (!cartId || !lines?.length) {
-		console.error("Invalid cart parameters:", { cartId, lines });
-		return null;
-	}
+export async function addToCart(cartId: string, lines: CartItem[]) {
+	const startTime = performance.now();
 
 	try {
-		const { data } = await shopifyFetch<{ cartLinesAdd: { cart: ShopifyCart } }>({
+		const res = await shopifyFetch<{ cartLinesAdd: { cart: ShopifyCart } }>({
 			query: `
-				mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+				mutation AddToCart($cartId: ID!, $lines: [CartLineInput!]!) {
 					cartLinesAdd(cartId: $cartId, lines: $lines) {
 						cart {
 							...CartFragment
@@ -649,25 +684,19 @@ export async function addToCart(cartId: string, lines: CartItem[]): Promise<Shop
 			`,
 			variables: { cartId, lines },
 			cache: "no-store",
+			tags: ["cart"],
 		});
 
-		return data.cartLinesAdd.cart;
+		logPerformance(startTime, "Add to Cart", res.data.cartLinesAdd.cart);
+		return res.data.cartLinesAdd.cart;
 	} catch (error) {
-		console.error(
-			"❌ [Cart] Error adding to cart:",
-			error instanceof Error
-				? {
-						message: error.message,
-						stack: error.stack?.split("\n").slice(0, 3),
-				  }
-				: "Unknown error"
-		);
-		return null;
+		handleShopifyError(error);
+		throw error;
 	}
 }
 
 export async function updateCartLine(cartId: string, lineId: string, quantity: number): Promise<ShopifyCart | null> {
-	if (!cartId || !lineId || typeof quantity !== "number") {
+	if (!cartId || !lineId || quantity < 0) {
 		console.error("Invalid cart update parameters:", { cartId, lineId, quantity });
 		return null;
 	}
@@ -872,4 +901,9 @@ export async function getBlogArticle(blogHandle: string, articleHandle: string):
 		);
 		return handleShopifyError(error);
 	}
+}
+
+// Add revalidation helper
+export async function revalidateCache(tags: string[]) {
+	tags.forEach((tag) => revalidateTag(tag));
 }

@@ -1,23 +1,42 @@
 "use client";
 
-import { useMemo } from "react";
+import { useViewMode } from "@/hooks/use-view-mode";
+import { useSearch } from "@/lib/providers/search-provider";
 import { ProductList } from "@/components/products/product-list";
 import { ProductsHeader } from "@/components/products/products-header";
-import { useViewMode } from "@/hooks/use-view-mode";
-import type { ShopifyCollection, ShopifyProduct } from "@/lib/types";
+import { useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useSearch } from "@/lib/providers/search-provider";
+import type { ShopifyCollection } from "@/lib/types";
 
 interface ProductsContentClientProps {
 	collection: ShopifyCollection;
 	searchQuery?: string;
+	initialFilters?: {
+		sort?: string;
+		availability?: string;
+		price?: string;
+		category?: string;
+	};
 }
 
 export function ProductsContentClient({ collection, searchQuery }: ProductsContentClientProps) {
 	const { view, setView, mounted } = useViewMode();
-	const { debouncedQuery, searchResults, isSearching, allProducts } = useSearch();
+	const { debouncedQuery, searchResults, isSearching, setAllProducts } = useSearch();
+	const initRef = useRef(false);
 
-	// Memoize products array to prevent unnecessary recalculations
+	// Initialize products from collection once
+	useEffect(() => {
+		if (initRef.current || !collection?.products?.edges) return;
+
+		const products = collection.products.edges.map(({ node }) => node);
+		if (products.length > 0) {
+			setAllProducts(products);
+			initRef.current = true;
+			console.log("[PRODUCTS] Initialized with:", products.length);
+		}
+	}, [collection?.products?.edges, setAllProducts]);
+
+	// Get current products to display
 	const products = useMemo(() => {
 		return isSearching ? searchResults : collection?.products?.edges?.map(({ node }) => node) || [];
 	}, [isSearching, searchResults, collection?.products?.edges]);
@@ -31,7 +50,7 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 		);
 	}
 
-	// Handle empty results
+	// Handle empty search results
 	if (isSearching && !products.length) {
 		return (
 			<main className="w-full">

@@ -10,6 +10,7 @@ import { MainContent } from "@/components/search/main-content";
 import { getProducts } from "@/lib/actions/shopify";
 import { Footer } from "@/components/footer/footer";
 import { Suspense } from "react";
+import { CartProvider } from "@/components/providers/cart-provider";
 
 // Loading components
 function HeaderLoading() {
@@ -45,7 +46,9 @@ async function getCachedProducts() {
 	"use cache";
 
 	try {
-		return await getProducts();
+		const products = await getProducts();
+		console.log("[ROOT] Fetched products:", products.length);
+		return products;
 	} catch (error) {
 		console.error("Failed to fetch products:", error);
 		return [];
@@ -115,16 +118,18 @@ async function AppContent({ children }: { children: React.ReactNode }) {
 
 	return (
 		<SearchProvider>
-			<InitializeSearch products={products || []} />
-			<Suspense fallback={<HeaderLoading />}>
-				<Header />
-			</Suspense>
-			<Suspense fallback={<MainLoading />}>
-				<MainContent>{children}</MainContent>
-			</Suspense>
-			<Suspense fallback={<FooterLoading />}>
-				<Footer />
-			</Suspense>
+			<InitializeSearch products={products} />
+			<div className="flex min-h-screen flex-col">
+				<Suspense fallback={<HeaderLoading />}>
+					<Header />
+				</Suspense>
+				<Suspense fallback={<MainLoading />}>
+					<MainContent>{children}</MainContent>
+				</Suspense>
+				<Suspense fallback={<FooterLoading />}>
+					<Footer />
+				</Suspense>
+			</div>
 		</SearchProvider>
 	);
 }
@@ -133,9 +138,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body>
-				<Providers>
-					<AppContent>{children}</AppContent>
-				</Providers>
+				<CartProvider>
+					<Providers>
+						<AppContent>{children}</AppContent>
+					</Providers>
+				</CartProvider>
 			</body>
 		</html>
 	);
