@@ -1,9 +1,22 @@
+"use cache";
+
 import { Suspense } from "react";
 import { getProducts } from "@/lib/actions/shopify";
 import type { Metadata } from "next";
 import { ProductsContentClient } from "@/components/products/products-content-client";
+import { HomeLoading } from "@/components/loading";
 
-export function generateMetadata(): Promise<Metadata> {
+// Parallel data fetching
+async function getPageData() {
+	const [products, siteSettings] = await Promise.all([getProducts(), getSiteSettings()]);
+
+	return {
+		products,
+		siteSettings,
+	};
+}
+
+export async function generateMetadata(): Promise<Metadata> {
 	return {
 		title: "Zugzology - Premium Mushroom Cultivation Supplies & Equipment",
 		description: "Your trusted source for premium mushroom cultivation supplies and equipment. Find everything you need for successful mushroom growing, from spores to substrates. Expert guidance and top-quality products.",
@@ -46,26 +59,9 @@ export function generateMetadata(): Promise<Metadata> {
 			},
 		},
 		verification: {
-			google: "YOUR_GOOGLE_VERIFICATION_ID", // Add your Google verification ID
+			google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION_ID,
 		},
 	};
-};
-
-// Loading component for better UX
-function HomeLoading() {
-	return (
-		<div className="w-full animate-pulse">
-			<div className="max-w-screen-xl mx-auto px-4 py-8">
-				<div className="h-12 w-3/4 bg-gray-200 rounded mb-6" />
-				<div className="h-6 w-1/2 bg-gray-200 rounded mb-12" />
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-					{[...Array(8)].map((_, i) => (
-						<div key={i} className="bg-gray-200 rounded-lg h-64" />
-					))}
-				</div>
-			</div>
-		</div>
-	);
 }
 
 // Optimize product data structure
@@ -93,7 +89,6 @@ function optimizeProductData(products: any[]) {
 
 // Add this function to fetch site settings from the server
 async function getSiteSettings() {
-	// Fetch from your CMS or Shopify metafields
 	return {
 		title: "Zugzology",
 		description: "Your trusted source for premium mushroom cultivation supplies and equipment.",
@@ -106,11 +101,8 @@ async function getSiteSettings() {
 	};
 }
 
-export default function Home() {
-	const siteSettings = await getSiteSettings();
-
-	// Fetch featured products
-	const products = await getProducts();
+export default async function Home() {
+	const { products, siteSettings } = await getPageData();
 	const optimizedProducts = products ? optimizeProductData(products.slice(0, 8)) : [];
 
 	const featuredCollection = {
@@ -125,99 +117,64 @@ export default function Home() {
 		},
 	};
 
-	// Enhanced structured data for home page
-	const homeJsonLd = [
-		{
-			"@context": "https://schema.org",
-			"@type": "WebSite",
-			name: "Zugzology",
-			description: "Your trusted source for premium mushroom cultivation supplies and equipment.",
-			url: "https://zugzology.com",
-			potentialAction: {
-				"@type": "SearchAction",
-				target: {
-					"@type": "EntryPoint",
-					urlTemplate: "https://zugzology.com/search?q={search_term_string}",
-				},
-				"query-input": "required name=search_term_string",
-			},
-		},
-		{
-			"@context": "https://schema.org",
-			"@type": "Organization",
-			name: "Zugzology",
-			url: "https://zugzology.com",
-			logo: {
-				"@type": "ImageObject",
-				url: "https://zugzology.com/logo.png",
-			},
-			sameAs: ["https://facebook.com/zugzology", "https://twitter.com/zugzology", "https://instagram.com/zugzology"],
-			contactPoint: {
-				"@type": "ContactPoint",
-				telephone: "+1-XXX-XXX-XXXX",
-				contactType: "customer service",
-				availableLanguage: "English",
-			},
-		},
-		{
-			"@context": "https://schema.org",
-			"@type": "ItemList",
-			name: "Featured Products",
-			itemListElement: optimizedProducts.map((product, index) => ({
-				"@type": "ListItem",
-				position: index + 1,
-				item: {
-					"@type": "Product",
-					name: product.title,
-					description: product.description,
-					url: `https://zugzology.com/products/${product.handle}`,
-					image: product.images.edges[0]?.node.url,
-					brand: {
-						"@type": "Brand",
-						name: "Zugzology",
-					},
-					offers: {
-						"@type": "Offer",
-						price: product.priceRange.minVariantPrice.amount,
-						priceCurrency: product.priceRange.minVariantPrice.currencyCode,
-						availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-						url: `https://zugzology.com/products/${product.handle}`,
-					},
-				},
-			})),
-		},
-	];
-
 	return (
 		<>
-			{/* Inject structured data */}
-			<script
-				type="application/ld+json"
-				dangerouslySetInnerHTML={{
-					__html: JSON.stringify(homeJsonLd),
-				}}
-			/>
+			<Suspense>
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify([
+							{
+								"@context": "https://schema.org",
+								"@type": "WebSite",
+								name: siteSettings.title,
+								description: siteSettings.description,
+								url: "https://zugzology.com",
+								potentialAction: {
+									"@type": "SearchAction",
+									target: {
+										"@type": "EntryPoint",
+										urlTemplate: "https://zugzology.com/search?q={search_term_string}",
+									},
+									"query-input": "required name=search_term_string",
+								},
+							},
+							{
+								"@context": "https://schema.org",
+								"@type": "Organization",
+								name: siteSettings.title,
+								url: "https://zugzology.com",
+								logo: {
+									"@type": "ImageObject",
+									url: "https://zugzology.com/logo.png",
+								},
+								sameAs: ["https://facebook.com/zugzology", "https://twitter.com/zugzology", "https://instagram.com/zugzology"],
+								contactPoint: {
+									"@type": "ContactPoint",
+									telephone: process.env.NEXT_PUBLIC_CONTACT_PHONE,
+									contactType: "customer service",
+									availableLanguage: "English",
+								},
+							},
+						]),
+					}}
+				/>
+			</Suspense>
 
 			<main className="min-h-screen">
 				{/* Hero Section */}
-				<section className="hero-section bg-gradient-to-r from-purple-600 to-blue-600 text-white py-20" itemScope itemType="https://schema.org/WPHeader">
+				<section className="hero-section bg-gradient-to-r from-purple-600 to-blue-600 text-white py-20">
 					<div className="max-w-screen-xl mx-auto px-4">
-						<h1 className="text-5xl font-bold mb-6" itemProp="headline">
-							Premium Mushroom Cultivation Supplies
-						</h1>
-						<p className="text-xl mb-8 max-w-2xl" itemProp="description">
-							Your trusted source for high-quality mushroom growing supplies and equipment. From beginners to experts, we have everything you need for successful cultivation.
-						</p>
+						<h1 className="text-5xl font-bold mb-6">Premium Mushroom Cultivation Supplies</h1>
+						<p className="text-xl mb-8 max-w-2xl">Your trusted source for high-quality mushroom growing supplies and equipment. From beginners to experts, we have everything you need for successful cultivation.</p>
 					</div>
 				</section>
 
 				{/* Featured Products Section */}
-				<section className="featured-products-section max-w-screen-xl mx-auto px-4 py-16" itemScope itemType="https://schema.org/CollectionPage">
+				<section className="featured-products-section max-w-screen-xl mx-auto px-4 py-16">
 					<h2 className="text-3xl font-bold mb-8">Featured Products</h2>
 					<Suspense fallback={<HomeLoading />}>
-						<div className="featured-products">
-							<ProductsContentClient collection={featuredCollection} />
-						</div>
+						<ProductsContentClient collection={featuredCollection} />
 					</Suspense>
 				</section>
 
@@ -226,18 +183,12 @@ export default function Home() {
 					<div className="max-w-screen-xl mx-auto px-4">
 						<h2 className="text-3xl font-bold mb-12 text-center">Why Choose Zugzology</h2>
 						<div className="grid md:grid-cols-3 gap-8">
-							<div className="benefit-card text-center">
-								<h3 className="text-xl font-semibold mb-4">Premium Quality</h3>
-								<p>Only the highest quality supplies and equipment for optimal results.</p>
-							</div>
-							<div className="benefit-card text-center">
-								<h3 className="text-xl font-semibold mb-4">Expert Support</h3>
-								<p>Get guidance from our experienced team throughout your growing journey.</p>
-							</div>
-							<div className="benefit-card text-center">
-								<h3 className="text-xl font-semibold mb-4">Fast Shipping</h3>
-								<p>Quick and secure shipping to get you started as soon as possible.</p>
-							</div>
+							{siteSettings.features.map((feature, index) => (
+								<div key={index} className="benefit-card text-center">
+									<h3 className="text-xl font-semibold mb-4">{feature.text}</h3>
+									<p>{feature.text}</p>
+								</div>
+							))}
 						</div>
 					</div>
 				</section>

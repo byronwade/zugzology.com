@@ -7,7 +7,7 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
-		"scan": "next dev & npx react-scan@latest localhost:3001"
+		"scan": "next dev -p 3001 & npx react-scan@latest localhost:3001"
 	},
 	"dependencies": {
 		"@headlessui/react": "^1.7.17",

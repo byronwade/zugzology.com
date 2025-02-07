@@ -12,7 +12,6 @@ interface ShopifyFetchOptions {
 	cache?: RequestCache;
 	isAdminApi?: boolean;
 	isCustomerAccount?: boolean;
-	tags?: string[];
 }
 
 // Helper function to get GraphQL API URL
@@ -76,7 +75,7 @@ function formatDataSize(data: any): string {
 	return `${size.toFixed(2)}KB`;
 }
 
-// Helper function to make GraphQL requests with better error handling
+// Helper function to make GraphQL requests with better error handling and caching
 export async function shopifyFetch<T>({ query, variables, cache = "force-cache", isAdminApi = false, isCustomerAccount = false }: ShopifyFetchOptions): Promise<{ data: T }> {
 	try {
 		if (!domain) {
@@ -107,14 +106,8 @@ export async function shopifyFetch<T>({ query, variables, cache = "force-cache",
 
 		// Determine caching strategy based on request type
 		const cacheStrategy = isCustomerAccount ? "no-store" : cache;
-		const revalidationTime = isCustomerAccount
-			? 0
-			: cache === "force-cache"
-			? 3600 // 1 hour for cached requests
-			: cache === "no-store"
-			? 0 // No caching for dynamic requests
-			: 60; // 1 minute default for other cases
 
+		// Use unstable_cache for server-side caching with revalidation
 		const response = await fetch(url, {
 			method: "POST",
 			headers: getHeaders(isAdminApi, isCustomerAccount),
@@ -124,8 +117,8 @@ export async function shopifyFetch<T>({ query, variables, cache = "force-cache",
 			}),
 			cache: cacheStrategy,
 			next: {
-				revalidate: revalidationTime,
-				tags: variables ? [`shopify-${Object.values(variables).join("-")}`] : undefined,
+				// Use dynamic revalidation based on request type
+				revalidate: isCustomerAccount ? 0 : cache === "force-cache" ? 3600 : 60,
 			},
 		});
 
