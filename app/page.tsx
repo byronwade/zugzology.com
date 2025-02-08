@@ -1,13 +1,61 @@
 "use cache";
 
 import { Suspense } from "react";
-import { getProducts } from "@/lib/actions/shopify";
+import { getProducts, getCollections } from "@/lib/actions/shopify";
 import type { Metadata } from "next";
+import type { ProductsQueryOptions } from "@/lib/types";
 import { ProductsContentClient } from "@/components/products/products-content-client";
 import { HomeLoading } from "@/components/loading";
+import { CollectionsGrid } from "@/components/collections/collections-grid";
+import { Marquee } from "@/components/ui/marquee";
+import { DetailsSection } from "@/components/sections/details-section";
+import { NewsletterSection } from "@/components/sections/newsletter-section";
+import { ProductSlideshow } from "@/components/sections/product-slideshow";
+
+interface SiteFeature {
+	icon: string;
+	text: string;
+}
+
+interface SiteSettings {
+	title: string;
+	description: string;
+	features: SiteFeature[];
+}
+
+// Add this function to fetch site settings from the server
+async function getSiteSettings(): Promise<SiteSettings> {
+	return {
+		title: "Zugzology",
+		description: "Your trusted source for premium mushroom cultivation supplies and equipment.",
+		features: [
+			{ icon: "Shield", text: "Premium Quality Guaranteed" },
+			{ icon: "Truck", text: "Fast & Free Shipping" },
+			{ icon: "Gift", text: "Gift Wrapping Available" },
+			{ icon: "Info", text: "Expert Support" },
+		],
+	};
+}
+
+// Update getPageData to include collections
+async function getPageData() {
+	const topSellersOptions: ProductsQueryOptions = {
+		first: 6,
+		sortKey: "BEST_SELLING",
+	};
+
+	const [products, collections, siteSettings, topSellers] = await Promise.all([getProducts(), getCollections(), getSiteSettings(), getProducts(topSellersOptions)]);
+
+	return {
+		products,
+		collections,
+		siteSettings,
+		topSellers,
+	};
+}
 
 export async function generateMetadata(): Promise<Metadata> {
-	return Promise.resolve({
+	return {
 		title: "Zugzology - Premium Mushroom Cultivation Supplies & Equipment",
 		description: "Your trusted source for premium mushroom cultivation supplies and equipment. Find everything you need for successful mushroom growing, from spores to substrates. Expert guidance and top-quality products.",
 		keywords: "mushroom cultivation, mushroom growing supplies, mushroom spores, mushroom substrate, cultivation equipment, growing kits, mycology supplies",
@@ -61,6 +109,7 @@ function optimizeProductData(products: any[]) {
 		title: product.title,
 		handle: product.handle,
 		description: product.description,
+		descriptionHtml: product.descriptionHtml || product.description || "",
 		availableForSale: product.availableForSale,
 		productType: product.productType || "",
 		vendor: product.vendor || "",
@@ -77,23 +126,10 @@ function optimizeProductData(products: any[]) {
 	}));
 }
 
-// Add this function to fetch site settings from the server
-async function getSiteSettings() {
-	return {
-		title: "Zugzology",
-		description: "Your trusted source for premium mushroom cultivation supplies and equipment.",
-		features: [
-			{ icon: "Shield", text: "Premium Quality Guaranteed" },
-			{ icon: "Truck", text: "Fast & Free Shipping" },
-			{ icon: "Gift", text: "Gift Wrapping Available" },
-			{ icon: "Info", text: "Expert Support" },
-		],
-	};
-}
-
 export default async function Home() {
-	const { products, siteSettings } = await getPageData();
+	const { products, collections, siteSettings, topSellers } = await getPageData();
 	const optimizedProducts = products ? optimizeProductData(products.slice(0, 8)) : [];
+	const optimizedTopSellers = topSellers ? optimizeProductData(topSellers) : [];
 
 	const featuredCollection = {
 		id: "featured",
@@ -152,13 +188,21 @@ export default async function Home() {
 			</Suspense>
 
 			<main className="min-h-screen">
-				{/* Hero Section */}
-				<section className="hero-section bg-gradient-to-r from-purple-600 to-blue-600 text-white py-20">
-					<div className="max-w-screen-xl mx-auto px-4">
-						<h1 className="text-5xl font-bold mb-6">Premium Mushroom Cultivation Supplies</h1>
-						<p className="text-xl mb-8 max-w-2xl">Your trusted source for high-quality mushroom growing supplies and equipment. From beginners to experts, we have everything you need for successful cultivation.</p>
-					</div>
-				</section>
+				{/* Product Slideshow */}
+				<Suspense fallback={<HomeLoading />}>
+					<ProductSlideshow products={optimizedTopSellers} />
+				</Suspense>
+
+				{/* Collections Grid Section */}
+				<Suspense fallback={<HomeLoading />}>
+					<CollectionsGrid collections={collections} />
+				</Suspense>
+
+				{/* Marquee Section */}
+				<Marquee text="WORKS LIKE" highlightText="MAGIC" />
+
+				{/* Details Section */}
+				<DetailsSection />
 
 				{/* Featured Products Section */}
 				<section className="featured-products-section max-w-screen-xl mx-auto px-4 py-16">
@@ -173,7 +217,7 @@ export default async function Home() {
 					<div className="max-w-screen-xl mx-auto px-4">
 						<h2 className="text-3xl font-bold mb-12 text-center">Why Choose Zugzology</h2>
 						<div className="grid md:grid-cols-3 gap-8">
-							{siteSettings.features.map((feature, index) => (
+							{siteSettings.features.map((feature: SiteFeature, index: number) => (
 								<div key={index} className="benefit-card text-center">
 									<h3 className="text-xl font-semibold mb-4">{feature.text}</h3>
 									<p>{feature.text}</p>
@@ -182,6 +226,9 @@ export default async function Home() {
 						</div>
 					</div>
 				</section>
+
+				{/* Newsletter Section */}
+				<NewsletterSection />
 			</main>
 		</>
 	);

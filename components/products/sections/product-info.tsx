@@ -157,7 +157,7 @@ export function ProductInfo({ product, selectedVariant, selectedOptions, onOptio
 				<h2 id="description-heading" className="text-2xl font-bold mb-4">
 					Product Description
 				</h2>
-				<div className="prose prose-md max-w-none" dangerouslySetInnerHTML={{ __html: product.description }} />
+				<div className="prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: product.descriptionHtml || product.description }} />
 			</section>
 		</div>
 	);

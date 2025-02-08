@@ -8,6 +8,8 @@ import { ProductGallery } from "./product-gallery";
 import { ProductActions } from "./product-actions";
 import { Separator } from "@/components/ui/separator";
 import { Star, Info, Shield, TruckIcon, Gift } from "lucide-react";
+import { ProductContentClient } from "@/components/products/product-content-client";
+import { TrustooReviews } from "./trustoo-reviews";
 
 interface ProductContentProps {
 	product: ShopifyProduct;
@@ -15,8 +17,18 @@ interface ProductContentProps {
 
 function LoadingFallback() {
 	return (
-		<div className="w-full h-screen flex items-center justify-center">
-			<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+		<div className="w-full animate-pulse">
+			<div className="max-w-screen-xl mx-auto px-4">
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+					<div className="aspect-square bg-gray-200 rounded-lg" />
+					<div className="space-y-4">
+						<div className="h-8 w-3/4 bg-gray-200 rounded" />
+						<div className="h-4 w-1/2 bg-gray-200 rounded" />
+						<div className="h-24 w-full bg-gray-200 rounded" />
+						<div className="h-12 w-full bg-gray-200 rounded" />
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -97,6 +109,11 @@ export function ProductContent({ product }: ProductContentProps) {
 
 				{/* Main Product Section */}
 				<DynamicProductContentClient product={product} />
+
+				{/* Trustoo Reviews Section */}
+				<div className="max-w-screen-xl mx-auto px-4 py-8">
+					<TrustooReviews productId={product.id} productSku={firstVariant?.id} />
+				</div>
 			</div>
 		</Suspense>
 	);

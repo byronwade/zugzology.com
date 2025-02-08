@@ -11,6 +11,26 @@ import { getProducts } from "@/lib/actions/shopify";
 import { Footer } from "@/components/footer/footer";
 import { Suspense } from "react";
 import { CartProvider } from "@/components/providers/cart-provider";
+import Script from "next/script";
+import { Toaster } from "sonner";
+
+// Trustoo Script Component
+function TrustooScript() {
+	return (
+		<Script
+			id="trustoo-widget"
+			strategy="afterInteractive"
+			dangerouslySetInnerHTML={{
+				__html: `
+					window.TrustooObject = window.TrustooObject || function () {
+						(window.TrustooObject.q = window.TrustooObject.q || []).push(arguments);
+					};
+					window.TrustooObject('load', 'b3yNAlbjsiAw9FFoZ9KhqQ==');
+				`,
+			}}
+		/>
+	);
+}
 
 // Loading components
 function HeaderLoading() {
@@ -143,6 +163,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 						<AppContent>{children}</AppContent>
 					</Providers>
 				</CartProvider>
+				<TrustooScript />
+				<Toaster richColors position="top-center" />
 			</body>
 		</html>
 	);

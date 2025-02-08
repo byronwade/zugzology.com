@@ -231,6 +231,7 @@ const PRODUCTS_FRAGMENT = `
     title
     handle
     description
+    descriptionHtml
     availableForSale
     productType
     vendor
@@ -436,6 +437,7 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 							id
 							title
 							description
+							descriptionHtml
 							handle
 							availableForSale
 							options {

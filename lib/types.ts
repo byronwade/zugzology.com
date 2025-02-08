@@ -8,6 +8,7 @@ export interface ShopifyProduct {
 	id: string;
 	title: string;
 	description: string;
+	descriptionHtml: string;
 	handle: string;
 	availableForSale: boolean;
 	productType: string;
@@ -203,4 +204,11 @@ export interface ProductWithEdges extends Omit<ShopifyProduct, "variants" | "ima
 			node: ShopifyProductVariant;
 		}>;
 	};
+}
+
+export interface ProductsQueryOptions {
+	first?: number;
+	sortKey?: "TITLE" | "PRICE" | "BEST_SELLING" | "CREATED" | "ID" | "MANUAL" | "COLLECTION_DEFAULT" | "RELEVANCE";
+	reverse?: boolean;
+	query?: string;
 }
