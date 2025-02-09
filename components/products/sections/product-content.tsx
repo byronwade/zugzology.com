@@ -10,6 +10,10 @@ import { Separator } from "@/components/ui/separator";
 import { Star, Info, Shield, TruckIcon, Gift } from "lucide-react";
 import { ProductContentClient } from "@/components/products/product-content-client";
 import { TrustooReviews } from "./trustoo-reviews";
+import { VideoGallery } from "@/components/sections/video-gallery";
+import { FrequentlyBoughtTogether } from "./frequently-bought-together";
+import { getProducts } from "@/lib/actions/shopify";
+import { useEffect, useState } from "react";
 
 interface ProductContentProps {
 	product: ShopifyProduct;

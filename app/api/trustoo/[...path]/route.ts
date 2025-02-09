@@ -12,11 +12,27 @@ function getHeaders(contentType?: string) {
 	};
 }
 
+// Helper function to encode product ID
+function encodeProductId(id: string): string {
+	return id.replace(/gid:\/\/shopify\/Product\//, '').replace(/\//g, '-');
+}
+
 export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
 	try {
 		const path = params.path.join("/");
-		const searchParams = request.nextUrl.searchParams.toString();
-		const url = `${TRUSTOO_API_URL}/v1/${path}${searchParams ? `?${searchParams}` : ""}`;
+		const searchParams = new URLSearchParams(request.nextUrl.searchParams);
+		
+		// Handle product ID encoding for specific endpoints
+		if (path.includes('products') || path.includes('reviews')) {
+			const productId = searchParams.get('productId');
+			if (productId) {
+				searchParams.set('productId', encodeProductId(productId));
+			}
+		}
+
+		const url = `${TRUSTOO_API_URL}/v1/${path}?${searchParams.toString()}`;
+
+		console.log('Fetching from Trustoo:', url);
 
 		const response = await fetch(url, {
 			method: "GET",
@@ -24,11 +40,11 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
 			cache: "no-store",
 		});
 
-		if (!response.ok) {
-			throw new Error(`Trustoo API responded with status ${response.status}`);
-		}
-
 		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || `Trustoo API responded with status ${response.status}`);
+		}
 
 		return new Response(JSON.stringify(data), {
 			headers: {
@@ -61,7 +77,6 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
 export async function POST(request: NextRequest, { params }: { params: { path: string[] } }) {
 	try {
 		const path = params.path.join("/");
-		const url = `${TRUSTOO_API_URL}/v1/${path}`;
 		const contentType = request.headers.get("content-type");
 
 		let requestBody;
@@ -69,8 +84,17 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
 			const formData = await request.formData();
 			requestBody = formData;
 		} else {
-			requestBody = await request.json();
+			const json = await request.json();
+			// Handle product ID encoding
+			if (json.productId) {
+				json.productId = encodeProductId(json.productId);
+			}
+			requestBody = json;
 		}
+
+		const url = `${TRUSTOO_API_URL}/v1/${path}`;
+		
+		console.log('Posting to Trustoo:', url);
 
 		const response = await fetch(url, {
 			method: "POST",
@@ -78,12 +102,11 @@ export async function POST(request: NextRequest, { params }: { params: { path: s
 			body: contentType?.includes("multipart/form-data") ? requestBody : JSON.stringify(requestBody),
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.message || `Trustoo API responded with status ${response.status}`);
-		}
-
 		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || `Trustoo API responded with status ${response.status}`);
+		}
 
 		return new Response(JSON.stringify(data), {
 			headers: {

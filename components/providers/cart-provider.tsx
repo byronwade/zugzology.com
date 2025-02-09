@@ -1,24 +1,32 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Cart } from "@/lib/types";
 import { nanoid } from "nanoid";
+import type { ShopifyCart, CartItem } from "@/lib/types";
+import { createCart, getCart, addToCart, updateCartLine, removeFromCart } from "@/lib/actions/shopify";
+import { toast } from "sonner";
 
 interface CartContext {
-	cart: Cart | null;
-	isLoading: boolean;
-	error: Error | null;
+	cart: ShopifyCart | null;
+	cartId: string | null;
+	isUpdating: boolean;
+	addItem: (item: CartItem) => Promise<void>;
+	removeItem: (itemId: string) => Promise<void>;
+	updateItemQuantity: (itemId: string, quantity: number) => Promise<void>;
 }
 
-const CartContext = createContext<CartContext>({
+export const CartContext = createContext<CartContext>({
 	cart: null,
-	isLoading: false,
-	error: null,
+	cartId: null,
+	isUpdating: false,
+	addItem: async () => {},
+	removeItem: async () => {},
+	updateItemQuantity: async () => {},
 });
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-	const [cart, setCart] = useState<Cart | null>(null);
+	const [cart, setCart] = useState<ShopifyCart | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
 	const [cartId, setCartId] = useLocalStorage<string | null>("cartId", null);
@@ -27,6 +35,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 	const initializingRef = useRef(false);
 	const sessionId = useRef(nanoid(7));
 	const attemptsRef = useRef(0);
+	const [isUpdating, setIsUpdating] = useState(false);
 
 	// Mounting effect
 	useEffect(() => {
@@ -138,7 +147,56 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 		}
 	}, [cartId, cart]);
 
-	return <CartContext.Provider value={{ cart, isLoading, error }}>{children}</CartContext.Provider>;
+	const addItem = async (item: CartItem) => {
+		if (!cart?.id) {
+			console.error("No cart ID available");
+			toast.error("Unable to add item to cart");
+			return;
+		}
+
+		setIsLoading(true);
+		try {
+			const merchandiseId = item.merchandiseId.includes("gid://shopify/ProductVariant/") ? item.merchandiseId : `gid://shopify/ProductVariant/${item.merchandiseId}`;
+
+			const existingLine = cart.lines.edges.find(({ node }) => node.merchandise.id === merchandiseId);
+
+			let updatedCart;
+			if (existingLine) {
+				updatedCart = await updateCartLine(cart.id, existingLine.node.id, existingLine.node.quantity + item.quantity);
+			} else {
+				updatedCart = await addToCart(cart.id, [
+					{
+						merchandiseId,
+						quantity: item.quantity,
+						attributes: item.attributes?.map((attr) => ({
+							key: attr.key,
+							value: attr.value,
+						})),
+					},
+				]);
+			}
+
+			if (!updatedCart) {
+				throw new Error("Failed to update cart");
+			}
+
+			setCart(updatedCart);
+			toast.success(item.isPreOrder ? "Pre-order added to cart" : "Added to cart");
+		} catch (error) {
+			console.error("Error adding item to cart:", error);
+			if (error instanceof Error && error.message.includes("cart not found")) {
+				setCart(null);
+				setCartId(null);
+				toast.error("Cart expired, please try again");
+			} else {
+				toast.error("Failed to add item to cart");
+			}
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	return <CartContext.Provider value={{ cart, cartId, isUpdating, addItem, removeItem: async () => {}, updateItemQuantity: async () => {} }}>{children}</CartContext.Provider>;
 }
 
 export function useCart() {

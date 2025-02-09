@@ -60,6 +60,7 @@
 		"react": "^19.0.0-rc-7670501b-20241124",
 		"react-day-picker": "8.10.1",
 		"react-dom": "^19.0.0-rc-7670501b-20241124",
+		"react-error-boundary": "^5.0.0",
 		"react-hook-form": "^7.53.2",
 		"react-resizable-panels": "^2.1.7",
 		"react-scan": "^0.0.45",

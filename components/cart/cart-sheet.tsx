@@ -50,32 +50,40 @@ export function CartSheet() {
 				)}
 
 				<div className="flex-1 overflow-y-auto py-4">
-					{cart?.lines.edges.map(({ node }) => (
-						<div key={node.id} className="flex gap-4 py-4 border-b">
-							{node.merchandise.image && (
-								<div className="relative w-20 h-20">
-									<Image src={node.merchandise.image.url} alt={node.merchandise.image.altText || ""} fill className="object-cover rounded-md" />
+					{cart?.lines.edges.map(({ node }) => {
+						const productImage = node.merchandise.product.images.edges[0]?.node;
+
+						return (
+							<div key={node.id} className="flex gap-4 py-4 border-b">
+								{productImage ? (
+									<div className="relative w-20 h-20">
+										<Image src={productImage.url} alt={productImage.altText || node.merchandise.product.title} fill className="object-cover rounded-md" sizes="80px" />
+									</div>
+								) : (
+									<div className="w-20 h-20 bg-neutral-100 rounded-md flex items-center justify-center">
+										<ShoppingCart className="h-8 w-8 text-neutral-400" />
+									</div>
+								)}
+								<div className="flex-1">
+									<h3 className="font-medium">{node.merchandise.product.title}</h3>
+									<p className="text-sm text-muted-foreground">{node.merchandise.title !== "Default Title" && node.merchandise.title}</p>
+									<div className="flex items-center gap-2 mt-2">
+										<select value={node.quantity} onChange={(e) => handleUpdateQuantity(node.id, Number(e.target.value))} className="h-8 w-20 rounded-md border" disabled={isLoading}>
+											{[...Array(10)].map((_, i) => (
+												<option key={i + 1} value={i + 1}>
+													{i + 1}
+												</option>
+											))}
+										</select>
+										<Button variant="ghost" size="icon" onClick={() => handleRemoveItem(node.id)} disabled={isLoading}>
+											<Trash2 className="h-4 w-4" />
+										</Button>
+									</div>
+									<p className="mt-2 font-medium">{formatPrice(node.cost.totalAmount.amount)}</p>
 								</div>
-							)}
-							<div className="flex-1">
-								<h3 className="font-medium">{node.merchandise.product.title}</h3>
-								<p className="text-sm text-muted-foreground">{node.merchandise.title !== "Default Title" && node.merchandise.title}</p>
-								<div className="flex items-center gap-2 mt-2">
-									<select value={node.quantity} onChange={(e) => handleUpdateQuantity(node.id, Number(e.target.value))} className="h-8 w-20 rounded-md border" disabled={isLoading}>
-										{[...Array(10)].map((_, i) => (
-											<option key={i + 1} value={i + 1}>
-												{i + 1}
-											</option>
-										))}
-									</select>
-									<Button variant="ghost" size="icon" onClick={() => handleRemoveItem(node.id)} disabled={isLoading}>
-										<Trash2 className="h-4 w-4" />
-									</Button>
-								</div>
-								<p className="mt-2 font-medium">{formatPrice(node.cost.totalAmount.amount)}</p>
 							</div>
-						</div>
-					))}
+						);
+					})}
 				</div>
 
 				<div className="border-t pt-4">

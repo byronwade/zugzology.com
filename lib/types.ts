@@ -37,6 +37,22 @@ export interface ShopifyProduct {
 			node: ShopifyImage;
 		}>;
 	};
+	media: {
+		edges: Array<{
+			node: {
+				mediaContentType: "VIDEO" | "IMAGE" | "EXTERNAL_VIDEO";
+				alt: string | null;
+				previewImage?: {
+					url: string;
+				};
+				sources?: Array<{
+					url: string;
+					mimeType: string;
+				}>;
+				embedUrl?: string;
+			};
+		}>;
+	};
 	metafields?: Array<{
 		key: string;
 		value: string;
@@ -150,6 +166,10 @@ export interface Cart {
 			node: {
 				id: string;
 				quantity: number;
+				attributes?: Array<{
+					key: string;
+					value: string;
+				}>;
 				cost: {
 					totalAmount: {
 						amount: string;
@@ -188,6 +208,10 @@ export interface CartItem {
 	merchandiseId: string;
 	quantity: number;
 	isPreOrder?: boolean;
+	attributes?: Array<{
+		key: string;
+		value: string;
+	}>;
 }
 
 export interface ProductWithEdges extends Omit<ShopifyProduct, "variants" | "images"> {
@@ -211,4 +235,50 @@ export interface ProductsQueryOptions {
 	sortKey?: "TITLE" | "PRICE" | "BEST_SELLING" | "CREATED" | "ID" | "MANUAL" | "COLLECTION_DEFAULT" | "RELEVANCE";
 	reverse?: boolean;
 	query?: string;
+}
+
+export interface ProductVariant {
+	id: string;
+	title: string;
+	price: {
+		amount: string;
+		currencyCode: string;
+	};
+	compareAtPrice?: {
+		amount: string;
+		currencyCode: string;
+	};
+	selectedOptions: Array<{
+		name: string;
+		value: string;
+	}>;
+	image?: {
+		url: string;
+		altText?: string;
+	};
+}
+
+export interface Product {
+	id: string;
+	handle: string;
+	title: string;
+	description: string;
+	images: {
+		edges: Array<{
+			node: {
+				url: string;
+				altText?: string;
+			};
+		}>;
+	};
+	variants: {
+		edges: Array<{
+			node: ProductVariant;
+		}>;
+	};
+	tags?: string[];
+	metafields?: Array<{
+		key: string;
+		value: string;
+	}>;
 }

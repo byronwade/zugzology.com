@@ -6,6 +6,8 @@ import { ShopifyProduct, ShopifyProductVariant } from "@/lib/types";
 import { ProductInfo } from "./sections/product-info";
 import { ProductActions } from "./sections/product-actions";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { getProducts } from "@/lib/actions/shopify";
 
 interface ProductContentClientProps {
 	product: ShopifyProduct;
@@ -72,6 +74,48 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 	const [quantity, setQuantity] = useState(1);
 	const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 	const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>(() => getInitialSelectedOptions(product.variants.edges[0].node));
+	const [complementaryProducts, setComplementaryProducts] = useState<ShopifyProduct[]>([]);
+
+	// Fetch complementary products
+	useEffect(() => {
+		async function fetchRelatedProducts() {
+			try {
+				const allProducts = await getProducts();
+				if (!allProducts?.length) return;
+
+				// Filter products by same product type or shared tags
+				const relatedProducts = allProducts.filter((p) => {
+					if (!p || p.id === product.id) return false;
+
+					const sameType = p.productType && product.productType && (p.productType.toLowerCase().includes(product.productType.toLowerCase()) || product.productType.toLowerCase().includes(p.productType.toLowerCase()));
+
+					const sharedTags = product.tags?.some((tag) => p.tags?.some((pTag) => pTag.toLowerCase().includes(tag.toLowerCase()) || tag.toLowerCase().includes(pTag.toLowerCase()))) || false;
+
+					const sameCategory = p.productType?.toLowerCase().includes("mushroom") || p.productType?.toLowerCase().includes("grow") || p.tags?.some((tag) => tag.toLowerCase().includes("mushroom") || tag.toLowerCase().includes("grow"));
+
+					return sameType || sharedTags || sameCategory;
+				});
+
+				// Take first 3 products, prioritizing those with same type
+				const sortedProducts = relatedProducts.sort((a, b) => {
+					const aType = a.productType?.toLowerCase() || "";
+					const bType = b.productType?.toLowerCase() || "";
+					const productType = product.productType?.toLowerCase() || "";
+
+					if (aType === productType && bType !== productType) return -1;
+					if (bType === productType && aType !== productType) return 1;
+					return 0;
+				});
+
+				setComplementaryProducts(sortedProducts.slice(0, 3));
+			} catch (error) {
+				console.error("Error fetching related products:", error);
+				setComplementaryProducts([]);
+			}
+		}
+
+		fetchRelatedProducts();
+	}, [product]);
 
 	// Memoize images array
 	const images = useMemo(
@@ -140,7 +184,46 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 					</section>
 
 					<section aria-label="Product information" className="col-span-1">
-						<ProductInfo product={product} selectedVariant={selectedVariant} selectedOptions={selectedOptions} onOptionChange={handleOptionChange} />
+						<div className="space-y-4">
+							{/* Product Title */}
+							<h1 className="text-3xl font-bold tracking-tight" itemProp="name">
+								{product.title}
+							</h1>
+
+							{/* Badges */}
+							<div className="flex flex-wrap gap-2">
+								{/* Brand Badge - Always show with fallback to vendor */}
+								<Badge variant="secondary" className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+									{product.vendor || "Zugzology"}
+								</Badge>
+
+								{/* Category Badge */}
+								{product.productType && (
+									<Badge variant="outline" className="text-sm">
+										{product.productType}
+									</Badge>
+								)}
+
+								{/* Status Badges */}
+								{!selectedVariant.availableForSale && (
+									<Badge variant="secondary" className="bg-red-100 text-red-800">
+										Out of Stock
+									</Badge>
+								)}
+								{product.tags?.includes("new") && (
+									<Badge variant="secondary" className="bg-green-100 text-green-800">
+										New Arrival
+									</Badge>
+								)}
+								{product.tags?.includes("bestseller") && (
+									<Badge variant="secondary" className="bg-amber-100 text-amber-800">
+										Best Seller
+									</Badge>
+								)}
+							</div>
+
+							<ProductInfo product={product} selectedVariant={selectedVariant} selectedOptions={selectedOptions} onOptionChange={handleOptionChange} complementaryProducts={complementaryProducts} />
+						</div>
 					</section>
 				</div>
 

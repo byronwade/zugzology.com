@@ -48,6 +48,62 @@ async function handleResponse<T>(response: Response): Promise<T> {
 	return response.json();
 }
 
+// Get reviews for a product
+export async function getProductReviews(productId: string, page = 1, limit = 10): Promise<{ reviews: TrustooReview[]; total: number }> {
+	try {
+		const startTime = performance.now();
+		const response = await fetch(`${TRUSTOO_API_URL}/reviews?productId=${encodeURIComponent(productId)}&page=${page}&limit=${limit}`, {
+			headers: {
+				"Content-Type": "application/json",
+			},
+			next: {
+				revalidate: 3600, // Cache for 1 hour
+				tags: [`trustoo-reviews-${productId}`],
+			},
+		});
+
+		const data = await handleResponse<{ reviews: TrustooReview[]; total: number }>(response);
+
+		const duration = performance.now() - startTime;
+		if (duration > 100) {
+			console.log(`⚡ [Trustoo] Fetched reviews in ${duration.toFixed(2)}ms`);
+		}
+
+		return data;
+	} catch (error) {
+		console.error("Failed to fetch Trustoo reviews:", error);
+		return { reviews: [], total: 0 };
+	}
+}
+
+// Get product statistics
+export async function getProductStats(productId: string): Promise<TrustooProductStats | null> {
+	try {
+		const startTime = performance.now();
+		const response = await fetch(`${TRUSTOO_API_URL}/products/${encodeURIComponent(productId)}/stats`, {
+			headers: {
+				"Content-Type": "application/json",
+			},
+			next: {
+				revalidate: 3600, // Cache for 1 hour
+				tags: [`trustoo-stats-${productId}`],
+			},
+		});
+
+		const data = await handleResponse<TrustooProductStats>(response);
+
+		const duration = performance.now() - startTime;
+		if (duration > 100) {
+			console.log(`⚡ [Trustoo] Fetched stats in ${duration.toFixed(2)}ms`);
+		}
+
+		return data;
+	} catch (error) {
+		console.error("Failed to fetch Trustoo product stats:", error);
+		return null;
+	}
+}
+
 // Submit a new review
 export async function submitReview(data: SubmitReviewData): Promise<{ success: boolean; message: string }> {
 	try {
@@ -96,62 +152,6 @@ export async function submitReview(data: SubmitReviewData): Promise<{ success: b
 	} catch (error) {
 		console.error("Failed to submit Trustoo review:", error);
 		throw new Error(error instanceof Error ? error.message : "Failed to submit review");
-	}
-}
-
-// Get reviews for a product
-export async function getProductReviews(productId: string, page = 1, limit = 10): Promise<{ reviews: TrustooReview[]; total: number }> {
-	try {
-		const startTime = performance.now();
-		const response = await fetch(`${TRUSTOO_API_URL}/reviews?productId=${productId}&page=${page}&limit=${limit}`, {
-			headers: {
-				"Content-Type": "application/json",
-			},
-			next: {
-				revalidate: 3600, // Cache for 1 hour
-				tags: [`trustoo-reviews-${productId}`],
-			},
-		});
-
-		const data = await handleResponse<{ reviews: TrustooReview[]; total: number }>(response);
-
-		const duration = performance.now() - startTime;
-		if (duration > 100) {
-			console.log(`⚡ [Trustoo] Fetched reviews in ${duration.toFixed(2)}ms`);
-		}
-
-		return data;
-	} catch (error) {
-		console.error("Failed to fetch Trustoo reviews:", error);
-		return { reviews: [], total: 0 };
-	}
-}
-
-// Get product statistics
-export async function getProductStats(productId: string): Promise<TrustooProductStats | null> {
-	try {
-		const startTime = performance.now();
-		const response = await fetch(`${TRUSTOO_API_URL}/products/${productId}/stats`, {
-			headers: {
-				"Content-Type": "application/json",
-			},
-			next: {
-				revalidate: 3600, // Cache for 1 hour
-				tags: [`trustoo-stats-${productId}`],
-			},
-		});
-
-		const data = await handleResponse<TrustooProductStats>(response);
-
-		const duration = performance.now() - startTime;
-		if (duration > 100) {
-			console.log(`⚡ [Trustoo] Fetched stats in ${duration.toFixed(2)}ms`);
-		}
-
-		return data;
-	} catch (error) {
-		console.error("Failed to fetch Trustoo product stats:", error);
-		return null;
 	}
 }
 

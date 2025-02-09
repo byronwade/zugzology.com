@@ -27,8 +27,8 @@ export function CollectionsGrid({ collections, className }: CollectionsGridProps
 			<h2 className="text-3xl font-bold py-8 text-center">🍄🛍️ All in One Mushroom Grow Bags and Mycology Supplies 🔬</h2>
 			<div className={cn("grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 w-full", className)}>
 				{displayCollections.map((collection) => (
-					<Link key={collection.id} href={`/collections/${collection.handle}`} className="group relative bg-white dark:bg-neutral-900 overflow-hidden transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-900/20">
-						<div className="relative aspect-square w-full overflow-hidden border-2 border-transparent transition-all duration-300 group-hover:border-purple-500">
+					<Link key={collection.id} href={`/collections/${collection.handle}`} className="group relative bg-white dark:bg-neutral-900 overflow-hidden transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 border-[10px] border-transparent hover:border-purple-500">
+						<div className="relative aspect-square w-full overflow-hidden">
 							{collection.image ? (
 								<Image src={collection.image.url} alt={collection.image.altText || collection.title} fill sizes="(min-width: 1280px) 12.5vw, (min-width: 768px) 25vw, 50vw" className="object-cover transition-transform duration-300 group-hover:scale-105" priority />
 							) : (
