@@ -15,22 +15,19 @@ interface ProductCardProps {
 	collectionHandle?: string;
 	view?: "grid" | "list";
 	variantId?: string;
-	availableForSale?: boolean;
 	quantity?: number;
 }
 
-export function ProductCard({ product, collectionHandle, view = "grid", variantId, availableForSale = false, quantity = 0 }: ProductCardProps) {
+export function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0 }: ProductCardProps) {
 	const { setSearchQuery } = useSearch();
 	const firstImage = product.images?.edges?.[0]?.node;
 	const price = product.priceRange?.minVariantPrice?.amount || "0";
 	const productUrl = `/products/${product.handle}`;
 	const firstVariant = product.variants?.edges?.[0]?.node;
 	const actualVariantId = variantId || firstVariant?.id;
-	const actualQuantity = quantity || firstVariant?.quantityAvailable || 0;
-	const isPreOrder = actualQuantity <= 0;
 
 	// Updated variant check to be more precise
-	const hasVariants = product.variants?.edges?.length > 1 || product.options?.some((option) => option?.values?.length > 1 || (option?.name !== "Title" && option?.values?.length > 0));
+	const hasVariants = product.variants?.edges?.length > 1 || product.options?.some((option) => option?.name !== "Title" && option?.values?.length > 0);
 
 	const handleNavigate = () => {
 		setSearchQuery("");
@@ -38,9 +35,9 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 
 	const ImageContainer = ({ children, isListView = false }: { children: React.ReactNode; isListView?: boolean }) => (
 		<div className={cn("relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 hover:border-foreground/20 transition-colors duration-200", isListView ? "w-[200px] h-[200px] flex-shrink-0" : "aspect-square w-full")}>
-			{isPreOrder && (
-				<Badge variant="secondary" className="absolute top-2 right-2 bg-amber-600 hover:bg-amber-600 z-10">
-					Pre-Order
+			{product.isGiftCard && (
+				<Badge variant="secondary" className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-600 z-10 text-xs font-semibold">
+					Digital Item
 				</Badge>
 			)}
 			{children}
@@ -85,23 +82,13 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 						{isOnSale && <span className="text-sm text-muted-foreground line-through">{formatPrice(parseFloat(compareAtPrice))}</span>}
 					</div>
 					{isOnSale && (
-						<Badge variant="destructive" className="text-xs">
+						<Badge variant="destructive" className="text-xs font-semibold">
 							{discountPercentage}% OFF
 						</Badge>
 					)}
 				</div>
-				<div className="mt-2 space-y-1 text-sm">
-					<p className="text-neutral-600 dark:text-neutral-300">FREE delivery</p>
-					{isPreOrder ? (
-						<p className="text-amber-600 dark:text-amber-500 font-medium flex items-center gap-1">
-							<Clock className="h-4 w-4" />
-							Ships in 2-3 weeks
-						</p>
-					) : (
-						<p className="text-green-600 dark:text-green-500 font-medium">{actualQuantity} in stock</p>
-					)}
-				</div>
-				{actualVariantId && <AddToCartButton className={cn("mt-3", isListView && "max-w-[200px]")} variantId={actualVariantId} availableForSale={!isPreOrder} quantity={actualQuantity} hasVariants={hasVariants} productHandle={product.handle} />}
+				<div className="mt-2 space-y-1 text-sm">{product.isGiftCard ? <p className="text-blue-600 dark:text-blue-500 font-medium">Digital Gift Card - Instant Delivery</p> : <p className="text-neutral-600 dark:text-neutral-300">FREE delivery</p>}</div>
+				{actualVariantId && <AddToCartButton className={cn("mt-3", isListView && "max-w-[200px]")} variantId={actualVariantId} availableForSale={true} quantity={1} hasVariants={hasVariants} productHandle={product.handle} />}
 				{isListView && <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3">{product.description}</p>}
 			</div>
 		);

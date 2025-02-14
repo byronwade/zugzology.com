@@ -7,6 +7,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { getBlogByHandle } from "@/lib/actions/shopify";
 import type { ShopifyBlogArticle } from "@/lib/types";
+import { BlogBreadcrumb } from "@/components/blog/blog-breadcrumb";
 
 export async function generateMetadata({ params }: { params: { blog: string } }): Promise<Metadata> {
 	const nextParams = await params;
@@ -86,21 +87,20 @@ export default async function BlogCategoryPage({ params }: { params: { blog: str
 	});
 
 	return (
-		<Suspense fallback={<BlogLoading />}>
-			<div className="min-h-screen w-full">
-				<div className="max-w-[1800px] mx-auto px-4 py-8">
-					<h1 className="text-4xl font-bold mb-8 text-neutral-900 dark:text-neutral-100">{blog.title}</h1>
-					<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						{articles.length > 0 ? (
-							articles.map((article) => <BlogCard key={article.id} article={article} blogHandle={blog.handle} />)
-						) : (
-							<div className="text-center py-12 col-span-full">
-								<p className="text-neutral-600 dark:text-neutral-400">No articles found in this category.</p>
-							</div>
-						)}
-					</div>
+		<section className="w-full p-4">
+			<div className="max-w-[1800px] mx-auto">
+				<BlogBreadcrumb blogHandle={nextParams.blog} blogTitle={blog.title} />
+
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+					{articles.length > 0 ? (
+						articles.map((article) => <BlogCard key={article.id} article={article} blogHandle={blog.handle} />)
+					) : (
+						<div className="text-center py-12 col-span-full">
+							<p className="text-neutral-600 dark:text-neutral-400">No articles found in this category.</p>
+						</div>
+					)}
 				</div>
 			</div>
-		</Suspense>
+		</section>
 	);
 }

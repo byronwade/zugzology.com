@@ -10,12 +10,10 @@ export interface ShopifyProduct {
 	description: string;
 	descriptionHtml: string;
 	handle: string;
-	availableForSale: boolean;
 	productType: string;
 	vendor: string;
 	tags: string[];
-	rating?: number;
-	reviewsCount?: number;
+	isGiftCard: boolean;
 	options: ShopifyProductOption[];
 	priceRange: {
 		minVariantPrice: {
@@ -37,26 +35,6 @@ export interface ShopifyProduct {
 			node: ShopifyImage;
 		}>;
 	};
-	media: {
-		edges: Array<{
-			node: {
-				mediaContentType: "VIDEO" | "IMAGE" | "EXTERNAL_VIDEO";
-				alt: string | null;
-				previewImage?: {
-					url: string;
-				};
-				sources?: Array<{
-					url: string;
-					mimeType: string;
-				}>;
-				embedUrl?: string;
-			};
-		}>;
-	};
-	metafields?: Array<{
-		key: string;
-		value: string;
-	}>;
 	publishedAt: string;
 }
 
@@ -81,13 +59,7 @@ export interface ShopifyCollection {
 export interface ShopifyProductVariant {
 	id: string;
 	title: string;
-	availableForSale: boolean;
-	quantityAvailable: number;
 	price: {
-		amount: string;
-		currencyCode: string;
-	};
-	compareAtPrice?: {
 		amount: string;
 		currencyCode: string;
 	};
@@ -95,6 +67,7 @@ export interface ShopifyProductVariant {
 		name: string;
 		value: string;
 	}>;
+	requiresShipping: boolean;
 	image?: {
 		url: string;
 		altText: string | null;
@@ -106,28 +79,29 @@ export interface ShopifyProductVariant {
 export interface ShopifyImage {
 	url: string;
 	altText: string | null;
-	width?: number;
-	height?: number;
-	variantIds?: string[];
+	width: number;
+	height: number;
 }
 
 export interface ShopifyBlogArticle {
 	id: string;
-	title: string;
 	handle: string;
+	title: string;
+	excerpt?: string;
 	content: string;
 	contentHtml: string;
-	excerpt: string;
 	publishedAt: string;
 	author: {
 		name: string;
 	};
 	image?: {
 		url: string;
-		altText: string;
 		width: number;
 		height: number;
+		altText: string | null;
 	};
+	blogHandle?: string;
+	blogTitle?: string;
 }
 
 export interface ShopifyBlog {

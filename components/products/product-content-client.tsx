@@ -193,30 +193,30 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 							{/* Badges */}
 							<div className="flex flex-wrap gap-2">
 								{/* Brand Badge - Always show with fallback to vendor */}
-								<Badge variant="secondary" className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+								<Badge variant="secondary" className="text-xs font-semibold bg-purple-100 text-purple-800 hover:bg-purple-200">
 									{product.vendor || "Zugzology"}
 								</Badge>
 
 								{/* Category Badge */}
 								{product.productType && (
-									<Badge variant="outline" className="text-sm">
+									<Badge variant="secondary" className="text-xs font-semibold bg-neutral-100 text-neutral-800 hover:bg-neutral-200">
 										{product.productType}
 									</Badge>
 								)}
 
 								{/* Status Badges */}
 								{!selectedVariant.availableForSale && (
-									<Badge variant="secondary" className="bg-red-100 text-red-800">
+									<Badge variant="secondary" className="text-xs font-semibold bg-red-100 text-red-800">
 										Out of Stock
 									</Badge>
 								)}
 								{product.tags?.includes("new") && (
-									<Badge variant="secondary" className="bg-green-100 text-green-800">
+									<Badge variant="secondary" className="text-xs font-semibold bg-green-100 text-green-800">
 										New Arrival
 									</Badge>
 								)}
 								{product.tags?.includes("bestseller") && (
-									<Badge variant="secondary" className="bg-amber-100 text-amber-800">
+									<Badge variant="secondary" className="text-xs font-semibold bg-amber-100 text-amber-800">
 										Best Seller
 									</Badge>
 								)}

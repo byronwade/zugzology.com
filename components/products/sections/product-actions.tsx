@@ -113,7 +113,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange }: 
 							<div className="text-3xl font-bold text-primary">{formatPrice(parseFloat(selectedVariant?.price?.amount || "0"))}</div>
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Badge variant="secondary" className="text-sm cursor-help">
+									<Badge variant="secondary" className="text-xs font-semibold cursor-help">
 										Best Seller
 									</Badge>
 								</TooltipTrigger>

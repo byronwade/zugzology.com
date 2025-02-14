@@ -78,7 +78,6 @@ const COLLECTION_FRAGMENT = `
           title
           handle
           description
-          availableForSale
           productType
           vendor
           tags
@@ -102,15 +101,13 @@ const COLLECTION_FRAGMENT = `
               node {
                 id
                 title
-                availableForSale
-                quantityAvailable
-                selectedOptions {
-                  name
-                  value
-                }
                 price {
                   amount
                   currencyCode
+                }
+                selectedOptions {
+                  name
+                  value
                 }
               }
             }
@@ -125,6 +122,7 @@ const COLLECTION_FRAGMENT = `
               }
             }
           }
+          publishedAt
         }
       }
     }
@@ -232,10 +230,10 @@ const PRODUCTS_FRAGMENT = `
     handle
     description
     descriptionHtml
-    availableForSale
     productType
     vendor
     tags
+    isGiftCard
     options {
       id
       name
@@ -256,15 +254,19 @@ const PRODUCTS_FRAGMENT = `
         node {
           id
           title
-          availableForSale
-          quantityAvailable
+          price {
+            amount
+            currencyCode
+          }
           selectedOptions {
             name
             value
           }
-          price {
-            amount
-            currencyCode
+          image {
+            url
+            altText
+            width
+            height
           }
         }
       }
@@ -279,6 +281,7 @@ const PRODUCTS_FRAGMENT = `
         }
       }
     }
+    publishedAt
   }
 `;
 
@@ -439,7 +442,10 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 							description
 							descriptionHtml
 							handle
-							availableForSale
+							productType
+							vendor
+							tags
+							isGiftCard
 							options {
 								id
 								name
@@ -450,19 +456,17 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 									amount
 									currencyCode
 								}
+								maxVariantPrice {
+									amount
+									currencyCode
+								}
 							}
 							variants(first: 100) {
 								edges {
 									node {
 										id
 										title
-										availableForSale
-										quantityAvailable
 										price {
-											amount
-											currencyCode
-										}
-										compareAtPrice {
 											amount
 											currencyCode
 										}
@@ -470,6 +474,7 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 											name
 											value
 										}
+										requiresShipping
 										image {
 											url
 											altText
@@ -489,6 +494,7 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 									}
 								}
 							}
+							publishedAt
 						}
 					}
 				`,
@@ -908,4 +914,18 @@ export async function getBlogArticle(blogHandle: string, articleHandle: string):
 // Add revalidation helper
 export async function revalidateCache(tags: string[]) {
 	tags.forEach((tag) => revalidateTag(tag));
+}
+
+export async function getAllBlogPosts() {
+	const blogs = await getBlogs();
+	const allPosts = blogs.flatMap((blog) =>
+		blog.articles.edges.map(({ node }) => ({
+			...node,
+			blogHandle: blog.handle,
+			blogTitle: blog.title,
+		}))
+	);
+
+	// Sort by date
+	return allPosts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 }

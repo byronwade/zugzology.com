@@ -150,8 +150,8 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 					{/* Logo */}
 					<div className="flex-shrink-0">
 						<Link prefetch={true} href="/" className="flex items-center space-x-2" onClick={handleSearchClear}>
-							<div className="relative w-6 h-6">
-								<Image src={LOGO_URL} alt="Zugzology Logo" fill className="object-contain invert dark:invert-0" sizes="24px" />
+							<div className="relative w-8 h-8">
+								<Image src={LOGO_URL} alt="Zugzology Logo" fill className="object-contain" sizes="24px" />
 							</div>
 							<span className="hidden md:inline text-lg font-bold">Zugzology</span>
 						</Link>
