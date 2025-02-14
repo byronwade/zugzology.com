@@ -23,7 +23,7 @@ const CartContext = createContext<CartContext | null>(null);
 const CART_ID_KEY = "shopifyCartId";
 const CART_DATA_KEY = "shopifyCartData";
 const CART_TIMESTAMP_KEY = "shopifyCartTimestamp";
-const CART_EXPIRY = 24 * 60 * 60 * 1000;
+const CART_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
 	const [cart, setCart] = useState<ShopifyCart | null>(null);

@@ -48,30 +48,64 @@ async function handleResponse<T>(response: Response): Promise<T> {
 	return response.json();
 }
 
+// Helper function to encode product ID
+function encodeProductId(id: string): string {
+	return id.replace(/gid:\/\/shopify\/Product\//, '').replace(/\//g, '-');
+}
+
 // Get reviews for a product
 export async function getProductReviews(productId: string, page = 1, limit = 10): Promise<{ reviews: TrustooReview[]; total: number }> {
 	try {
 		const startTime = performance.now();
-		const response = await fetch(`${TRUSTOO_API_URL}/reviews?productId=${encodeURIComponent(productId)}&page=${page}&limit=${limit}`, {
+		const encodedProductId = encodeProductId(productId);
+
+		// Fix the API endpoint construction
+		const queryParams = new URLSearchParams({
+			productId: encodedProductId,
+			page: page.toString(),
+			limit: limit.toString(),
+		}).toString();
+
+		const response = await fetch(`${TRUSTOO_API_URL}/reviews?${queryParams}`, {
 			headers: {
 				"Content-Type": "application/json",
+				Accept: "application/json",
 			},
-			next: {
-				revalidate: 3600, // Cache for 1 hour
-				tags: [`trustoo-reviews-${productId}`],
-			},
+			cache: "no-store", // Disable cache temporarily for debugging
 		});
 
-		const data = await handleResponse<{ reviews: TrustooReview[]; total: number }>(response);
+		if (!response.ok) {
+			const errorText = await response.text(); // Get raw response text for better debugging
+			console.error("Trustoo API Error Response:", {
+				status: response.status,
+				statusText: response.statusText,
+				responseText: errorText,
+				url: response.url,
+			});
+			throw new Error(`HTTP error! status: ${response.status}`);
+		}
+
+		const data = await response.json();
 
 		const duration = performance.now() - startTime;
 		if (duration > 100) {
-			console.log(`⚡ [Trustoo] Fetched reviews in ${duration.toFixed(2)}ms`);
+			console.log(`⚡ [Trustoo] Fetched reviews in ${duration.toFixed(2)}ms`, {
+				productId: encodedProductId,
+				reviewsCount: data.reviews?.length || 0,
+				total: data.total || 0,
+			});
 		}
 
-		return data;
+		return {
+			reviews: data.reviews || [],
+			total: data.total || 0,
+		};
 	} catch (error) {
-		console.error("Failed to fetch Trustoo reviews:", error);
+		console.error("Failed to fetch Trustoo reviews:", {
+			error: error instanceof Error ? error.message : "Unknown error",
+			productId,
+			encodedProductId: encodeProductId(productId),
+		});
 		return { reviews: [], total: 0 };
 	}
 }
@@ -80,17 +114,28 @@ export async function getProductReviews(productId: string, page = 1, limit = 10)
 export async function getProductStats(productId: string): Promise<TrustooProductStats | null> {
 	try {
 		const startTime = performance.now();
-		const response = await fetch(`${TRUSTOO_API_URL}/products/${encodeURIComponent(productId)}/stats`, {
+		const encodedProductId = encodeProductId(productId);
+
+		const response = await fetch(`${TRUSTOO_API_URL}/products/${encodeURIComponent(encodedProductId)}/stats`, {
 			headers: {
 				"Content-Type": "application/json",
+				Accept: "application/json",
 			},
-			next: {
-				revalidate: 3600, // Cache for 1 hour
-				tags: [`trustoo-stats-${productId}`],
-			},
+			cache: "no-store", // Disable cache temporarily for debugging
 		});
 
-		const data = await handleResponse<TrustooProductStats>(response);
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error("Trustoo API Error Response:", {
+				status: response.status,
+				statusText: response.statusText,
+				responseText: errorText,
+				url: response.url,
+			});
+			throw new Error(`HTTP error! status: ${response.status}`);
+		}
+
+		const data = await response.json();
 
 		const duration = performance.now() - startTime;
 		if (duration > 100) {
@@ -99,7 +144,11 @@ export async function getProductStats(productId: string): Promise<TrustooProduct
 
 		return data;
 	} catch (error) {
-		console.error("Failed to fetch Trustoo product stats:", error);
+		console.error("Failed to fetch Trustoo product stats:", {
+			error: error instanceof Error ? error.message : "Unknown error",
+			productId,
+			encodedProductId: encodeProductId(productId),
+		});
 		return null;
 	}
 }

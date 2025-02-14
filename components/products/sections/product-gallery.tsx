@@ -96,7 +96,7 @@ export function ProductGallery({ images, title, selectedIndex = 0, onImageSelect
 
 			{/* Main Image and Mobile Thumbnails */}
 			<div className="flex-1">
-				<div className="relative aspect-square w-full rounded-lg bg-neutral-100 dark:bg-neutral-800 group overflow-hidden max-h-[calc(100vh-200px)] border border-foreground/10">
+				<div className="relative aspect-square w-full rounded-lg bg-neutral-100 dark:bg-neutral-800 group overflow-hidden max-h-[calc(100vh-200px)] border border-foreground/10 hover:border-foreground/20 transition-colors duration-200">
 					{images[activeIndex] && (
 						<>
 							<Image src={images[activeIndex].url} alt={images[activeIndex].altText || title} fill className="object-contain transition-transform duration-200 group-hover:scale-105" priority sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px" />

@@ -60,7 +60,7 @@ export function ProductSlideshow({ products }: ProductSlideshowProps) {
 
 					<div className="relative">
 						<div className="text-center">
-							<div className="relative w-[500px] h-[500px] mx-auto">{activeProduct.images?.edges[0]?.node && <Image src={activeProduct.images.edges[0].node.url} alt={activeProduct.images.edges[0].node.altText || activeProduct.title} fill className="rounded-lg shadow-lg object-contain" priority />}</div>
+							<div className="relative w-[500px] h-[500px] mx-auto border border-foreground/10 hover:border-foreground/20 transition-colors duration-200 rounded-lg overflow-hidden">{activeProduct.images?.edges[0]?.node && <Image src={activeProduct.images.edges[0].node.url} alt={activeProduct.images.edges[0].node.altText || activeProduct.title} fill className="rounded-lg shadow-lg object-contain hover:scale-105 transition-transform duration-300" priority />}</div>
 							<div className="mt-4">
 								<h3 className="text-2xl font-bold">{activeProduct.title}</h3>
 								<p className="text-sm italic mb-2">{activeProduct.productType}</p>

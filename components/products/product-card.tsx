@@ -37,7 +37,7 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 	};
 
 	const ImageContainer = ({ children, isListView = false }: { children: React.ReactNode; isListView?: boolean }) => (
-		<div className={cn("relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden", isListView ? "w-[200px] h-[200px] flex-shrink-0" : "aspect-square w-full")}>
+		<div className={cn("relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 hover:border-foreground/20 transition-colors duration-200", isListView ? "w-[200px] h-[200px] flex-shrink-0" : "aspect-square w-full")}>
 			{isPreOrder && (
 				<Badge variant="secondary" className="absolute top-2 right-2 bg-amber-600 hover:bg-amber-600 z-10">
 					Pre-Order

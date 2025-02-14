@@ -9,7 +9,6 @@ import { ProductActions } from "./product-actions";
 import { Separator } from "@/components/ui/separator";
 import { Star, Info, Shield, TruckIcon, Gift } from "lucide-react";
 import { ProductContentClient } from "@/components/products/product-content-client";
-import { TrustooReviews } from "./trustoo-reviews";
 import { VideoGallery } from "@/components/sections/video-gallery";
 import { FrequentlyBoughtTogether } from "./frequently-bought-together";
 import { getProducts } from "@/lib/actions/shopify";
@@ -113,11 +112,6 @@ export function ProductContent({ product }: ProductContentProps) {
 
 				{/* Main Product Section */}
 				<DynamicProductContentClient product={product} />
-
-				{/* Trustoo Reviews Section */}
-				<div className="max-w-screen-xl mx-auto px-4 py-8">
-					<TrustooReviews productId={product.id} productSku={firstVariant?.id} />
-				</div>
 			</div>
 		</Suspense>
 	);

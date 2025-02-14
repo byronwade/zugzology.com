@@ -21,18 +21,31 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
 	try {
 		const path = params.path.join("/");
 		const searchParams = new URLSearchParams(request.nextUrl.searchParams);
-		
+
+		// Log incoming request details
+		console.log("[Trustoo] Incoming request:", {
+			path,
+			searchParams: Object.fromEntries(searchParams.entries()),
+			headers: Object.fromEntries(request.headers.entries()),
+		});
+
 		// Handle product ID encoding for specific endpoints
-		if (path.includes('products') || path.includes('reviews')) {
-			const productId = searchParams.get('productId');
+		if (path.includes("products") || path.includes("reviews")) {
+			const productId = searchParams.get("productId");
 			if (productId) {
-				searchParams.set('productId', encodeProductId(productId));
+				const encodedId = encodeProductId(productId);
+				console.log("[Trustoo] Encoding product ID:", { original: productId, encoded: encodedId });
+				searchParams.set("productId", encodedId);
 			}
 		}
 
 		const url = `${TRUSTOO_API_URL}/v1/${path}?${searchParams.toString()}`;
 
-		console.log('Fetching from Trustoo:', url);
+		console.log("[Trustoo] Making API request:", {
+			url,
+			method: "GET",
+			headers: getHeaders("application/json"),
+		});
 
 		const response = await fetch(url, {
 			method: "GET",
@@ -40,11 +53,34 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
 			cache: "no-store",
 		});
 
-		const data = await response.json();
+		// Get the raw response text first for debugging
+		const responseText = await response.text();
+		let data;
+		try {
+			data = JSON.parse(responseText);
+		} catch (e) {
+			console.error("[Trustoo] Failed to parse JSON response:", {
+				responseText,
+				error: e instanceof Error ? e.message : "Unknown error",
+			});
+			throw new Error("Invalid JSON response from Trustoo API");
+		}
 
 		if (!response.ok) {
+			console.error("[Trustoo] API Error:", {
+				status: response.status,
+				url,
+				error: data,
+				responseText,
+			});
 			throw new Error(data.message || `Trustoo API responded with status ${response.status}`);
 		}
+
+		console.log("[Trustoo] API Response:", {
+			status: response.status,
+			url,
+			dataShape: Object.keys(data),
+		});
 
 		return new Response(JSON.stringify(data), {
 			headers: {
@@ -55,7 +91,13 @@ export async function GET(request: NextRequest, { params }: { params: { path: st
 			},
 		});
 	} catch (error) {
-		console.error("Trustoo API Error:", error);
+		console.error("[Trustoo] API Error:", {
+			error: error instanceof Error ? error.message : "Unknown error",
+			stack: error instanceof Error ? error.stack : undefined,
+			path: params.path.join("/"),
+			searchParams: Object.fromEntries(request.nextUrl.searchParams.entries()),
+		});
+		
 		return new Response(
 			JSON.stringify({
 				error: "Failed to fetch from Trustoo API",
