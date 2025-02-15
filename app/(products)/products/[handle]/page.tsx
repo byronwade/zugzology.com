@@ -1,5 +1,3 @@
-"use cache";
-
 import React from "react";
 import { getProduct } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";

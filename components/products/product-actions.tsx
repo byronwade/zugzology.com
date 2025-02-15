@@ -1,0 +1,1 @@
+<AddToCartButton variantId={selectedVariant.id} availableForSale={selectedVariant.availableForSale} quantity={selectedVariant.quantityAvailable} hasVariants={hasVariants} productHandle={product.handle} className="w-full bg-secondary hover:bg-secondary/80 text-foreground border border-foreground/10 hover:border-foreground/20 shadow-none" />;

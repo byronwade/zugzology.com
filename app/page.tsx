@@ -1,5 +1,3 @@
-"use cache";
-
 import { Suspense } from "react";
 import { getProducts, getCollections } from "@/lib/actions/shopify";
 import type { Metadata } from "next";

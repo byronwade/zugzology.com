@@ -11,6 +11,7 @@ export function InitializeSearch({ products }: { products: ShopifyProduct[] }) {
 		console.log("[INITIALIZE] Setting products:", {
 			count: products.length,
 			firstProduct: products[0]?.title,
+			hasProducts: products.length > 0,
 		});
 		setAllProducts(products);
 	}, [products, setAllProducts]);

@@ -1,111 +1,170 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useMemo, useCallback, useRef, useEffect } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
-import type { ShopifyProduct } from "@/lib/types";
-import { usePathname } from "next/navigation";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { ShopifyProduct } from "@/lib/types";
 
 interface SearchContextType {
 	searchQuery: string;
-	debouncedQuery: string;
 	setSearchQuery: (query: string) => void;
-	isSearching: boolean;
-	setIsSearching: (searching: boolean) => void;
 	searchResults: ShopifyProduct[];
+	isSearching: boolean;
 	allProducts: ShopifyProduct[];
 	setAllProducts: (products: ShopifyProduct[]) => void;
 	totalProducts: number;
+	isDropdownOpen: boolean;
+	setIsDropdownOpen: (open: boolean) => void;
+	recentSearches: string[];
+	addRecentSearch: (query: string) => void;
 }
 
-const SearchContext = createContext<SearchContextType | undefined>(undefined);
+const SearchContext = createContext<SearchContextType>({
+	searchQuery: "",
+	setSearchQuery: () => {},
+	searchResults: [],
+	isSearching: false,
+	allProducts: [],
+	setAllProducts: () => {},
+	totalProducts: 0,
+	isDropdownOpen: false,
+	setIsDropdownOpen: () => {},
+	recentSearches: [],
+	addRecentSearch: () => {},
+});
 
-const searchProducts = (products: ShopifyProduct[], query: string): ShopifyProduct[] => {
-	if (!query.trim()) return products;
+const MAX_RECENT_SEARCHES = 5;
 
-	const searchTerms = query.toLowerCase().split(" ").filter(Boolean);
-	return products.filter((product) => {
-		const searchableText = [product.title, product.description, product.productType, product.vendor, ...(product.tags || []), ...(product.variants?.edges?.map((edge) => edge.node.title) || [])].filter(Boolean).join(" ").toLowerCase();
-
-		return searchTerms.every((term) => searchableText.includes(term));
-	});
-};
-
-export function SearchProvider({ children }: { children: ReactNode }) {
+export function SearchProvider({ children }: { children: React.ReactNode }) {
 	const [searchQuery, setSearchQuery] = useState("");
+	const [searchResults, setSearchResults] = useState<ShopifyProduct[]>([]);
+	const [isSearching, setIsSearching] = useState(false);
+	const [mounted, setMounted] = useState(false);
 	const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
-	const [isSearchFocused, setIsSearchFocused] = useState(false);
-	const debouncedQuery = useDebounce(searchQuery, 300);
-	const pathname = usePathname();
+	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+	const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
-	// Reset search state when navigating to product or collection pages
+	// Load recent searches from localStorage on mount
 	useEffect(() => {
-		if (pathname.startsWith("/products/") || pathname.startsWith("/collections/")) {
-			setSearchQuery("");
-			setIsSearchFocused(false);
+		if (typeof window !== "undefined") {
+			const saved = localStorage.getItem("recentSearches");
+			if (saved) {
+				try {
+					setRecentSearches(JSON.parse(saved));
+				} catch (e) {
+					console.error("Failed to parse recent searches:", e);
+				}
+			}
 		}
-	}, [pathname]);
+		setMounted(true);
+	}, []);
 
-	const handleSetAllProducts = useCallback((products: ShopifyProduct[]) => {
-		if (!Array.isArray(products)) {
-			console.warn("[SEARCH] Invalid products data:", products);
-			return;
-		}
+	const addRecentSearch = useCallback((query: string) => {
+		if (!query.trim()) return;
 
-		setAllProducts(products);
-		console.log("[SEARCH] Products updated:", {
-			count: products.length,
-			firstProduct: products[0]?.title,
+		setRecentSearches((prev) => {
+			const newSearches = [query, ...prev.filter((s) => s !== query)].slice(0, MAX_RECENT_SEARCHES);
+			localStorage.setItem("recentSearches", JSON.stringify(newSearches));
+			return newSearches;
 		});
 	}, []);
 
-	const isSearching = useMemo(() => {
-		// Don't show search on product/collection pages unless actively searching
-		if (pathname.startsWith("/products/") || pathname.startsWith("/collections/")) {
-			return searchQuery.length > 0;
-		}
-		// Otherwise, show search when focused or has query
-		return searchQuery.length > 0 || isSearchFocused;
-	}, [searchQuery, isSearchFocused, pathname]);
+	// Real-time search function
+	const performSearch = useCallback(
+		(query: string) => {
+			if (!query.trim()) {
+				setSearchResults([]);
+				setIsSearching(false);
+				return;
+			}
 
-	const searchResults = useMemo(() => {
-		const results = searchProducts(allProducts, debouncedQuery);
-		console.log("[SEARCH] Results:", {
-			query: debouncedQuery,
-			total: results.length,
-			first: results[0]?.title,
-			path: pathname,
-		});
-		return results;
-	}, [allProducts, debouncedQuery, pathname]);
+			console.log("[SEARCH] Performing search:", {
+				query,
+				allProductsCount: allProducts.length,
+				hasProducts: allProducts.length > 0,
+			});
 
-	// Debug logging
-	useEffect(() => {
-		console.log("[SEARCH] State update:", {
-			productsCount: allProducts.length,
-			searchQuery,
-			isSearching,
-			resultsCount: searchResults.length,
-			firstProduct: allProducts[0]?.title,
-			path: pathname,
-		});
-	}, [searchQuery, isSearching, searchResults, allProducts, pathname]);
+			setIsSearching(true);
+			const searchTerms = query.toLowerCase().split(/\s+/);
 
-	const value = useMemo(
-		() => ({
-			searchQuery,
-			debouncedQuery,
-			setSearchQuery,
-			isSearching,
-			setIsSearching: setIsSearchFocused,
-			searchResults,
-			allProducts,
-			setAllProducts: handleSetAllProducts,
-			totalProducts: allProducts.length,
-		}),
-		[searchQuery, debouncedQuery, isSearching, searchResults, allProducts, handleSetAllProducts]
+			const results = allProducts
+				.filter((product) => {
+					const searchableText = [product.title, product.description, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
+
+					return searchTerms.every((term) => searchableText.includes(term));
+				})
+				.slice(0, 10); // Limit to top 10 results for dropdown
+
+			console.log("[SEARCH] Found results:", {
+				count: results.length,
+				firstResult: results[0]?.title,
+				searchTerms,
+			});
+
+			setSearchResults(results);
+			setIsSearching(false);
+		},
+		[allProducts]
 	);
 
-	return <SearchContext.Provider value={value}>{children}</SearchContext.Provider>;
+	// Handle search query changes
+	const handleSearchQueryChange = useCallback(
+		(query: string) => {
+			console.log("[SEARCH] Query changed:", {
+				query,
+				hasProducts: allProducts.length > 0,
+			});
+			setSearchQuery(query);
+			if (query.trim()) {
+				setIsDropdownOpen(true);
+				performSearch(query);
+			} else {
+				setSearchResults([]);
+				setIsDropdownOpen(false);
+				setIsSearching(false);
+			}
+		},
+		[performSearch]
+	);
+
+	// Auto-close dropdown when clicking outside
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+
+		const handleClickOutside = (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			if (!target.closest("[data-search-container]")) {
+				setIsDropdownOpen(false);
+			}
+		};
+
+		document.addEventListener("click", handleClickOutside);
+		return () => document.removeEventListener("click", handleClickOutside);
+	}, []);
+
+	const contextValue = {
+		searchQuery,
+		setSearchQuery: handleSearchQueryChange,
+		searchResults,
+		isSearching,
+		allProducts,
+		setAllProducts: (products: ShopifyProduct[]) => {
+			console.log("[SEARCH] Setting all products:", {
+				count: products.length,
+				firstProduct: products[0]?.title,
+			});
+			setAllProducts(products);
+		},
+		totalProducts: allProducts.length,
+		isDropdownOpen,
+		setIsDropdownOpen,
+		recentSearches,
+		addRecentSearch,
+	};
+
+	if (!mounted) {
+		return <>{children}</>;
+	}
+
+	return <SearchContext.Provider value={contextValue}>{children}</SearchContext.Provider>;
 }
 
 export const useSearch = () => {
@@ -114,4 +173,4 @@ export const useSearch = () => {
 		throw new Error("useSearch must be used within a SearchProvider");
 	}
 	return context;
-};
+}; 

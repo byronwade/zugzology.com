@@ -1,5 +1,3 @@
-"use cache";
-
 import { getProducts } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";
 import { ProductsContentClient } from "@/components/products/products-content-client";

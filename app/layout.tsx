@@ -4,13 +4,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Header from "@/components/header/header";
 import { Providers } from "./providers";
-import { SearchProvider } from "@/lib/providers/search-provider";
-import { InitializeSearch } from "@/components/search";
-import { MainContent } from "@/components/search/main-content";
-import { getProducts } from "@/lib/actions/shopify";
 import { Footer } from "@/components/footer/footer";
 import { Suspense } from "react";
-import { CartProvider } from "@/components/providers/cart-provider";
 import { Toaster } from "sonner";
 
 // Loading components
@@ -40,20 +35,6 @@ async function getGlobalSettings() {
 		},
 		googleVerificationId: "YOUR_GOOGLE_VERIFICATION_ID",
 	};
-}
-
-// Optimized products fetch with parallel loading and caching
-async function getCachedProducts() {
-	"use cache";
-
-	try {
-		const products = await getProducts();
-		console.log("[ROOT] Fetched products:", products.length);
-		return products;
-	} catch (error) {
-		console.error("Failed to fetch products:", error);
-		return [];
-	}
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -115,23 +96,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Server Component for the app content
 async function AppContent({ children }: { children: React.ReactNode }) {
-	const products = await getCachedProducts();
-
 	return (
-		<SearchProvider>
-			<InitializeSearch products={products} />
-			<div className="flex min-h-screen flex-col">
-				<Suspense fallback={<HeaderLoading />}>
-					<Header />
-				</Suspense>
-				<Suspense fallback={<MainLoading />}>
-					<MainContent>{children}</MainContent>
-				</Suspense>
-				<Suspense fallback={<FooterLoading />}>
-					<Footer />
-				</Suspense>
-			</div>
-		</SearchProvider>
+		<div className="flex min-h-screen flex-col">
+			<Suspense fallback={<HeaderLoading />}>
+				<Header />
+			</Suspense>
+			<Suspense fallback={<MainLoading />}>
+				<main className="flex-1">{children}</main>
+			</Suspense>
+			<Suspense fallback={<FooterLoading />}>
+				<Footer />
+			</Suspense>
+		</div>
 	);
 }
 

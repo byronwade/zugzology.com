@@ -162,7 +162,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 
 					{/* Action Buttons */}
 					<div className="space-y-3">
-						<Button variant="secondary" onClick={handleAddToCart} disabled={isLoading || !selectedVariant?.availableForSale} className="w-full">
+						<Button variant="secondary" onClick={handleAddToCart} disabled={isLoading} className="w-full bg-secondary hover:bg-secondary/80 text-foreground border border-foreground/10 hover:border-foreground/20 shadow-none">
 							{isLoading ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -175,7 +175,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 								</>
 							)}
 						</Button>
-						<Button variant="default" onClick={handleBuyNow} disabled={isBuyingNow || !selectedVariant?.availableForSale} className="w-full">
+						<Button variant="default" onClick={handleBuyNow} disabled={isBuyingNow} className="w-full">
 							{isBuyingNow ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />

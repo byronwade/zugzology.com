@@ -12,11 +12,13 @@ import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/providers/cart-provider";
-import { useSearch } from "@/lib/providers/search-provider";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import type { ShopifyBlog } from "@/lib/types";
+import { SearchDropdown } from "@/components/search/search-dropdown";
+import { useSearch } from "@/lib/providers/search-provider";
 
 interface MenuItem {
 	id: string;
@@ -41,11 +43,32 @@ interface MicroDosingCard {
 export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 	const { theme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
-	const { searchQuery, setSearchQuery, isSearching, setIsSearching, allProducts } = useSearch();
+	const router = useRouter();
 	const { openCart, cart, isInitialized } = useCart();
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 	const [isSheetOpen, setIsSheetOpen] = useState(false);
+	const { searchQuery, setSearchQuery, isSearching, setIsDropdownOpen, searchResults, allProducts, isDropdownOpen } = useSearch();
+	const [inputValue, setInputValue] = useState("");
+
+	// Debug logging
+	useEffect(() => {
+		console.log("[HEADER] Search state:", {
+			searchQuery,
+			inputValue,
+			isSearching,
+			isDropdownOpen,
+			resultsCount: searchResults.length,
+			allProductsCount: allProducts.length,
+		});
+	}, [searchQuery, inputValue, isSearching, isDropdownOpen, searchResults, allProducts]);
+
+	// Sync input value with search query
+	useEffect(() => {
+		if (searchQuery !== inputValue) {
+			setInputValue(searchQuery);
+		}
+	}, [searchQuery]);
 
 	useEffect(() => {
 		setMounted(true);
@@ -78,26 +101,32 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 
 	const handleSearchSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		console.log("[HEADER] Search submitted:", { inputValue });
+		if (inputValue.trim()) {
+			router.push(`/search?q=${encodeURIComponent(inputValue.trim())}`);
+			setIsDropdownOpen(false);
+		}
 	};
 
 	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const value = e.target.value;
+		console.log("[HEADER] Search input changed:", { value, currentDropdownState: isDropdownOpen });
+		setInputValue(value);
 		setSearchQuery(value);
 	};
 
 	const handleSearchFocus = () => {
-		setIsSearching(true);
-	};
-
-	const handleSearchBlur = () => {
-		if (!searchQuery) {
-			setIsSearching(false);
+		console.log("[HEADER] Search focused");
+		if (inputValue.trim()) {
+			setIsDropdownOpen(true);
 		}
 	};
 
 	const handleSearchClear = () => {
+		console.log("[HEADER] Search cleared");
+		setInputValue("");
 		setSearchQuery("");
-		setIsSearching(false);
+		setIsDropdownOpen(false);
 		// Remove focus from the input
 		if (document.activeElement instanceof HTMLElement) {
 			document.activeElement.blur();
@@ -105,7 +134,7 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 	};
 
 	// Don't render search placeholder until mounted to prevent hydration mismatch
-	const searchPlaceholder = mounted ? (isSearching ? "Filter products..." : `Search ${allProducts.length} products...`) : "Search products...";
+	const searchPlaceholder = mounted ? "Search products..." : "";
 
 	// Add these menu items to server-side data fetching
 	const microDosingCards: MicroDosingCard[] = [
@@ -139,11 +168,8 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 		},
 	];
 
-	// Replace hardcoded logo URL with environment variable
-	const LOGO_URL = process.env.NEXT_PUBLIC_LOGO_URL || "/logo.png";
-
 	return (
-		<header className={cn("bg-background text-foreground sticky top-0 z-50", isSearching && "border-b-2 border-primary")}>
+		<header className={cn("bg-background text-foreground sticky top-0 z-50")}>
 			{/* Top Bar */}
 			<div className="px-2 sm:px-4 py-3">
 				<div className="flex items-center justify-between gap-4">
@@ -151,19 +177,31 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 					<div className="flex-shrink-0">
 						<Link prefetch={true} href="/" className="flex items-center space-x-2" onClick={handleSearchClear}>
 							<div className="relative w-8 h-8">
-								<Image src={LOGO_URL} alt="Zugzology Logo" fill className="object-contain" sizes="24px" />
+								<Image src="/logo.png" alt="Zugzology Logo" fill className="object-contain dark:invert" sizes="24px" />
 							</div>
 							<span className="hidden md:inline text-lg font-bold">Zugzology</span>
 						</Link>
 					</div>
 
 					{/* Search Bar */}
-					<div className="flex-1 relative min-w-0">
+					<div className="flex-1 relative min-w-0" data-search-container>
 						<form onSubmit={handleSearchSubmit} className="relative w-full">
 							<div className="relative">
-								<Input type="text" className={cn("w-full pr-4 pl-10 text-[16px] h-8 sm:h-10 transition-colors", isSearching && "ring-2 ring-primary", "focus:outline-none focus:ring-2 focus:ring-primary")} placeholder={searchPlaceholder} value={searchQuery} onChange={handleSearchChange} onFocus={handleSearchFocus} onBlur={handleSearchBlur} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false" />
-								<Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4", isSearching ? "text-primary" : "text-muted-foreground")} />
-								{searchQuery && (
+								<Input
+									type="text"
+									className="w-full pr-4 pl-10 text-[16px] h-8 sm:h-10 transition-colors focus:outline-none focus:ring-2 focus:ring-primary appearance-none select-none [&::-webkit-search-decoration]:hidden [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden"
+									placeholder={searchPlaceholder}
+									value={inputValue}
+									onChange={handleSearchChange}
+									onFocus={handleSearchFocus}
+									autoComplete="off"
+									autoCorrect="off"
+									autoCapitalize="off"
+									spellCheck="false"
+									inputMode="search"
+								/>
+								<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+								{inputValue && (
 									<Button type="button" variant="ghost" size="icon" onClick={handleSearchClear} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 hover:bg-neutral-100 dark:hover:bg-neutral-800">
 										<X className="h-4 w-4" />
 										<span className="sr-only">Clear search</span>
@@ -171,6 +209,9 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 								)}
 							</div>
 						</form>
+
+						{/* Search Dropdown */}
+						<SearchDropdown />
 					</div>
 
 					{/* Action Buttons */}

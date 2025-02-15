@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Play } from "lucide-react";
@@ -11,7 +11,7 @@ interface ProductMedia {
 	altText: string | null;
 	width: number;
 	height: number;
-	type: "image" | "video";
+	type: "image" | "video" | "youtube" | "external_video";
 	videoSources?: Array<{
 		url: string;
 		mimeType: string;
@@ -65,9 +65,9 @@ const ThumbnailButton = ({ media, index, isActive, onClick, onMouseEnter, layout
 	if (!thumbnailUrl) return null;
 
 	return (
-		<button onClick={onClick} onMouseEnter={onMouseEnter} className={cn("relative rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-foreground/10", "hover:border-foreground transition duration-200", layout === "desktop" ? "w-16 h-16" : "aspect-square w-full", isActive && (layout === "desktop" ? "border-foreground" : "ring-2 ring-offset-2 ring-primary"))}>
+		<button onClick={onClick} onMouseEnter={onMouseEnter} className={cn("relative rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-foreground/10", "hover:border-foreground transition duration-200", layout === "desktop" ? "w-16 h-16" : "aspect-square w-[70px]", isActive && (layout === "desktop" ? "border-foreground" : "ring-2 ring-offset-2 ring-primary"))}>
 			<div className="absolute inset-0 overflow-hidden rounded-lg">
-				<Image src={thumbnailUrl} alt={thumbnailAlt || ""} fill className="object-cover" sizes={layout === "desktop" ? "64px" : "(max-width: 768px) 25vw, 80px"} />
+				<Image src={thumbnailUrl} alt={thumbnailAlt || ""} fill className="object-cover" sizes={layout === "desktop" ? "64px" : "(max-width: 768px) 70px, 64px"} />
 				{(isVideo || isYouTube || isExternalVideo) && (
 					<div className="absolute inset-0 flex items-center justify-center bg-black/30">
 						<Play className="w-4 h-4 text-white" />
@@ -85,9 +85,36 @@ const getYouTubeId = (url: string) => {
 	return match && match[2].length === 11 ? match[2] : null;
 };
 
+// Helper function to get YouTube embed URL
+const getYouTubeEmbedUrl = (url: string) => {
+	const videoId = getYouTubeId(url);
+	return videoId ? `https://www.youtube.com/embed/${videoId}?playsinline=1&enablejsapi=1&rel=0` : "";
+};
+
 // Helper function to get YouTube thumbnail
 const getYouTubeThumbnail = (videoId: string) => {
 	return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+};
+
+// Helper function to get media array
+const getMediaArray = (media: (ShopifyMediaImage | ShopifyMediaVideo)[]) => {
+	if (!media || !Array.isArray(media)) {
+		console.warn("Invalid media array provided to ProductGallery");
+		return [];
+	}
+	return media.filter((item) => {
+		if (!item) {
+			console.warn("Null or undefined media item found");
+			return false;
+		}
+		if (item.mediaContentType === "IMAGE") {
+			return item.image?.url;
+		}
+		if (item.mediaContentType === "VIDEO") {
+			return item.sources?.[0]?.url;
+		}
+		return false;
+	});
 };
 
 export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect, product }: ProductGalleryProps) {
@@ -96,46 +123,68 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 	const [isPlaying, setIsPlaying] = useState(false);
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const thumbnailsRef = useRef<HTMLDivElement>(null);
+	const [hasError, setHasError] = useState(false);
+	const touchStartX = useRef<number>(0);
+	const touchStartY = useRef<number>(0);
+	const touchEndX = useRef<number>(0);
+	const touchEndY = useRef<number>(0);
+	const isHorizontalSwipe = useRef<boolean>(false);
 
-	// Process YouTube videos from metafields
+	// Filter and validate media
+	const validMedia = useMemo(() => {
+		if (!media || !Array.isArray(media)) {
+			console.warn("Invalid media array provided to ProductGallery");
+			return [];
+		}
+		return media.filter((item) => {
+			if (!item) {
+				console.warn("Null or undefined media item found");
+				return false;
+			}
+			if (item.mediaContentType === "IMAGE") {
+				return item.image?.url;
+			}
+			if (item.mediaContentType === "VIDEO") {
+				return item.sources?.[0]?.url;
+			}
+			if (item.mediaContentType === "EXTERNAL_VIDEO") {
+				return item.embedUrl;
+			}
+			return false;
+		});
+	}, [media]);
+
+	// Get YouTube videos
 	const youtubeVideos = useMemo(() => {
-		console.log("Product youtubeVideos metafield:", product?.youtubeVideos);
-
 		if (!product?.youtubeVideos?.references?.edges) {
-			console.log("No YouTube videos found in metafield references");
 			return [];
 		}
 
 		try {
 			const metaobjects = product.youtubeVideos.references.edges;
-			console.log("YouTube video metaobjects:", metaobjects);
-
 			const processedVideos = metaobjects
 				.map((edge: { node: { type: string; fields: Array<{ key: string; value: string; type: string }> } }, index: number) => {
-					console.log(`Processing metaobject ${index + 1}:`, edge.node);
 					const fields = edge.node.fields;
 					const urlField = fields.find((field) => field.key === "youtube_link");
 
 					if (!urlField?.value) {
-						console.log(`No YouTube URL found for metaobject ${index + 1}`);
+						console.warn(`No YouTube URL found for metaobject ${index + 1}`);
 						return null;
 					}
 
 					try {
 						const linkData = JSON.parse(urlField.value);
 						const url = linkData.url;
-						console.log(`Found YouTube URL:`, url);
 
 						if (!url) {
-							console.log(`No URL in JSON data for metaobject ${index + 1}`);
+							console.warn(`No URL in JSON data for metaobject ${index + 1}`);
 							return null;
 						}
 
 						const videoId = getYouTubeId(url);
-						console.log(`Extracted video ID:`, videoId);
 
 						if (!videoId) {
-							console.log(`Invalid YouTube URL in metaobject: ${url}`);
+							console.warn(`Invalid YouTube URL in metaobject: ${url}`);
 							return null;
 						}
 
@@ -155,33 +204,21 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 				})
 				.filter(Boolean) as YouTubeVideo[];
 
-			console.log("Final processed YouTube videos:", processedVideos);
 			return processedVideos;
 		} catch (error) {
-			console.error("Error parsing YouTube videos:", error);
+			console.error("Error processing YouTube videos:", error);
 			return [];
 		}
 	}, [product?.youtubeVideos?.references?.edges]);
 
 	// Combine all media
 	const allMedia = useMemo(() => {
-		const mediaItems = [];
-
-		// Add Shopify media items if they exist
-		if (product?.media?.edges) {
-			console.log("Shopify media items:", product.media.edges.length);
-			mediaItems.push(...product.media.edges.map(({ node }) => node));
+		const combined = [...validMedia, ...youtubeVideos];
+		if (combined.length === 0) {
+			console.warn("No valid media found for product:", title);
 		}
-
-		// Add YouTube videos
-		if (youtubeVideos.length > 0) {
-			console.log("Adding YouTube videos to media:", youtubeVideos.length);
-			mediaItems.push(...youtubeVideos);
-		}
-
-		console.log("Total media items:", mediaItems.length);
-		return mediaItems;
-	}, [product?.media?.edges, youtubeVideos]);
+		return combined;
+	}, [validMedia, youtubeVideos, title]);
 
 	useEffect(() => {
 		setMounted(true);
@@ -193,31 +230,81 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 		}
 	}, [selectedIndex, mounted]);
 
-	const handleMediaSelect = (index: number) => {
-		setActiveIndex(index);
-		onMediaSelect?.(index);
-		setIsPlaying(false);
-
-		if (thumbnailsRef.current) {
-			const thumbnails = thumbnailsRef.current.children;
-			if (thumbnails[index]) {
-				thumbnails[index].scrollIntoView({ behavior: "smooth", block: "nearest" });
+	const handleMediaSelect = useCallback(
+		(index: number) => {
+			setActiveIndex(index);
+			setIsPlaying(false);
+			if (onMediaSelect) {
+				onMediaSelect(index);
 			}
-		}
-	};
+		},
+		[onMediaSelect]
+	);
 
-	const handleVideoPlay = () => {
+	const handleVideoPlay = useCallback(() => {
+		setIsPlaying(true);
 		if (videoRef.current) {
-			if (isPlaying) {
-				videoRef.current.pause();
-			} else {
-				videoRef.current.play();
-			}
-			setIsPlaying(!isPlaying);
+			videoRef.current.play().catch((error) => {
+				console.error("Error playing video:", error);
+				setIsPlaying(false);
+			});
+		}
+	}, []);
+
+	const handleImageError = useCallback(() => {
+		console.error("Error loading image for product:", title);
+		setHasError(true);
+	}, [title]);
+
+	const handleTouchStart = (e: React.TouchEvent) => {
+		touchStartX.current = e.touches[0].clientX;
+		touchStartY.current = e.touches[0].clientY;
+		isHorizontalSwipe.current = false;
+	};
+
+	const handleTouchMove = (e: React.TouchEvent) => {
+		if (e.touches.length !== 1) return;
+
+		touchEndX.current = e.touches[0].clientX;
+		touchEndY.current = e.touches[0].clientY;
+
+		const deltaX = Math.abs(touchEndX.current - touchStartX.current);
+		const deltaY = Math.abs(touchEndY.current - touchStartY.current);
+
+		// Only mark as horizontal swipe if movement is significantly more horizontal than vertical
+		if (deltaX > 10 && deltaX > deltaY * 1.5) {
+			isHorizontalSwipe.current = true;
+			e.preventDefault();
 		}
 	};
 
-	if (!mounted) return null;
+	const handleTouchEnd = () => {
+		if (!isHorizontalSwipe.current) return;
+
+		const swipeThreshold = 50; // minimum distance for a swipe
+		const swipeDistance = touchEndX.current - touchStartX.current;
+
+		if (Math.abs(swipeDistance) > swipeThreshold) {
+			if (swipeDistance > 0 && activeIndex > 0) {
+				// Swipe right - go to previous
+				handleMediaSelect(activeIndex - 1);
+			} else if (swipeDistance < 0 && activeIndex < allMedia.length - 1) {
+				// Swipe left - go to next
+				handleMediaSelect(activeIndex + 1);
+			}
+		}
+	};
+
+	if (!mounted || !allMedia.length || hasError) {
+		return (
+			<div className="w-full aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
+				<div className="text-center p-4">
+					<div className="text-4xl mb-2">🍄</div>
+					<p className="text-sm text-neutral-600 dark:text-neutral-400">Product image coming soon</p>
+				</div>
+			</div>
+		);
+	}
 
 	const activeMedia = allMedia[activeIndex];
 	const isVideo = activeMedia?.mediaContentType === "VIDEO";
@@ -225,65 +312,96 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 	const isExternalVideo = activeMedia?.mediaContentType === "EXTERNAL_VIDEO";
 
 	return (
-		<div className="flex gap-4">
-			{/* Desktop Thumbnails Column */}
-			<div ref={thumbnailsRef} className="hidden md:flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-200px)] p-1">
-				{allMedia.map((item, idx) => {
-					if (!item) return null;
+		<div className="flex flex-col gap-4">
+			<div className="flex gap-4">
+				{/* Desktop Thumbnails Column */}
+				<div ref={thumbnailsRef} className="hidden md:flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-200px)] p-1">
+					{allMedia.map((item, idx) => {
+						if (!item) return null;
+						return <ThumbnailButton key={`${item.id}-${idx}`} media={item} index={idx} isActive={activeIndex === idx} onClick={() => handleMediaSelect(idx)} onMouseEnter={() => handleMediaSelect(idx)} layout="desktop" />;
+					})}
+				</div>
 
-					const isVideo = item.mediaContentType === "VIDEO";
-					const isYouTube = item.mediaContentType === "YOUTUBE";
-					const isExternalVideo = item.mediaContentType === "EXTERNAL_VIDEO";
-					const thumbnailUrl = isYouTube ? (item as YouTubeVideo).thumbnail?.url : isVideo ? (item as ShopifyMediaVideo).previewImage?.url : isExternalVideo ? (item as ShopifyExternalVideo).previewImage?.url : (item as ShopifyMediaImage).image?.url;
-					const thumbnailAlt = isYouTube ? (item as YouTubeVideo).thumbnail?.altText : isVideo ? (item as ShopifyMediaVideo).previewImage?.altText : isExternalVideo ? (item as ShopifyExternalVideo).previewImage?.altText : (item as ShopifyMediaImage).image?.altText;
-
-					if (!thumbnailUrl) return null;
-
-					return <ThumbnailButton key={`${item.id}-${idx}`} media={item} index={idx} isActive={activeIndex === idx} onClick={() => handleMediaSelect(idx)} onMouseEnter={() => handleMediaSelect(idx)} layout="desktop" />;
-				})}
+				{/* Main Media Display */}
+				<div className="flex-1">
+					<div className="relative aspect-square group bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-foreground/10 [touch-action:pan-y_pinch-zoom]" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+						{activeMedia.mediaContentType === "VIDEO" ? (
+							<div className="relative w-full h-full">
+								<video ref={videoRef} src={(activeMedia as ShopifyMediaVideo).sources[0]?.url} poster={(activeMedia as ShopifyMediaVideo).previewImage?.url} className="w-full h-full object-contain rounded-lg" controls={isPlaying} playsInline onClick={handleVideoPlay}>
+									{(activeMedia as ShopifyMediaVideo).sources.map((source, idx) => (
+										<source key={`${source.url}-${idx}`} src={source.url} type={source.mimeType} />
+									))}
+									Your browser does not support the video tag.
+								</video>
+								{!isPlaying && (
+									<div className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer rounded-lg" onClick={handleVideoPlay}>
+										<Play className="w-12 h-12 text-white" />
+									</div>
+								)}
+							</div>
+						) : activeMedia.mediaContentType === "YOUTUBE" ? (
+							<div className="relative w-full h-full rounded-lg overflow-hidden">
+								<iframe src={getYouTubeEmbedUrl((activeMedia as YouTubeVideo).url)} className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen title={`YouTube video player - ${title}`} />
+								{/* Transparent overlay for touch handling with pointer-events set to none by default */}
+								<div
+									className="absolute inset-0 z-10 touch-none"
+									style={{ pointerEvents: isHorizontalSwipe.current ? "auto" : "none" }}
+									onTouchStart={(e) => {
+										handleTouchStart(e);
+										e.currentTarget.style.pointerEvents = "auto";
+									}}
+									onTouchMove={handleTouchMove}
+									onTouchEnd={(e) => {
+										handleTouchEnd();
+										e.currentTarget.style.pointerEvents = "none";
+									}}
+								/>
+							</div>
+						) : activeMedia.mediaContentType === "EXTERNAL_VIDEO" ? (
+							<div className="relative w-full h-full rounded-lg overflow-hidden">
+								<iframe src={(activeMedia as ShopifyExternalVideo).embedUrl} className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={`External video player - ${title}`} />
+								{/* Transparent overlay for touch handling with pointer-events set to none by default */}
+								<div
+									className="absolute inset-0 z-10 touch-none"
+									style={{ pointerEvents: isHorizontalSwipe.current ? "auto" : "none" }}
+									onTouchStart={(e) => {
+										handleTouchStart(e);
+										e.currentTarget.style.pointerEvents = "auto";
+									}}
+									onTouchMove={handleTouchMove}
+									onTouchEnd={(e) => {
+										handleTouchEnd();
+										e.currentTarget.style.pointerEvents = "none";
+									}}
+								/>
+							</div>
+						) : (
+							<>
+								{(activeMedia as ShopifyMediaImage).image?.url && (
+									<div className="relative w-full h-full [touch-action:pan-y_pinch-zoom]">
+										<Image src={(activeMedia as ShopifyMediaImage).image.url} alt={(activeMedia as ShopifyMediaImage).image.altText || title} fill className="object-contain transition-transform duration-200 group-hover:scale-105 rounded-lg" priority sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px" onError={handleImageError} />
+										<div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg" />
+									</div>
+								)}
+							</>
+						)}
+					</div>
+				</div>
 			</div>
 
-			{/* Main Media Display */}
-			<div className="flex-1">
-				<div className="relative aspect-square w-full rounded-lg bg-neutral-100 dark:bg-neutral-800 group overflow-hidden max-h-[calc(100vh-200px)] border border-foreground/10 hover:border-foreground/20 transition-colors duration-200">
-					{isYouTube ? (
-						<div className="relative w-full h-full">
-							<iframe src={`https://www.youtube.com/embed/${getYouTubeId((activeMedia as YouTubeVideo).url)}?autoplay=${isPlaying ? "1" : "0"}&rel=0`} className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={`YouTube video for ${title}`} />
-							{!isPlaying && (
-								<div className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer" onClick={() => setIsPlaying(true)}>
-									<Play className="w-12 h-12 text-white" />
-								</div>
-							)}
-						</div>
-					) : isVideo ? (
-						<div className="relative w-full h-full">
-							<video ref={videoRef} src={(activeMedia as ShopifyMediaVideo).sources[0]?.url} poster={(activeMedia as ShopifyMediaVideo).previewImage?.url} className="w-full h-full object-contain" controls={isPlaying} playsInline onClick={handleVideoPlay}>
-								{(activeMedia as ShopifyMediaVideo).sources.map((source, idx) => (
-									<source key={`${source.url}-${idx}`} src={source.url} type={source.mimeType} />
-								))}
-								Your browser does not support the video tag.
-							</video>
-							{!isPlaying && (
-								<div className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer" onClick={handleVideoPlay}>
-									<Play className="w-12 h-12 text-white" />
-								</div>
-							)}
-						</div>
-					) : isExternalVideo ? (
-						<div className="relative w-full h-full">
-							<iframe src={(activeMedia as ShopifyExternalVideo).embedUrl} className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={`External video player - ${title}`} />
-							{!isPlaying && (
-								<div className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer" onClick={() => setIsPlaying(true)}>
-									<Play className="w-12 h-12 text-white" />
-								</div>
-							)}
-						</div>
-					) : (
-						<>
-							{(activeMedia as ShopifyMediaImage).image?.url && <Image src={(activeMedia as ShopifyMediaImage).image.url} alt={(activeMedia as ShopifyMediaImage).image.altText || title} fill className="object-contain transition-transform duration-200 group-hover:scale-105" priority sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px" />}
-							<div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-						</>
-					)}
+			{/* Mobile Thumbnails Row */}
+			<div className="md:hidden -mx-4">
+				<div className="flex gap-3 overflow-x-auto py-2 pl-4 scrollbar-hide">
+					{allMedia.map((item, idx) => {
+						if (!item) return null;
+						return (
+							<div key={`${item.id}-${idx}`} className="snap-start flex-shrink-0">
+								<ThumbnailButton media={item} index={idx} isActive={activeIndex === idx} onClick={() => handleMediaSelect(idx)} onMouseEnter={() => handleMediaSelect(idx)} layout="mobile" />
+							</div>
+						);
+					})}
+					{/* Add padding element at the end to ensure last thumbnail is fully visible */}
+					<div className="w-4 flex-shrink-0" aria-hidden="true" />
 				</div>
 			</div>
 		</div>

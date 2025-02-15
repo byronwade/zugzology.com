@@ -1,5 +1,3 @@
-"use cache";
-
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -13,6 +11,7 @@ import { RelatedPosts } from "@/components/blog/related-posts";
 import { findRelatedPosts } from "@/lib/utils/related-posts";
 import { ProductAd } from "@/components/blog/product-ad";
 import { BlogBreadcrumb } from "@/components/blog/blog-breadcrumb";
+import { ProductRecommendations } from "@/components/products/sections/recommendations/product-recommendations";
 
 export async function generateMetadata({ params }: { params: { blog: string; slug: string } }): Promise<Metadata> {
 	const nextjs15Params = await params;
@@ -164,7 +163,7 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 						<div className="max-w-2xl mx-auto">
 							<h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100 sm:text-4xl">{article.title}</h1>
 
-							<div className="mb-8 not-prose">
+							<div className="not-prose">
 								<div className="flex items-center whitespace-nowrap overflow-x-auto scrollbar-hide">
 									<BlogBreadcrumb blogHandle={nextjs15Params.blog} blogTitle={blog.title} articleTitle={article.title} />
 								</div>
@@ -202,7 +201,7 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 							</div>
 
 							{article.image && (
-								<div className="mb-8 not-prose">
+								<div className="not-prose">
 									<div className="aspect-[16/9] relative overflow-hidden rounded-lg">
 										<Image src={article.image.url} alt={article.image.altText || article.title} width={article.image.width} height={article.image.height} className="object-cover rounded-lg" priority />
 									</div>
@@ -219,58 +218,9 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 					</aside>
 				</div>
 
-				{/* Combined Related Posts and Products Section */}
-				<div className="border-t py-16 mt-16">
-					<h2 className="text-2xl font-bold mb-8 text-center">Related Content</h2>
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 xl:gap-8 max-w-[1400px] mx-auto">
-						{[...relatedPosts.map((post) => ({ type: "post" as const, content: post })), ...featuredProducts.map((product) => ({ type: "product" as const, content: product })), ...(relatedPosts.length + featuredProducts.length < 8 ? featuredProducts.slice(0, 8 - (relatedPosts.length + featuredProducts.length)).map((product) => ({ type: "product" as const, content: product })) : [])]
-							.slice(0, Math.max(8, relatedPosts.length + featuredProducts.length))
-							.sort(() => Math.random() - 0.5)
-							.map((item, index) => {
-								// Common image container styles
-								const imageContainerClasses = "aspect-[4/3] relative overflow-hidden rounded-lg mb-4 bg-neutral-100 dark:bg-neutral-800";
-								const imageClasses = "object-cover transition-transform duration-300 group-hover:scale-105";
-								const placeholderClasses = "w-full h-full flex items-center justify-center text-sm";
-
-								return (
-									<div key={item.content.id} className="group w-full bg-card rounded-lg border border-border/50 hover:border-border p-3 sm:p-4 transition-colors duration-200">
-										{item.type === "post" ? (
-											<Link href={`/blogs/${item.content.blogHandle}/${item.content.handle}`} className="block space-y-3">
-												<div className={imageContainerClasses}>
-													{item.content.image ? (
-														<Image src={item.content.image.url} alt={item.content.image.altText || item.content.title} fill className={imageClasses} sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" priority={index < 4} />
-													) : (
-														<div className={placeholderClasses}>
-															<span className="text-muted-foreground">Blog Post Image</span>
-														</div>
-													)}
-												</div>
-												<div className="space-y-2">
-													<h3 className="font-semibold text-base sm:text-lg line-clamp-2 group-hover:text-primary transition-colors">{item.content.title}</h3>
-													<p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{item.content.excerpt}</p>
-												</div>
-											</Link>
-										) : (
-											<Link href={`/products/${item.content.handle}`} className="block space-y-3">
-												<div className={imageContainerClasses}>
-													{item.content.images?.edges[0]?.node ? (
-														<Image src={item.content.images.edges[0].node.url} alt={item.content.images.edges[0].node.altText || item.content.title} fill className={imageClasses} sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" priority={index < 4} />
-													) : (
-														<div className={placeholderClasses}>
-															<span className="text-muted-foreground">Product Image</span>
-														</div>
-													)}
-												</div>
-												<div className="space-y-2">
-													<h3 className="font-semibold text-base sm:text-lg line-clamp-2 group-hover:text-primary transition-colors">{item.content.title}</h3>
-													<p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{item.content.description || item.content.productType}</p>
-												</div>
-											</Link>
-										)}
-									</div>
-								);
-							})}
-					</div>
+				{/* Product Recommendations and Related Content Section */}
+				<div className="w-full -mx-4 sm:-mx-6 lg:-mx-8">
+					<ProductRecommendations featuredProducts={featuredProducts} relatedPosts={relatedPosts} currentPost={currentPostWithBlog} blogHandle={nextjs15Params.blog} />
 				</div>
 			</div>
 		</section>
