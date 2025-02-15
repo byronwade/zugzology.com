@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import { AddToCartButton } from "@/components/products/add-to-cart-button";
+import { AdSenseScript } from "@/components/google/adsense-script";
 
 interface SiteFeature {
 	icon: string;
@@ -395,6 +396,18 @@ export default async function Home() {
 						</div>
 					</section>
 				)}
+
+				{/* Google AdSense Ad Unit */}
+				<section className="w-full py-4 bg-white border-b">
+					<div className="container mx-auto max-w-[1440px] px-4 md:px-6">
+						<div className="flex justify-center">
+							<div className="w-full h-[250px] max-w-[970px] bg-zinc-50" style={{ minHeight: "250px" }}>
+								<ins className="adsbygoogle" style={{ display: "block" }} data-ad-client="ca-pub-5329391577972523" data-ad-slot="YOUR_AD_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true" />
+								<AdSenseScript />
+							</div>
+						</div>
+					</div>
+				</section>
 
 				{/* Daily Deals Section */}
 				{dailyDeals.length > 0 && (
