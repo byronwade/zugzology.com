@@ -21,13 +21,17 @@ interface ProductCardProps {
 export function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0 }: ProductCardProps) {
 	const { setSearchQuery } = useSearch();
 	const firstImage = product.images?.edges?.[0]?.node;
+	const firstVariant = product.variants?.edges?.[0]?.node;
 	const price = product.priceRange?.minVariantPrice?.amount || "0";
 	const productUrl = `/products/${product.handle}`;
-	const firstVariant = product.variants?.edges?.[0]?.node;
 	const actualVariantId = variantId || firstVariant?.id;
 
 	// Updated variant check to be more precise
 	const hasVariants = product.variants?.edges?.length > 1 || product.options?.some((option) => option?.name !== "Title" && option?.values?.length > 0);
+
+	// Get availability information
+	const isAvailable = firstVariant?.availableForSale ?? false;
+	const quantityAvailable = firstVariant?.quantityAvailable ?? 0;
 
 	const handleNavigate = () => {
 		setSearchQuery("");
@@ -40,15 +44,15 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 					Digital Item
 				</Badge>
 			)}
-			{children}
+			<div className="w-full h-full rounded-md overflow-hidden">{children}</div>
 		</div>
 	);
 
 	const ProductImage = ({ isListView = false }: { isListView?: boolean }) =>
 		firstImage ? (
-			<Image src={firstImage.url} alt={firstImage.altText || product.title} fill className="object-cover hover:scale-105 transition-transform duration-300" sizes={isListView ? "200px" : "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"} priority={view === "grid"} />
+			<Image src={firstImage.url} alt={firstImage.altText || product.title} fill className="object-cover hover:scale-105 transition-transform duration-300 rounded-md" sizes={isListView ? "200px" : "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"} priority={view === "grid"} />
 		) : (
-			<div className="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+			<div className="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-700 rounded-md">
 				<p className="text-sm text-neutral-500 dark:text-neutral-400">No image</p>
 			</div>
 		);
@@ -87,8 +91,26 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 						</Badge>
 					)}
 				</div>
-				<div className="mt-2 space-y-1 text-sm">{product.isGiftCard ? <p className="text-blue-600 dark:text-blue-500 font-medium">Digital Gift Card - Instant Delivery</p> : <p className="text-neutral-600 dark:text-neutral-300">FREE delivery</p>}</div>
-				{actualVariantId && <AddToCartButton className={cn("mt-3", isListView && "max-w-[200px]")} variantId={actualVariantId} availableForSale={true} quantity={1} hasVariants={hasVariants} productHandle={product.handle} />}
+				<div className="mt-2 space-y-1 text-sm">
+					{product.isGiftCard ? (
+						<p className="text-blue-600 dark:text-blue-500 font-medium">Digital Gift Card - Instant Delivery</p>
+					) : (
+						<>
+							<div className="flex flex-col gap-1">
+								{isAvailable ? (
+									<p className="text-green-600 dark:text-green-500 font-medium">{quantityAvailable > 0 ? `${quantityAvailable} in stock` : "In stock"}</p>
+								) : (
+									<p className="text-amber-600 dark:text-amber-500 font-medium flex items-center gap-1">
+										<Clock className="h-4 w-4" />
+										Pre-order
+									</p>
+								)}
+								<p className="text-green-600 dark:text-green-500">FREE Shipping</p>
+							</div>
+						</>
+					)}
+				</div>
+				{actualVariantId && <AddToCartButton className={cn("mt-3", isListView && "max-w-[200px]")} variantId={actualVariantId} availableForSale={isAvailable} quantity={quantityAvailable} hasVariants={hasVariants} productHandle={product.handle} />}
 				{isListView && <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3">{product.description}</p>}
 			</div>
 		);

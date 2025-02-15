@@ -9,10 +9,20 @@ interface RelatedProductsProps {
 }
 
 export function RelatedProducts({ products, currentProductId }: RelatedProductsProps) {
-	// Filter out current product and take up to 4 products
-	const relatedProducts = products.filter((product) => product.id !== currentProductId).slice(0, 4);
+	if (!products?.length) {
+		console.log("No related products available");
+		return null;
+	}
 
-	if (!relatedProducts.length) return null;
+	// Filter out current product if it's somehow included
+	const relatedProducts = products.filter((product) => product.id !== currentProductId);
+
+	if (!relatedProducts.length) {
+		console.log("No related products after filtering");
+		return null;
+	}
+
+	console.log("Displaying related products:", relatedProducts);
 
 	return (
 		<div className="space-y-8">
@@ -21,9 +31,11 @@ export function RelatedProducts({ products, currentProductId }: RelatedProductsP
 				<p className="text-muted-foreground">You might also like these products</p>
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
 				{relatedProducts.map((product) => (
-					<ProductCard key={product.id} product={product} />
+					<div key={product.id} className="relative bg-background rounded-lg">
+						<ProductCard key={product.id} product={product} />
+					</div>
 				))}
 			</div>
 		</div>

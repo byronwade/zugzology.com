@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getBlogByHandle, getAllBlogPosts, getProducts } from "@/lib/actions/shopify";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RelatedPosts } from "@/components/blog/related-posts";
@@ -155,44 +155,62 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 	};
 
 	return (
-		<section className="w-full min-h-screen bg-background">
+		<section className="w-full min-h-screen bg-gray-100 dark:bg-gray-900">
 			{/* Main Content Area */}
-			<div className="container mx-auto px-4 max-w-7xl">
-				{/* Content and Featured Products Sidebar */}
-				<div className="grid grid-cols-1 lg:grid-cols-[minmax(0,650px)_300px] xl:grid-cols-[minmax(0,800px)_300px] gap-8 py-8 mx-auto justify-center">
+			<div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+				<div className="grid grid-cols-1 lg:grid-cols-[minmax(0,650px)_300px] xl:grid-cols-[minmax(0,800px)_300px] gap-8 mx-auto justify-center">
 					{/* Main Article Content */}
-					<article className="prose prose-neutral dark:prose-invert max-w-none w-full [&>img]:w-full [&>img]:rounded-lg [&>p]:max-w-[650px] [&>h1]:max-w-[650px] [&>h2]:max-w-[650px] [&>h3]:max-w-[650px] [&>ul]:max-w-[650px] [&>ol]:max-w-[650px] mx-auto">
-						<h1 className="mb-2 text-3xl font-bold text-center lg:text-left">{article.title}</h1>
+					<article className="prose prose-neutral dark:prose-invert max-w-none w-full mx-auto">
+						<div className="max-w-2xl mx-auto">
+							<h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100 sm:text-4xl">{article.title}</h1>
 
-						<div className="mb-8 not-prose overflow-hidden">
-							<div className="flex items-center whitespace-nowrap overflow-x-auto scrollbar-hide">
-								<BlogBreadcrumb blogHandle={nextjs15Params.blog} blogTitle={blog.title} articleTitle={article.title} />
+							<div className="mb-8 not-prose">
+								<div className="flex items-center whitespace-nowrap overflow-x-auto scrollbar-hide">
+									<BlogBreadcrumb blogHandle={nextjs15Params.blog} blogTitle={blog.title} articleTitle={article.title} />
+								</div>
 							</div>
+
+							<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mb-8 text-sm">
+								<div className="flex items-center gap-3">
+									<div className="h-8 w-8 rounded-full overflow-hidden bg-gradient-to-r from-purple-500 to-pink-500">
+										{article.author.email ? (
+											<Image src={`https://gravatar.com/avatar/${article.author.email}?s=96&d=mp`} alt={article.author.name} width={32} height={32} className="h-full w-full object-cover" />
+										) : (
+											<div className="h-full w-full flex items-center justify-center">
+												<span className="text-sm font-medium text-white">
+													{article.author.name
+														.split(" ")
+														.map((name) => name[0])
+														.join("")}
+												</span>
+											</div>
+										)}
+									</div>
+									<span className="font-medium text-gray-900 dark:text-gray-100">{article.author.name}</span>
+								</div>
+								<div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+									<time dateTime={article.publishedAt} className="tabular-nums">
+										{new Date(article.publishedAt).toLocaleDateString("en-US", {
+											year: "numeric",
+											month: "long",
+											day: "numeric",
+										})}
+									</time>
+									<span>·</span>
+									<span className="tabular-nums">{readingTime} min read</span>
+								</div>
+							</div>
+
+							{article.image && (
+								<div className="mb-8 not-prose">
+									<div className="aspect-[16/9] relative overflow-hidden rounded-lg">
+										<Image src={article.image.url} alt={article.image.altText || article.title} width={article.image.width} height={article.image.height} className="object-cover rounded-lg" priority />
+									</div>
+								</div>
+							)}
+
+							<div className="prose prose-neutral dark:prose-invert lg:prose-lg" dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
 						</div>
-
-						<div className="flex items-start gap-3 mb-8 p-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg max-w-[650px] mx-auto lg:mx-0">
-							<div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900">
-								<span className="text-sm font-medium text-purple-900 dark:text-purple-100">
-									{article.author.name
-										.split(" ")
-										.map((name) => name[0])
-										.join("")}
-								</span>
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="text-base font-medium text-neutral-900 dark:text-neutral-100">{article.author.name}</p>
-								<p className="text-sm text-neutral-500 dark:text-neutral-400">
-									{new Date(article.publishedAt).toLocaleDateString("en-US", {
-										year: "numeric",
-										month: "long",
-										day: "numeric",
-									})}{" "}
-									• {readingTime} min read
-								</p>
-							</div>
-						</div>
-
-						<div className="mx-auto lg:mx-0 [&>p]:mx-auto [&>h2]:mx-auto [&>h3]:mx-auto [&>ul]:mx-auto [&>ol]:mx-auto lg:[&>p]:mx-0 lg:[&>h2]:mx-0 lg:[&>h3]:mx-0 lg:[&>ul]:mx-0 lg:[&>ol]:mx-0" dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
 					</article>
 
 					{/* Featured Products Sidebar */}
@@ -202,7 +220,7 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 				</div>
 
 				{/* Combined Related Posts and Products Section */}
-				<div className="border-t py-16">
+				<div className="border-t py-16 mt-16">
 					<h2 className="text-2xl font-bold mb-8 text-center">Related Content</h2>
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 xl:gap-8 max-w-[1400px] mx-auto">
 						{[...relatedPosts.map((post) => ({ type: "post" as const, content: post })), ...featuredProducts.map((product) => ({ type: "product" as const, content: product })), ...(relatedPosts.length + featuredProducts.length < 8 ? featuredProducts.slice(0, 8 - (relatedPosts.length + featuredProducts.length)).map((product) => ({ type: "product" as const, content: product })) : [])]

@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
 import { ProductGallery } from "./sections/product-gallery";
-import { ShopifyProduct, ShopifyProductVariant } from "@/lib/types";
+import { ShopifyProduct, ShopifyProductVariant, ShopifyMediaImage, ShopifyMediaVideo } from "@/lib/types";
 import { ProductInfo } from "./sections/product-info";
 import { ProductActions } from "./sections/product-actions";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { getProducts } from "@/lib/actions/shopify";
+import { RelatedProducts } from "./sections/related-products";
 
 interface ProductContentClientProps {
 	product: ShopifyProduct;
@@ -68,66 +69,54 @@ const LoadingSpinner = memo(() => (
 
 LoadingSpinner.displayName = "LoadingSpinner";
 
+// Memoize media array
+const getMediaArray = (product: ShopifyProduct) => {
+	const mediaItems: (ShopifyMediaImage | ShopifyMediaVideo)[] = [];
+
+	// Add media items if they exist
+	if (product.media?.edges) {
+		product.media.edges.forEach((edge) => {
+			const node = edge.node;
+			if (node.mediaContentType === "IMAGE" || node.mediaContentType === "VIDEO") {
+				mediaItems.push(node as ShopifyMediaImage | ShopifyMediaVideo);
+			}
+		});
+	}
+
+	// Add any images that might not be in media
+	if (product.images?.edges) {
+		product.images.edges.forEach(({ node }) => {
+			// Only add if there isn't already media for this image
+			if (!mediaItems.some((media) => media.mediaContentType === "IMAGE" && (media as ShopifyMediaImage).image.url === node.url)) {
+				mediaItems.push({
+					id: `image-${node.url}`,
+					mediaContentType: "IMAGE",
+					image: node,
+				} as ShopifyMediaImage);
+			}
+		});
+	}
+
+	return mediaItems;
+};
+
 export const ProductContentClient = ({ product }: ProductContentClientProps) => {
 	const [mounted, setMounted] = useState(false);
 	const [selectedVariant, setSelectedVariant] = useState<ShopifyProductVariant>(product.variants.edges[0].node);
 	const [quantity, setQuantity] = useState(1);
 	const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 	const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>(() => getInitialSelectedOptions(product.variants.edges[0].node));
-	const [complementaryProducts, setComplementaryProducts] = useState<ShopifyProduct[]>([]);
+	const [recommendedProducts, setRecommendedProducts] = useState<ShopifyProduct[]>([]);
 
-	// Fetch complementary products
+	// Get recommended products from metafield
 	useEffect(() => {
-		async function fetchRelatedProducts() {
-			try {
-				const allProducts = await getProducts();
-				if (!allProducts?.length) return;
+		const recommendations = product.recommendations?.references?.edges?.map((edge) => edge.node) || [];
+		console.log("Product recommendations:", recommendations);
+		setRecommendedProducts(recommendations);
+	}, [product.recommendations?.references?.edges]);
 
-				// Filter products by same product type or shared tags
-				const relatedProducts = allProducts.filter((p) => {
-					if (!p || p.id === product.id) return false;
-
-					const sameType = p.productType && product.productType && (p.productType.toLowerCase().includes(product.productType.toLowerCase()) || product.productType.toLowerCase().includes(p.productType.toLowerCase()));
-
-					const sharedTags = product.tags?.some((tag) => p.tags?.some((pTag) => pTag.toLowerCase().includes(tag.toLowerCase()) || tag.toLowerCase().includes(pTag.toLowerCase()))) || false;
-
-					const sameCategory = p.productType?.toLowerCase().includes("mushroom") || p.productType?.toLowerCase().includes("grow") || p.tags?.some((tag) => tag.toLowerCase().includes("mushroom") || tag.toLowerCase().includes("grow"));
-
-					return sameType || sharedTags || sameCategory;
-				});
-
-				// Take first 3 products, prioritizing those with same type
-				const sortedProducts = relatedProducts.sort((a, b) => {
-					const aType = a.productType?.toLowerCase() || "";
-					const bType = b.productType?.toLowerCase() || "";
-					const productType = product.productType?.toLowerCase() || "";
-
-					if (aType === productType && bType !== productType) return -1;
-					if (bType === productType && aType !== productType) return 1;
-					return 0;
-				});
-
-				setComplementaryProducts(sortedProducts.slice(0, 3));
-			} catch (error) {
-				console.error("Error fetching related products:", error);
-				setComplementaryProducts([]);
-			}
-		}
-
-		fetchRelatedProducts();
-	}, [product]);
-
-	// Memoize images array
-	const images = useMemo(
-		() =>
-			product.images.edges.map(({ node }) => ({
-				url: node.url,
-				altText: node.altText,
-				width: node.width || 800,
-				height: node.height || 800,
-			})),
-		[product.images.edges]
-	);
+	// Memoize media array
+	const mediaItems = useMemo(() => getMediaArray(product), [product]);
 
 	useEffect(() => {
 		setMounted(true);
@@ -141,11 +130,12 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 		if (matchingVariant) {
 			setSelectedVariant(matchingVariant);
 
-			const variantId = matchingVariant.id;
-			const variantImageIndex = product.images.edges.findIndex(({ node }) => node.variantIds?.includes(variantId));
-
-			if (variantImageIndex >= 0) {
-				setSelectedImageIndex(variantImageIndex);
+			// Find the matching image for this variant if it has one
+			if (matchingVariant.image) {
+				const variantImageIndex = product.images.edges.findIndex(({ node }) => node.url === matchingVariant.image?.url);
+				if (variantImageIndex >= 0) {
+					setSelectedImageIndex(variantImageIndex);
+				}
 			}
 		}
 	}, [selectedOptions, product.variants.edges, product.images.edges, mounted]);
@@ -179,7 +169,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 				<div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 					<section aria-label="Product gallery" className="col-span-1">
 						<div className="sticky top-[126px]">
-							<ProductGallery images={images} title={product.title} selectedIndex={selectedImageIndex} onImageSelect={handleImageSelect} />
+							<ProductGallery media={mediaItems} title={product.title} selectedIndex={selectedImageIndex} onMediaSelect={handleImageSelect} product={product} />
 						</div>
 					</section>
 
@@ -222,7 +212,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 								)}
 							</div>
 
-							<ProductInfo product={product} selectedVariant={selectedVariant} selectedOptions={selectedOptions} onOptionChange={handleOptionChange} complementaryProducts={complementaryProducts} />
+							<ProductInfo product={product} selectedVariant={selectedVariant} selectedOptions={selectedOptions} onOptionChange={handleOptionChange} complementaryProducts={recommendedProducts} />
 						</div>
 					</section>
 				</div>
@@ -230,10 +220,17 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 				{/* Right side purchase options */}
 				<section aria-label="Purchase options" className="col-span-1 w-full lg:max-w-[400px] justify-self-end">
 					<div className="sticky top-[126px]">
-						<ProductActions selectedVariant={selectedVariant} quantity={quantity} onQuantityChange={handleQuantityChange} />
+						<ProductActions selectedVariant={selectedVariant} quantity={quantity} onQuantityChange={handleQuantityChange} productHandle={product.handle} />
 					</div>
 				</section>
 			</div>
+
+			{/* Related Products Section */}
+			{recommendedProducts.length > 0 && (
+				<section className="mt-16">
+					<RelatedProducts products={recommendedProducts} currentProductId={product.id} />
+				</section>
+			)}
 		</section>
 	);
 };

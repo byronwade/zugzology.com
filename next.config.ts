@@ -24,10 +24,14 @@ const nextConfig = {
 				hostname: "images.unsplash.com",
 				pathname: "/**",
 			},
-
 			{
 				protocol: "https",
 				hostname: "placehold.co",
+			},
+			{
+				protocol: "https",
+				hostname: "img.youtube.com",
+				pathname: "/**",
 			},
 		],
 		dangerouslyAllowSVG: true,

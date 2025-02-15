@@ -1,6 +1,6 @@
 "use client";
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useCart } from "@/lib/providers/cart-provider";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShoppingCart, Trash2 } from "lucide-react";
@@ -34,6 +34,7 @@ export function CartSheet() {
 						<ShoppingCart className="h-5 w-5" />
 						Shopping Cart {cart?.totalQuantity ? `(${cart.totalQuantity})` : ""}
 					</SheetTitle>
+					<SheetDescription>View and manage items in your shopping cart</SheetDescription>
 				</SheetHeader>
 
 				{isLoading && (

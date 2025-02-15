@@ -31,8 +31,10 @@ function BlogCard({ article, blogHandle }: BlogCardProps) {
 			<Link href={`/blogs/${blogHandle}/${article.handle}`}>
 				<div className="p-6">
 					{article.image && (
-						<div className="mb-4 aspect-video relative overflow-hidden rounded-lg">
-							<Image src={article.image.url} alt={article.image.altText || article.title} width={article.image.width} height={article.image.height} className="object-cover" />
+						<div className="mb-4 not-prose">
+							<div className="aspect-video relative overflow-hidden rounded-lg">
+								<Image src={article.image.url} alt={article.image.altText || article.title} width={article.image.width} height={article.image.height} className="object-cover rounded-lg" />
+							</div>
 						</div>
 					)}
 					<div className="mb-4">

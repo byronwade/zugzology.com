@@ -19,8 +19,10 @@ export function RelatedPosts({ currentPost, relatedPosts, blogHandle }: RelatedP
 					<Link key={post.id} href={`/blogs/${post.blogHandle}/${post.handle}`} className="group">
 						<article className="space-y-4">
 							{post.image && (
-								<div className="aspect-[16/9] relative overflow-hidden rounded-xl shadow-md transition-transform group-hover:scale-[1.02]">
-									<Image src={post.image.url} alt={post.image.altText || post.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+								<div className="not-prose">
+									<div className="aspect-[16/9] relative overflow-hidden rounded-xl shadow-md transition-transform group-hover:scale-[1.02]">
+										<Image src={post.image.url} alt={post.image.altText || post.title} fill className="object-cover rounded-xl" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+									</div>
 								</div>
 							)}
 							<div className="space-y-2">

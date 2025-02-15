@@ -81,6 +81,7 @@ const COLLECTION_FRAGMENT = `
           productType
           vendor
           tags
+          availableForSale
           options {
             id
             name
@@ -101,6 +102,8 @@ const COLLECTION_FRAGMENT = `
               node {
                 id
                 title
+                availableForSale
+                quantityAvailable
                 price {
                   amount
                   currencyCode
@@ -234,6 +237,7 @@ const PRODUCTS_FRAGMENT = `
     vendor
     tags
     isGiftCard
+    availableForSale
     options {
       id
       name
@@ -254,6 +258,8 @@ const PRODUCTS_FRAGMENT = `
         node {
           id
           title
+          availableForSale
+          quantityAvailable
           price {
             amount
             currencyCode
@@ -321,17 +327,31 @@ async function shopifyFetch<T>({ query, variables = {}, cache = "force-cache", t
 		});
 
 		if (!result.ok) {
-			throw new Error(`HTTP error! status: ${result.status}`);
+			const errorText = await result.text();
+			throw new Error(`Failed to fetch from Shopify: ${result.statusText}\n${errorText}`);
 		}
 
-		const body = await result.json();
+		const response = await result.json();
 
-		if (body.errors) {
-			throw new Error(body.errors[0].message);
+		if (response.errors) {
+			throw new Error(`GraphQL Errors: ${JSON.stringify(response.errors)}`);
 		}
 
-		return body;
+		if (!response.data) {
+			throw new Error("No data returned from Shopify");
+		}
+
+		return response;
 	} catch (error) {
+		if (error instanceof Error) {
+			console.error("Error in shopifyFetch:", {
+				message: error.message,
+				query: query.slice(0, 100) + "...",
+				variables,
+			});
+		} else {
+			console.error("Unknown error in shopifyFetch:", error);
+		}
 		throw error;
 	}
 }
@@ -389,138 +409,251 @@ export async function getCollection(handle: string): Promise<ShopifyCollection |
 
 export async function getCollections(): Promise<ShopifyCollection[]> {
 	const startTime = performance.now();
+
 	try {
-		const result = await withRetry(async () => {
-			const { data } = await shopifyFetch<
-				ShopifyResponse<{
-					collections: {
-						edges: Array<{
-							node: ShopifyCollection;
-						}>;
-					};
-				}>
-			>({
-				query: `
-					query GetCollections {
-						collections(first: 100) {
-							edges {
-								node {
-									...CollectionFragment
-								}
+		const { data } = await shopifyFetch<{
+			collections: {
+				edges: Array<{
+					node: ShopifyCollection;
+				}>;
+			};
+		}>({
+			query: `
+				query GetCollections {
+					collections(first: 100, sortKey: TITLE) {
+						edges {
+							node {
+								...CollectionFragment
 							}
 						}
 					}
-					${COLLECTION_FRAGMENT}
-				`,
-				cache: "force-cache",
-			});
-			return data.collections.edges.map((edge: { node: ShopifyCollection }) => edge.node);
+				}
+				${COLLECTION_FRAGMENT}
+			`,
+			cache: "force-cache",
+			tags: ["collections"],
 		});
 
-		logPerformance(startTime, "Collections", { edges: result });
-		return result;
+		const collections = data.collections.edges.map(({ node }) => node);
+		logPerformance(startTime, "getCollections", { edges: collections });
+		return collections;
 	} catch (error) {
-		console.error("❌ [Collections] Error:", error instanceof Error ? error.message : "Unknown error");
-		return handleShopifyError(error) ?? [];
+		console.error("Failed to fetch collections:", error);
+		return [];
 	}
 }
 
 export async function getProduct(handle: string): Promise<ShopifyProduct | null> {
-	if (!handle || typeof handle !== "string") {
-		console.error("Invalid product handle:", handle);
-		return null;
-	}
-
-	try {
-		return await withRetry(async () => {
-			const { data } = await shopifyFetch<{ product: ShopifyProduct }>({
-				query: `
-					query GetProduct($handle: String!) {
-						product(handle: $handle) {
+	const query = `
+		query getProduct($handle: String!) {
+			product(handle: $handle) {
+				id
+				handle
+				title
+				description
+				descriptionHtml
+				vendor
+				productType
+				tags
+				isGiftCard
+				availableForSale
+				publishedAt
+				options {
+					id
+					name
+					values
+				}
+				priceRange {
+					minVariantPrice {
+						amount
+						currencyCode
+					}
+					maxVariantPrice {
+						amount
+						currencyCode
+					}
+				}
+				variants(first: 250) {
+					edges {
+						node {
 							id
 							title
-							description
-							descriptionHtml
-							handle
-							productType
-							vendor
-							tags
-							isGiftCard
-							options {
-								id
+							availableForSale
+							quantityAvailable
+							price {
+								amount
+								currencyCode
+							}
+							selectedOptions {
 								name
-								values
+								value
 							}
-							priceRange {
-								minVariantPrice {
-									amount
-									currencyCode
-								}
-								maxVariantPrice {
-									amount
-									currencyCode
+							requiresShipping
+							image {
+								url
+								altText
+								width
+								height
+							}
+						}
+					}
+				}
+				images(first: 20) {
+					edges {
+						node {
+							url
+							altText
+							width
+							height
+						}
+					}
+				}
+				media(first: 20) {
+					edges {
+						node {
+							... on MediaImage {
+								id
+								mediaContentType
+								image {
+									url
+									altText
+									width
+									height
 								}
 							}
-							variants(first: 100) {
-								edges {
-									node {
-										id
-										title
-										price {
+							... on Video {
+								id
+								mediaContentType
+								sources {
+									url
+									mimeType
+									format
+									height
+									width
+								}
+								previewImage {
+									url
+									altText
+									width
+									height
+								}
+							}
+							... on ExternalVideo {
+								id
+								mediaContentType
+								embedUrl
+								host
+								previewImage {
+									url
+									altText
+									width
+									height
+								}
+							}
+						}
+					}
+				}
+				youtubeVideos: metafield(namespace: "custom", key: "youtube_videos") {
+					id
+					value
+					type
+					references(first: 10) {
+						edges {
+							node {
+								... on Metaobject {
+									type
+									fields {
+										key
+										value
+										type
+									}
+								}
+							}
+						}
+					}
+				}
+				recommendations: metafield(namespace: "shopify--discovery--product_recommendation", key: "related_products") {
+					id
+					value
+					type
+					references(first: 10) {
+						edges {
+							node {
+								... on Product {
+									id
+									handle
+									title
+									description
+									priceRange {
+										minVariantPrice {
 											amount
 											currencyCode
 										}
-										selectedOptions {
-											name
-											value
-										}
-										requiresShipping
-										image {
-											url
-											altText
-											width
-											height
+									}
+									images(first: 1) {
+										edges {
+											node {
+												url
+												altText
+												width
+												height
+											}
 										}
 									}
 								}
 							}
-							images(first: 20) {
-								edges {
-									node {
-										url
-										altText
-										width
-										height
-									}
-								}
-							}
-							publishedAt
 						}
 					}
-				`,
-				variables: { handle: handle.toLowerCase().trim() },
-				cache: "force-cache",
-				tags: [`product-${handle}`],
-			});
-
-			if (!data?.product) {
-				console.warn(`Product not found: ${handle}`);
-				return null;
+				}
+				complementaryProducts: metafield(namespace: "shopify--discovery--product_recommendation", key: "complementary_products") {
+					id
+					value
+					type
+					references(first: 10) {
+						edges {
+							node {
+								... on Product {
+									id
+									handle
+									title
+									description
+									priceRange {
+										minVariantPrice {
+											amount
+											currencyCode
+										}
+									}
+									images(first: 1) {
+										edges {
+											node {
+												url
+												altText
+												width
+												height
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
 			}
+		}
+	`;
 
-			return data.product;
+	try {
+		const { data } = await shopifyFetch<{
+			product: ShopifyProduct | null;
+		}>({
+			query,
+			variables: { handle },
 		});
+
+		return data?.product ?? null;
 	} catch (error) {
-		console.error(
-			`❌ [Product] Error fetching "${handle}":`,
-			error instanceof Error
-				? {
-						message: error.message,
-						stack: error.stack?.split("\n").slice(0, 3),
-				  }
-				: "Unknown error"
-		);
-		return handleShopifyError(error);
+		console.error("Error fetching product:", error);
+		return null;
 	}
 }
 
@@ -533,9 +666,9 @@ export async function getProducts(): Promise<ShopifyProduct[]> {
 
 	try {
 		while (hasNextPage) {
-			const query = `
-				query GetProducts($cursor: String) {
-					products(first: 100, after: $cursor) {
+			const query: string = `
+				query GetProducts${cursor ? "($cursor: String!)" : ""} {
+					products(first: 100${cursor ? ", after: $cursor" : ""}) {
 						pageInfo {
 							hasNextPage
 							endCursor
@@ -550,19 +683,21 @@ export async function getProducts(): Promise<ShopifyProduct[]> {
 				${PRODUCTS_FRAGMENT}
 			`;
 
-			const response = await shopifyFetch<{
+			type ProductsResponse = {
 				products: {
 					pageInfo: { hasNextPage: boolean; endCursor: string };
-					edges: { node: ShopifyProduct }[];
+					edges: Array<{ node: ShopifyProduct }>;
 				};
-			}>({
+			};
+
+			const response: ShopifyResponse<ProductsResponse> = await shopifyFetch<ProductsResponse>({
 				query,
 				variables: cursor ? { cursor } : {},
 				cache: "force-cache",
 				tags: ["products"],
 			});
 
-			const products = response.data.products.edges.map(({ node }) => node);
+			const products = response.data.products.edges.map(({ node }: { node: ShopifyProduct }) => node);
 			allProducts.push(...products);
 
 			hasNextPage = response.data.products.pageInfo.hasNextPage;

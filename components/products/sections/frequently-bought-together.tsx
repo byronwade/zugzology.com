@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ShopifyProduct } from "@/lib/types";
-import { ProductCard } from "@/components/products/product-card";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { useState, useMemo } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ChevronRight, Info, Package, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ShopifyProduct, CartItem } from "@/lib/types";
 import { useCart } from "@/lib/providers/cart-provider";
 import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Package } from "lucide-react";
 import { toast } from "sonner";
 
 interface FrequentlyBoughtTogetherProps {
@@ -21,131 +24,189 @@ export function FrequentlyBoughtTogether({ product, complementaryProducts = [] }
 	const [isAddingToCart, setIsAddingToCart] = useState(false);
 	const { addItem } = useCart();
 
-	useEffect(() => {
-		console.log("FrequentlyBoughtTogether rendered with:", {
-			mainProduct: product.title,
-			complementaryCount: complementaryProducts.length,
-			complementaryTitles: complementaryProducts.map((p) => p.title),
-		});
-	}, [product, complementaryProducts]);
-
 	const allProducts = [product, ...complementaryProducts];
 
-	const totalPrice = allProducts
-		.filter((p) => selectedProducts.has(p.id))
-		.reduce((sum, p) => {
-			const price = parseFloat(p.priceRange.minVariantPrice.amount);
-			return sum + price;
-		}, 0);
-
-	const handleProductToggle = (productId: string) => {
-		const newSelected = new Set(selectedProducts);
-		if (newSelected.has(productId)) {
-			if (productId !== product.id) {
-				// Don't allow deselecting main product
-				newSelected.delete(productId);
+	const toggleProduct = (productId: string) => {
+		if (productId === product.id) return; // Don't allow toggling main product
+		setSelectedProducts((prev) => {
+			const newSet = new Set(prev);
+			if (newSet.has(productId)) {
+				newSet.delete(productId);
+			} else {
+				newSet.add(productId);
 			}
-		} else {
-			newSelected.add(productId);
-		}
-		setSelectedProducts(newSelected);
+			return newSet;
+		});
 	};
+
+	const totalPrice = useMemo(() => {
+		return allProducts
+			.filter((product) => selectedProducts.has(product.id))
+			.reduce((sum, product) => {
+				const price = product.priceRange?.minVariantPrice?.amount || "0";
+				return sum + parseFloat(price);
+			}, 0);
+	}, [selectedProducts, allProducts]);
 
 	const addSelectedToCart = async () => {
 		setIsAddingToCart(true);
 		try {
 			const selectedProductsArray = allProducts.filter((p) => selectedProducts.has(p.id));
+			const cartItems: CartItem[] = [];
 
 			for (const product of selectedProductsArray) {
-				const firstVariant = product.variants?.edges?.[0]?.node;
-				const productImage = product.images?.edges?.[0]?.node;
+				// Get the first available variant
+				const variant = product.variants?.edges?.[0]?.node;
 
-				if (firstVariant?.id) {
-					await addItem({
-						merchandiseId: firstVariant.id,
-						quantity: 1,
-						attributes: [
-							{
-								key: "image",
-								value: productImage?.url || "",
-							},
-							{
-								key: "title",
-								value: product.title,
-							},
-							{
-								key: "handle",
-								value: product.handle,
-							},
-						],
-					});
+				if (!variant?.id) {
+					console.error(`No variant found for product: ${product.title}`);
+					continue;
+				}
+
+				// Format the variant ID correctly if needed
+				const variantId = variant.id.includes("gid://shopify/ProductVariant/") ? variant.id : `gid://shopify/ProductVariant/${variant.id.replace(/\D/g, "")}`;
+
+				console.log(`Adding to cart - Product: ${product.title}, Variant ID: ${variantId}`);
+
+				if (!variantId.match(/^gid:\/\/shopify\/ProductVariant\/\d+$/)) {
+					console.error(`Invalid variant ID format for product: ${product.title}`);
+					continue;
+				}
+
+				cartItems.push({
+					merchandiseId: variantId,
+					quantity: 1,
+					attributes: [
+						{
+							key: "source",
+							value: "frequently_bought_together",
+						},
+					],
+				});
+			}
+
+			if (cartItems.length === 0) {
+				throw new Error("No valid items to add to cart");
+			}
+
+			// Add items to cart sequentially with better error handling
+			for (const item of cartItems) {
+				try {
+					await addItem(item);
+					// Small delay between additions to prevent rate limiting
+					await new Promise((resolve) => setTimeout(resolve, 500));
+				} catch (error) {
+					console.error("Error adding item to cart:", error);
+					// Continue with other items even if one fails
+					continue;
 				}
 			}
 
-			toast.success("Products added to cart!");
+			const successCount = cartItems.length;
+			if (successCount > 0) {
+				toast.success(`Added ${successCount} ${successCount === 1 ? "item" : "items"} to cart`);
+			} else {
+				throw new Error("Failed to add any items to cart");
+			}
 		} catch (error) {
-			console.error("Error adding products to cart:", error);
-			toast.error("Failed to add products to cart");
+			console.error("Error adding to cart:", error);
+			toast.error(error instanceof Error ? error.message : "Failed to add items to cart");
 		} finally {
 			setIsAddingToCart(false);
 		}
 	};
 
-	// Only render if there are complementary products
-	if (!complementaryProducts?.length) {
-		console.log("No complementary products available");
-		return null;
-	}
+	if (!complementaryProducts?.length) return null;
 
 	return (
-		<div className="space-y-8 py-8">
-			<div>
-				<h2 className="text-2xl font-semibold mb-2">Frequently Bought Together</h2>
-				<p className="text-muted-foreground">Get the complete setup and save!</p>
-			</div>
-
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-				{allProducts.map((product) => (
-					<div key={`product-${product.id}`} className="relative">
-						<div
-							className="absolute top-4 right-4 z-10 w-5 h-5 rounded border border-primary bg-background cursor-pointer"
-							onClick={() => handleProductToggle(product.id)}
-							style={{
-								cursor: product.id === allProducts[0].id ? "not-allowed" : "pointer",
-							}}
-						>
-							{selectedProducts.has(product.id) && (
-								<svg viewBox="0 0 24 24" fill="none" className="absolute inset-0 h-full w-full stroke-primary" strokeWidth={2}>
-									<polyline points="20 6 9 17 4 12" />
-								</svg>
-							)}
-						</div>
-						<ProductCard product={product} />
-					</div>
-				))}
-			</div>
-
-			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-				<div>
-					<p className="text-lg font-semibold">Total: {formatPrice(totalPrice)}</p>
-					<p className="text-sm text-muted-foreground">
-						{selectedProducts.size} {selectedProducts.size === 1 ? "item" : "items"} selected
-					</p>
+		<Card className="rounded-lg border border-foreground/15 shadow-none">
+			<CardContent className="p-6 space-y-6">
+				<div className="flex items-center justify-between">
+					<h2 className="text-2xl font-semibold">Frequently Bought Together</h2>
+					<TooltipProvider>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button variant="ghost" size="icon">
+									<Info className="h-4 w-4" />
+									<span className="sr-only">More information</span>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>
+								<p>Items frequently purchased together with {product.title}</p>
+							</TooltipContent>
+						</Tooltip>
+					</TooltipProvider>
 				</div>
-				<Button size="lg" onClick={addSelectedToCart} disabled={isAddingToCart} className="w-full sm:w-auto">
-					{isAddingToCart ? (
-						<>
-							<Package className="mr-2 h-4 w-4 animate-spin" />
-							Adding...
-						</>
-					) : (
-						<>
-							<ShoppingCart className="mr-2 h-4 w-4" />
-							Add Selected to Cart
-						</>
-					)}
-				</Button>
-			</div>
-		</div>
+
+				<div className="flex items-start space-x-4">
+					<div className="flex-shrink-0">
+						<Image src={product.images?.edges?.[0]?.node?.url || "/placeholder.svg"} alt={product.title} width={120} height={120} className="rounded-lg object-cover" />
+					</div>
+					<div>
+						<h3 className="text-lg font-semibold">{product.title}</h3>
+						<div className="flex items-center gap-3 mt-2">
+							<p className="text-lg font-bold">{formatPrice(parseFloat(product.priceRange.minVariantPrice.amount))}</p>
+							<Link href={`/products/${product.handle}`} className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
+								View Details
+								<ExternalLink className="h-3 w-3" />
+							</Link>
+						</div>
+					</div>
+				</div>
+
+				<Separator />
+
+				{complementaryProducts.length > 0 && (
+					<>
+						<div className="space-y-4">
+							{complementaryProducts.map((product) => (
+								<div key={product.id} className="flex items-start justify-between">
+									<div className="flex items-start space-x-4">
+										<div className="relative w-16 h-16 flex-shrink-0">
+											<Image src={product.images?.edges?.[0]?.node?.url || "/placeholder.svg"} alt={product.title} fill className="object-cover rounded-md" sizes="64px" />
+										</div>
+										<div className="flex flex-col">
+											<p className="font-medium">{product.title}</p>
+											<div className="flex items-center gap-3">
+												<p className="text-sm font-bold">{formatPrice(parseFloat(product.priceRange?.minVariantPrice?.amount || "0"))}</p>
+												<Link href={`/products/${product.handle}`} className="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+													View Details
+													<ExternalLink className="h-3 w-3" />
+												</Link>
+											</div>
+										</div>
+									</div>
+									<Switch checked={selectedProducts.has(product.id)} onCheckedChange={() => toggleProduct(product.id)} />
+								</div>
+							))}
+						</div>
+					</>
+				)}
+
+				<Separator />
+
+				<div className="flex items-center justify-between">
+					<div>
+						<p className="text-sm text-muted-foreground">
+							Total for {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""}
+						</p>
+						<p className="text-2xl font-bold">{formatPrice(totalPrice)}</p>
+					</div>
+					<Button onClick={addSelectedToCart} disabled={isAddingToCart} className="px-6">
+						{isAddingToCart ? (
+							<>
+								<Package className="mr-2 h-4 w-4 animate-spin" />
+								Adding...
+							</>
+						) : (
+							<>
+								Add to Cart
+								<ChevronRight className="ml-2 h-4 w-4" />
+							</>
+						)}
+					</Button>
+				</div>
+			</CardContent>
+		</Card>
 	);
 }

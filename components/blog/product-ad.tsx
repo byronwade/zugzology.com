@@ -23,8 +23,10 @@ export function ProductAd({ products }: ProductAdProps) {
 						return (
 							<Link key={product.id} href={`/products/${product.handle}`} className="group flex gap-4 items-start">
 								{firstImage && (
-									<div className="relative w-20 h-20 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-										<Image src={firstImage.url} alt={firstImage.altText || product.title} fill className="object-cover transition-transform group-hover:scale-105" sizes="80px" />
+									<div className="relative w-20 h-20 overflow-hidden bg-neutral-100 dark:bg-neutral-800">
+										<div className="w-full h-full rounded-lg overflow-hidden">
+											<Image src={firstImage.url} alt={firstImage.altText || product.title} fill className="object-cover transition-transform group-hover:scale-105 rounded-lg" sizes="80px" />
+										</div>
 									</div>
 								)}
 								<div className="flex-1 min-w-0">

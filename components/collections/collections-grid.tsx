@@ -30,9 +30,11 @@ export function CollectionsGrid({ collections, className }: CollectionsGridProps
 					<Link key={collection.id} href={`/collections/${collection.handle}`} className="group relative bg-white dark:bg-neutral-900 overflow-hidden transition-all duration-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 border-[10px] border-transparent hover:border-purple-500">
 						<div className="relative aspect-square w-full overflow-hidden">
 							{collection.image ? (
-								<Image src={collection.image.url} alt={collection.image.altText || collection.title} fill sizes="(min-width: 1280px) 12.5vw, (min-width: 768px) 25vw, 50vw" className="object-cover transition-transform duration-300 group-hover:scale-105" priority />
+								<div className="w-full h-full rounded-lg overflow-hidden">
+									<Image src={collection.image.url} alt={collection.image.altText || collection.title} fill sizes="(min-width: 1280px) 12.5vw, (min-width: 768px) 25vw, 50vw" className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-lg" priority />
+								</div>
 							) : (
-								<div className="w-full h-full flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
+								<div className="w-full h-full flex items-center justify-center bg-neutral-100 dark:bg-neutral-800 rounded-lg">
 									<p className="text-sm text-neutral-500">No image</p>
 								</div>
 							)}
