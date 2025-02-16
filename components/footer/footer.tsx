@@ -20,13 +20,13 @@ export function Footer() {
 				{/* Navigation Grid */}
 				<div className="md:block md:justify-end">
 					<div className="flex flex-col flex-wrap gap-12 gap-x-4 md:gap-20 md:gap-x-16 sm:grid sm:max-h-fit sm:grid-cols-3 lg:grid-cols-4 max-h-[92rem] sm:max-h-[75rem]">
-						{/* Shopify Section */}
-						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="shopify">
-							<h2 className="text-base font-bold text-white">Shopify</h2>
+						{/* Main Section (replacing Shopify section) */}
+						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="main">
+							<h2 className="text-base font-bold text-white">Zugzology</h2>
 							<ul className="mt-4 md:mt-6">
 								<li>
 									<Link href="/about" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="about">
-										About
+										About Us
 									</Link>
 								</li>
 								<li>
@@ -35,23 +35,23 @@ export function Footer() {
 									</Link>
 								</li>
 								<li>
-									<a href="https://shopifyinvestors.com/home/default.aspx" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="investors">
-										Investors
-									</a>
-								</li>
-								<li>
-									<a href="https://www.shopify.com/news" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="press-and-media">
-										Press and Media
-									</a>
-								</li>
-								<li>
-									<Link href="/partners" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="partners">
-										Partners
+									<Link href="/wholesale" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="wholesale">
+										Wholesale Program
 									</Link>
 								</li>
 								<li>
-									<Link href="/affiliates" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="affiliates">
-										Affiliates
+									<Link href="/blogs/news" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="press-and-media">
+										News & Updates
+									</Link>
+								</li>
+								<li>
+									<Link href="/partners" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="partners">
+										Partner Program
+									</Link>
+								</li>
+								<li>
+									<Link href="/affiliate" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="affiliates">
+										Affiliate Program
 									</Link>
 								</li>
 								<li>
@@ -60,9 +60,9 @@ export function Footer() {
 									</Link>
 								</li>
 								<li>
-									<a href="https://www.shopifystatus.com/" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="service-status">
+									<Link href="/status" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="service-status">
 										Service Status
-									</a>
+									</Link>
 								</li>
 							</ul>
 						</div>
@@ -72,51 +72,51 @@ export function Footer() {
 							<h2 className="text-base font-bold text-white">Support</h2>
 							<ul className="mt-4 md:mt-6">
 								<li>
-									<a href="https://help.shopify.com/en/questions" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="merchant-support">
-										Merchant Support
-									</a>
+									<Link href="/contact" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="customer-support">
+										Customer Support
+									</Link>
 								</li>
 								<li>
-									<a href="https://help.shopify.com/en/" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="help-center">
+									<Link href="/help" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="help-center">
 										Help Center
-									</a>
+									</Link>
 								</li>
 								<li>
-									<a href="https://www.shopify.com/partners/directory" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="hire-a-partner">
-										Hire a Partner
-									</a>
+									<Link href="/shipping" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shipping">
+										Shipping Information
+									</Link>
 								</li>
 								<li>
-									<a href="https://academy.shopify.com" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-academy">
-										Shopify Academy
-									</a>
+									<Link href="/returns" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="returns">
+										Returns & Exchanges
+									</Link>
 								</li>
 								<li>
-									<a href="https://community.shopify.com/c/Shopify-Community/ct-p/en" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-community">
-										Shopify Community
-									</a>
+									<Link href="/faq" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="faq">
+										FAQ
+									</Link>
 								</li>
 							</ul>
 						</div>
 
-						{/* Developers Section */}
-						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="developers">
-							<h2 className="text-base font-bold text-white">Developers</h2>
+						{/* Resources Section */}
+						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="resources">
+							<h2 className="text-base font-bold text-white">Resources</h2>
 							<ul className="mt-4 md:mt-6">
 								<li>
-									<a href="https://shopify.dev" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-dev">
-										Shopify.dev
-									</a>
+									<Link href="/guides" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="growing-guides">
+										Growing Guides
+									</Link>
 								</li>
 								<li>
-									<a href="https://shopify.dev/api" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="api-documentation">
-										API Documentation
-									</a>
+									<Link href="/blog" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="blog">
+										Blog
+									</Link>
 								</li>
 								<li>
-									<a href="https://devdegree.ca" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="dev-degree">
-										Dev Degree
-									</a>
+									<Link href="/videos" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="video-tutorials">
+										Video Tutorials
+									</Link>
 								</li>
 							</ul>
 						</div>
@@ -126,65 +126,33 @@ export function Footer() {
 							<h2 className="text-base font-bold text-white">Products</h2>
 							<ul className="mt-4 md:mt-6">
 								<li>
-									<a href="https://shop.app" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shop">
-										Shop
-									</a>
-								</li>
-								<li>
-									<Link href="/shop-pay" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shop-pay">
-										Shop Pay
+									<Link href="/collections/all" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="all-products">
+										All Products
 									</Link>
 								</li>
 								<li>
-									<Link href="/plus" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-plus">
-										Shopify Plus
+									<Link href="/collections/grow-bags" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="grow-bags">
+										Grow Bags
 									</Link>
 								</li>
 								<li>
-									<Link href="/fulfillment" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-fulfillment-network">
-										Shopify Fulfillment Network
+									<Link href="/collections/substrates" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="substrates">
+										Substrates
 									</Link>
 								</li>
 								<li>
-									<a href="https://www.linkpop.com/" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="linkpop">
-										Linkpop
-									</a>
-								</li>
-								<li>
-									<Link href="/enterprise" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-for-enterprise">
-										Shopify for Enterprise
-									</Link>
-								</li>
-							</ul>
-						</div>
-
-						{/* Global Impact Section */}
-						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="global-impact">
-							<h2 className="text-base font-bold text-white">Global Impact</h2>
-							<ul className="mt-4 md:mt-6">
-								<li>
-									<Link href="/climate" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="sustainability">
-										Sustainability
+									<Link href="/collections/equipment" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="equipment">
+										Equipment
 									</Link>
 								</li>
 								<li>
-									<Link href="/about/social-impact" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="social-impact">
-										Social Impact
+									<Link href="/collections/supplies" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="supplies">
+										Supplies
 									</Link>
 								</li>
 								<li>
-									<a href="https://www.shopify.com/1mbb" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="build-black">
-										Build Black
-									</a>
-								</li>
-								<li>
-									<a href="https://buildnative.shop" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="build-native">
-										Build Native
-									</a>
-								</li>
-								<li>
-									<Link href="/plus/commerce-trends" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="research">
-										Research
+									<Link href="/collections/bulk" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="bulk-orders">
+										Bulk Orders
 									</Link>
 								</li>
 							</ul>
@@ -195,18 +163,18 @@ export function Footer() {
 							<h2 className="text-base font-bold text-white">Solutions</h2>
 							<ul className="mt-4 md:mt-6">
 								<li>
-									<Link href="/online" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="online-store-builder">
-										Online Store Builder
+									<Link href="/wholesale" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="wholesale-program">
+										Wholesale Program
 									</Link>
 								</li>
 								<li>
-									<Link href="/website/builder" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="website-builder">
-										Website Builder
+									<Link href="/custom" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="custom-orders">
+										Custom Orders
 									</Link>
 								</li>
 								<li>
-									<Link href="/tour/ecommerce-website" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="ecommerce-website">
-										Ecommerce Website
+									<Link href="/business" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="business">
+										Business Solutions
 									</Link>
 								</li>
 							</ul>
@@ -235,12 +203,12 @@ export function Footer() {
 						{/* Legal Links */}
 						<ul className="flex flex-col items-center flex-wrap sm:flex-row sm:items-start gap-x-8 md:gap-x-10">
 							<li className="font-semi-medium mt-2 block py-3 sm:mt-0 text-[#E0E0E0] hover:text-white">
-								<Link href="/legal/terms" className="hover:underline" data-component-name="terms-of-service">
+								<Link href="/terms" className="hover:underline" data-component-name="terms-of-service">
 									Terms of Service
 								</Link>
 							</li>
 							<li className="font-semi-medium mt-2 block py-3 sm:mt-0 text-[#E0E0E0] hover:text-white">
-								<Link href="/legal/privacy" className="hover:underline" data-component-name="privacy-policy">
+								<Link href="/privacy" className="hover:underline" data-component-name="privacy-policy">
 									Privacy Policy
 								</Link>
 							</li>
@@ -250,9 +218,9 @@ export function Footer() {
 								</Link>
 							</li>
 							<li className="font-semi-medium mt-2 block py-3 sm:mt-0 text-[#E0E0E0] hover:text-white">
-								<a href="https://privacy.shopify.com/en" className="hover:underline" data-component-name="privacy-choices">
-									Privacy Choices
-								</a>
+								<Link href="/cookies" className="hover:underline" data-component-name="privacy-choices">
+									Cookie Preferences
+								</Link>
 							</li>
 						</ul>
 					</div>
@@ -260,27 +228,27 @@ export function Footer() {
 					{/* Social Media Links */}
 					<ul className="flex gap-4 md:gap-6" data-component-name="social">
 						<li>
-							<a href="https://www.facebook.com/shopify" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-facebook" aria-label="External source: Facebook (Opens in a new window)">
+							<a href="https://www.facebook.com/zugzology" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-facebook" aria-label="External source: Facebook (Opens in a new window)">
 								<Facebook className="h-full w-full" />
 							</a>
 						</li>
 						<li>
-							<a href="https://twitter.com/shopify" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-twitter" aria-label="External source: Twitter (Opens in a new window)">
+							<a href="https://twitter.com/zugzology" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-twitter" aria-label="External source: Twitter (Opens in a new window)">
 								<Twitter className="h-full w-full" />
 							</a>
 						</li>
 						<li>
-							<a href="https://www.youtube.com/user/shopify" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-youtube" aria-label="External source: YouTube (Opens in a new window)">
+							<a href="https://www.youtube.com/@zugzology" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-youtube" aria-label="External source: YouTube (Opens in a new window)">
 								<Youtube className="h-full w-full" />
 							</a>
 						</li>
 						<li>
-							<a href="https://www.instagram.com/shopify/" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-instagram" aria-label="External source: Instagram (Opens in a new window)">
+							<a href="https://www.instagram.com/zugzology" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-instagram" aria-label="External source: Instagram (Opens in a new window)">
 								<Instagram className="h-full w-full" />
 							</a>
 						</li>
 						<li>
-							<a href="https://www.linkedin.com/company/shopify" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-linkedin" aria-label="External source: LinkedIn (Opens in a new window)">
+							<a href="https://www.linkedin.com/company/zugzology" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-linkedin" aria-label="External source: LinkedIn (Opens in a new window)">
 								<Linkedin className="h-full w-full" />
 							</a>
 						</li>
