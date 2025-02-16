@@ -1,20 +1,37 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSearch } from "@/lib/providers/search-provider";
-import type { ShopifyProduct } from "@/lib/types";
+import type { ShopifyProduct, ShopifyBlogArticle } from "@/lib/types";
 
-export function InitializeSearch({ products }: { products: ShopifyProduct[] }) {
-	const { setAllProducts } = useSearch();
+interface InitializeSearchProps {
+	products: ShopifyProduct[];
+	blogPosts: ShopifyBlogArticle[];
+}
+
+export function InitializeSearch({ products, blogPosts }: InitializeSearchProps) {
+	const searchContext = useSearch();
+	const initialized = useRef(false);
 
 	useEffect(() => {
-		console.log("[INITIALIZE] Setting products:", {
-			count: products.length,
-			firstProduct: products[0]?.title,
-			hasProducts: products.length > 0,
-		});
-		setAllProducts(products);
-	}, [products, setAllProducts]);
+		if (!searchContext || initialized.current) return;
+
+		try {
+			const { setAllProducts, setAllBlogPosts } = searchContext;
+
+			if (products?.length > 0) {
+				setAllProducts(products);
+			}
+
+			if (blogPosts?.length > 0) {
+				setAllBlogPosts(blogPosts);
+			}
+
+			initialized.current = true;
+		} catch (error) {
+			console.error("❌ [Search] Failed to initialize search:", error);
+		}
+	}, [products, blogPosts, searchContext]);
 
 	return null;
 }

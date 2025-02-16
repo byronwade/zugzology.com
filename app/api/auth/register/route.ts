@@ -1,87 +1,136 @@
-import { customerRegister } from "@/lib/services/shopify-customer";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
-	console.log("Registration API route called");
-
 	try {
-		const body = await request.json();
-		console.log("Registration request received:", {
-			...body,
-			password: "[REDACTED]",
+		console.log("🔐 [Register] Starting registration process...");
+
+		// Validate required environment variables
+		if (!process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN) {
+			throw new Error("Missing NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN environment variable");
+		}
+		if (!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+			throw new Error("Missing NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN environment variable");
+		}
+
+		const { firstName, lastName, email, password } = await request.json();
+
+		if (!email || !firstName || !lastName || !password) {
+			return Response.json({ message: "All fields are required" }, { status: 400 });
+		}
+
+		console.log("📧 [Register] Creating customer:", { email, firstName, lastName });
+
+		// Create customer using Shopify Storefront API
+		const shopDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+		const response = await fetch(`https://${shopDomain}/api/2024-01/graphql`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN as string,
+			},
+			body: JSON.stringify({
+				query: `
+					mutation customerCreate($input: CustomerCreateInput!) {
+						customerCreate(input: $input) {
+							customer {
+								id
+								firstName
+								lastName
+								email
+							}
+							customerUserErrors {
+								code
+								field
+								message
+							}
+						}
+					}
+				`,
+				variables: {
+					input: {
+						firstName,
+						lastName,
+						email,
+						password,
+						acceptsMarketing: true,
+					},
+				},
+			}),
 		});
 
-		const { firstName, lastName, email, password } = body;
+		const { data, errors } = await response.json();
 
-		// Validate required fields
-		if (!firstName || !lastName || !email || !password) {
-			console.error("Missing required fields:", {
-				firstName: !!firstName,
-				lastName: !!lastName,
-				email: !!email,
-				password: !!password,
-			});
-			return new Response(
-				JSON.stringify({
-					message: "All fields are required",
-					details: {
-						firstName: !firstName ? "First name is required" : null,
-						lastName: !lastName ? "Last name is required" : null,
-						email: !email ? "Email is required" : null,
-						password: !password ? "Password is required" : null,
-					},
-				}),
-				{
-					status: 400,
-					headers: {
-						"Content-Type": "application/json",
-					},
-				}
-			);
+		if (errors) {
+			console.error("❌ [Register] GraphQL errors:", errors);
+			return Response.json({ message: errors[0].message }, { status: 400 });
 		}
 
-		// Password validation
-		if (password.length < 5) {
-			return new Response(
-				JSON.stringify({
-					message: "Password must be at least 5 characters long",
-				}),
-				{
-					status: 400,
-					headers: {
-						"Content-Type": "application/json",
-					},
-				}
-			);
+		const { customerCreate } = data;
+
+		if (customerCreate.customerUserErrors?.length > 0) {
+			const error = customerCreate.customerUserErrors[0];
+			console.error("❌ [Register] Customer creation error:", error);
+			return Response.json({ message: error.message }, { status: 400 });
 		}
 
-		console.log("Calling Shopify customerRegister...");
-		await customerRegister(firstName, lastName, email, password);
-		console.log("User registered successfully:", email);
+		console.log("✅ [Register] Customer created successfully:", customerCreate.customer);
 
-		return new Response(JSON.stringify({ success: true }), {
+		// Immediately create an access token for the new customer
+		const loginResponse = await fetch(`https://${shopDomain}/api/2024-01/graphql`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN as string,
+			},
+			body: JSON.stringify({
+				query: `
+					mutation customerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
+						customerAccessTokenCreate(input: $input) {
+							customerAccessToken {
+								accessToken
+								expiresAt
+							}
+							customerUserErrors {
+								code
+								field
+								message
+							}
+						}
+					}
+				`,
+				variables: {
+					input: {
+						email,
+						password,
+					},
+				},
+			}),
+		});
+
+		const loginData = await loginResponse.json();
+
+		if (loginData.errors || loginData.data?.customerAccessTokenCreate?.customerUserErrors?.length > 0) {
+			console.error("❌ [Register] Failed to create access token:", loginData);
+			return Response.json({ message: "Account created but unable to log in automatically" }, { status: 400 });
+		}
+
+		const { accessToken, expiresAt } = loginData.data.customerAccessTokenCreate.customerAccessToken;
+
+		// Return success with the token in a cookie
+		return new Response(JSON.stringify({ success: true, customer: customerCreate.customer }), {
 			status: 200,
 			headers: {
 				"Content-Type": "application/json",
+				"Set-Cookie": `customerAccessToken=${accessToken}; Path=/; HttpOnly; Expires=${new Date(expiresAt).toUTCString()}; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
 			},
 		});
 	} catch (error) {
-		console.error("Registration error:", error);
-
-		// Handle specific Shopify errors
-		const errorMessage = error instanceof Error ? error.message : "Registration failed";
-		const status = errorMessage.includes("Customer creation failed") ? 400 : 500;
-
-		return new Response(
-			JSON.stringify({
-				message: errorMessage,
-				error: error instanceof Error ? error.stack : undefined,
-			}),
+		console.error("❌ [Register] Error:", error);
+		return Response.json(
 			{
-				status,
-				headers: {
-					"Content-Type": "application/json",
-				},
-			}
+				message: error instanceof Error ? error.message : "Registration failed",
+			},
+			{ status: 500 }
 		);
 	}
 }

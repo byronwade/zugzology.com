@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import type { ShopifyProduct } from "@/lib/types";
 import dynamic from "next/dynamic";
 import { ProductInfo } from "./product-info";
@@ -18,27 +17,8 @@ interface ProductContentProps {
 	product: ShopifyProduct;
 }
 
-function LoadingFallback() {
-	return (
-		<div className="w-full animate-pulse">
-			<div className="max-w-screen-xl mx-auto px-4">
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-					<div className="aspect-square bg-gray-200 rounded-lg" />
-					<div className="space-y-4">
-						<div className="h-8 w-3/4 bg-gray-200 rounded" />
-						<div className="h-4 w-1/2 bg-gray-200 rounded" />
-						<div className="h-24 w-full bg-gray-200 rounded" />
-						<div className="h-12 w-full bg-gray-200 rounded" />
-					</div>
-				</div>
-			</div>
-		</div>
-	);
-}
-
 const DynamicProductContentClient = dynamic<ProductContentProps>(() => import("../product-content-client"), {
 	ssr: false,
-	loading: LoadingFallback,
 });
 
 // Product structured data
@@ -100,19 +80,17 @@ export function ProductContent({ product }: ProductContentProps) {
 	const reviewsCount = product.reviewsCount || 0;
 
 	return (
-		<Suspense fallback={<LoadingFallback />}>
-			<div className="max-w-full mx-auto">
-				{/* Inject structured data */}
-				<script
-					type="application/ld+json"
-					dangerouslySetInnerHTML={{
-						__html: JSON.stringify(generateProductJsonLd(product)),
-					}}
-				/>
+		<div className="max-w-full mx-auto">
+			{/* Inject structured data */}
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(generateProductJsonLd(product)),
+				}}
+			/>
 
-				{/* Main Product Section */}
-				<DynamicProductContentClient product={product} />
-			</div>
-		</Suspense>
+			{/* Main Product Section */}
+			<DynamicProductContentClient product={product} />
+		</div>
 	);
 }

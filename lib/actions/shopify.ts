@@ -1,6 +1,6 @@
 "use server";
 
-import type { ShopifyProduct, ShopifyCollection, ShopifyBlog, ShopifyBlogArticle, ShopifyCart, CartItem, ProductWithEdges } from "../types";
+import type { ShopifyProduct, ShopifyCollection, ShopifyBlog, ShopifyBlogArticle, ShopifyCart, CartItem } from "../types";
 import { shopifyFetch as importedShopifyFetch } from "@/lib/shopify";
 import { SHOPIFY_STOREFRONT_ACCESS_TOKEN, SHOPIFY_STORE_DOMAIN } from "@/lib/constants";
 import { revalidateTag } from "next/cache";
@@ -356,6 +356,184 @@ async function shopifyFetch<T>({ query, variables = {}, cache = "force-cache", t
 	}
 }
 
+// Add at the top of the file after imports
+const CACHE_TIMES = {
+	PRODUCTS: 60 * 5, // 5 minutes
+	COLLECTIONS: 60 * 5, // 5 minutes
+	BLOGS: 60 * 15, // 15 minutes
+	SETTINGS: 60 * 60, // 1 hour
+} as const;
+
+// Add this cache map
+const MEMORY_CACHE = new Map<string, { data: any; timestamp: number }>();
+
+// Add these constants at the top after imports
+const PRODUCT_CACHE_TIME = 60 * 5; // 5 minutes
+const COLLECTION_CACHE_TIME = 60 * 5; // 5 minutes
+const MENU_CACHE_TIME = 60 * 15; // 15 minutes
+
+// Add this near the top with other cache constants
+const REQUEST_DEDUPLICATION_CACHE = new Map<string, Promise<any>>();
+
+// Add these near the top with other constants
+const GLOBAL_CACHE_KEY = "global_data";
+const GLOBAL_CACHE_TIME = 60 * 15; // 15 minutes
+
+// Replace the getProducts function
+export async function getProducts(): Promise<ShopifyProduct[]> {
+	"use cache";
+
+	const cacheKey = "all_products";
+	const now = Date.now();
+	const cached = MEMORY_CACHE.get(cacheKey);
+
+	// Return cached data if it exists and is not expired
+	if (cached && now - cached.timestamp < CACHE_TIMES.PRODUCTS * 1000) {
+		return cached.data;
+	}
+
+	const startTime = performance.now();
+
+	try {
+		type ProductsResponse = {
+			products: {
+				pageInfo: { hasNextPage: boolean; endCursor: string };
+				edges: Array<{ node: ShopifyProduct }>;
+			};
+		};
+
+		const allProducts: ShopifyProduct[] = [];
+		let hasNextPage = true;
+		let cursor: string | null = null;
+
+		while (hasNextPage) {
+			const query: string = `
+				query GetProducts${cursor ? "($cursor: String!)" : ""} {
+					products(first: 100${cursor ? ", after: $cursor" : ""}) {
+						pageInfo {
+							hasNextPage
+							endCursor
+						}
+						edges {
+							node {
+								...ProductFragment
+							}
+						}
+					}
+				}
+				${PRODUCTS_FRAGMENT}
+			`;
+
+			const response: ShopifyResponse<ProductsResponse> = await shopifyFetch<ProductsResponse>({
+				query,
+				variables: cursor ? { cursor } : {},
+				cache: "force-cache",
+				tags: ["products"],
+			});
+
+			const products = response.data.products.edges.map(({ node }: { node: ShopifyProduct }) => node);
+			allProducts.push(...products);
+
+			hasNextPage = response.data.products.pageInfo.hasNextPage;
+			cursor = response.data.products.pageInfo.endCursor;
+		}
+
+		const duration = performance.now() - startTime;
+		if (duration > 100) {
+			console.log(`⚡ [Products] Fetched in ${duration.toFixed(2)}ms`, {
+				count: allProducts.length,
+				dataSize: (JSON.stringify(allProducts).length / 1024).toFixed(2) + "KB",
+			});
+		}
+
+		// Cache the results
+		MEMORY_CACHE.set(cacheKey, { data: allProducts, timestamp: now });
+
+		return allProducts;
+	} catch (error) {
+		console.error("Failed to fetch products:", error);
+		// Return cached data if available, even if expired
+		return cached?.data || [];
+	}
+}
+
+// Replace the getCollections function
+export async function getCollections(): Promise<ShopifyCollection[]> {
+	"use cache";
+
+	const cacheKey = "all_collections";
+	const now = Date.now();
+	const cached = MEMORY_CACHE.get(cacheKey);
+
+	// Return cached data if it exists and is not expired
+	if (cached && now - cached.timestamp < CACHE_TIMES.COLLECTIONS * 1000) {
+		return cached.data;
+	}
+
+	const startTime = performance.now();
+
+	try {
+		const { data } = await shopifyFetch<{
+			collections: {
+				edges: Array<{
+					node: ShopifyCollection;
+				}>;
+			};
+		}>({
+			query: `
+				query GetCollections {
+					collections(first: 100, sortKey: TITLE) {
+						edges {
+							node {
+								...CollectionFragment
+							}
+						}
+					}
+				}
+				${COLLECTION_FRAGMENT}
+			`,
+			cache: "force-cache",
+			tags: ["collections"],
+		});
+
+		const collections = data.collections.edges.map(({ node }) => node);
+
+		// Cache the results
+		MEMORY_CACHE.set(cacheKey, { data: collections, timestamp: now });
+
+		const duration = performance.now() - startTime;
+		if (duration > 100) {
+			console.log(`⚡ [Collections] Fetched in ${duration.toFixed(2)}ms`, {
+				count: collections.length,
+				dataSize: (JSON.stringify(collections).length / 1024).toFixed(2) + "KB",
+			});
+		}
+
+		return collections;
+	} catch (error) {
+		console.error("Failed to fetch collections:", error);
+		// Return cached data if available, even if expired
+		return cached?.data || [];
+	}
+}
+
+// Add cache cleanup
+function cleanupCache() {
+	const now = Date.now();
+	for (const [key, value] of MEMORY_CACHE.entries()) {
+		const cacheTime = key.startsWith("all_products") ? CACHE_TIMES.PRODUCTS : key.startsWith("all_collections") ? CACHE_TIMES.COLLECTIONS : key.startsWith("blogs") ? CACHE_TIMES.BLOGS : CACHE_TIMES.SETTINGS;
+
+		if (now - value.timestamp > cacheTime * 1000) {
+			MEMORY_CACHE.delete(key);
+		}
+	}
+}
+
+// Run cache cleanup every minute
+if (typeof setInterval !== "undefined") {
+	setInterval(cleanupCache, 60 * 1000);
+}
+
 export async function getCollection(handle: string): Promise<ShopifyCollection | null> {
 	if (!handle || typeof handle !== "string") {
 		console.error("Invalid collection handle:", handle);
@@ -407,107 +585,21 @@ export async function getCollection(handle: string): Promise<ShopifyCollection |
 	}
 }
 
-export async function getCollections(): Promise<ShopifyCollection[]> {
-	const startTime = performance.now();
-
-	try {
-		const { data } = await shopifyFetch<{
-			collections: {
-				edges: Array<{
-					node: ShopifyCollection;
-				}>;
-			};
-		}>({
-			query: `
-				query GetCollections {
-					collections(first: 100, sortKey: TITLE) {
-						edges {
-							node {
-								...CollectionFragment
-							}
-						}
-					}
-				}
-				${COLLECTION_FRAGMENT}
-			`,
-			cache: "force-cache",
-			tags: ["collections"],
-		});
-
-		const collections = data.collections.edges.map(({ node }) => node);
-		logPerformance(startTime, "getCollections", { edges: collections });
-		return collections;
-	} catch (error) {
-		console.error("Failed to fetch collections:", error);
-		return [];
-	}
-}
-
 export async function getProduct(handle: string): Promise<ShopifyProduct | null> {
+	"use cache";
+
+	const cacheKey = `product_${handle}`;
+	const now = Date.now();
+	const cached = MEMORY_CACHE.get(cacheKey);
+
+	if (cached && now - cached.timestamp < PRODUCT_CACHE_TIME * 1000) {
+		return cached.data;
+	}
+
 	const query = `
 		query getProduct($handle: String!) {
 			product(handle: $handle) {
-				id
-				handle
-				title
-				description
-				descriptionHtml
-				vendor
-				productType
-				tags
-				isGiftCard
-				availableForSale
-				publishedAt
-				options {
-					id
-					name
-					values
-				}
-				priceRange {
-					minVariantPrice {
-						amount
-						currencyCode
-					}
-					maxVariantPrice {
-						amount
-						currencyCode
-					}
-				}
-				variants(first: 250) {
-					edges {
-						node {
-							id
-							title
-							availableForSale
-							quantityAvailable
-							price {
-								amount
-								currencyCode
-							}
-							selectedOptions {
-								name
-								value
-							}
-							requiresShipping
-							image {
-								url
-								altText
-								width
-								height
-							}
-						}
-					}
-				}
-				images(first: 20) {
-					edges {
-						node {
-							url
-							altText
-							width
-							height
-						}
-					}
-				}
+				...ProductFragment
 				media(first: 20) {
 					edges {
 						node {
@@ -580,45 +672,31 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 						edges {
 							node {
 								... on Product {
-									id
-									handle
-									title
-									description
+									...ProductFragment
+									variants(first: 1) {
+										edges {
+											node {
+												id
+												title
+												availableForSale
+												quantityAvailable
+												price {
+													amount
+													currencyCode
+												}
+												selectedOptions {
+													name
+													value
+												}
+											}
+										}
+									}
 									priceRange {
 										minVariantPrice {
 											amount
 											currencyCode
 										}
-									}
-									images(first: 1) {
-										edges {
-											node {
-												url
-												altText
-												width
-												height
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-				complementaryProducts: metafield(namespace: "shopify--discovery--product_recommendation", key: "complementary_products") {
-					id
-					value
-					type
-					references(first: 10) {
-						edges {
-							node {
-								... on Product {
-									id
-									handle
-									title
-									description
-									priceRange {
-										minVariantPrice {
+										maxVariantPrice {
 											amount
 											currencyCode
 										}
@@ -640,6 +718,7 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 				}
 			}
 		}
+		${PRODUCTS_FRAGMENT}
 	`;
 
 	try {
@@ -648,68 +727,23 @@ export async function getProduct(handle: string): Promise<ShopifyProduct | null>
 		}>({
 			query,
 			variables: { handle },
+			cache: "force-cache",
+			tags: [`product-${handle}`],
 		});
+
+		// Cache the result
+		if (data?.product) {
+			MEMORY_CACHE.set(cacheKey, {
+				data: data.product,
+				timestamp: now,
+			});
+		}
 
 		return data?.product ?? null;
 	} catch (error) {
 		console.error("Error fetching product:", error);
-		return null;
-	}
-}
-
-// Get all products with pagination
-export async function getProducts(): Promise<ShopifyProduct[]> {
-	const startTime = performance.now();
-	const allProducts: ShopifyProduct[] = [];
-	let hasNextPage = true;
-	let cursor: string | null = null;
-
-	try {
-		while (hasNextPage) {
-			const query: string = `
-				query GetProducts${cursor ? "($cursor: String!)" : ""} {
-					products(first: 100${cursor ? ", after: $cursor" : ""}) {
-						pageInfo {
-							hasNextPage
-							endCursor
-						}
-						edges {
-							node {
-								...ProductFragment
-							}
-						}
-					}
-				}
-				${PRODUCTS_FRAGMENT}
-			`;
-
-			type ProductsResponse = {
-				products: {
-					pageInfo: { hasNextPage: boolean; endCursor: string };
-					edges: Array<{ node: ShopifyProduct }>;
-				};
-			};
-
-			const response: ShopifyResponse<ProductsResponse> = await shopifyFetch<ProductsResponse>({
-				query,
-				variables: cursor ? { cursor } : {},
-				cache: "force-cache",
-				tags: ["products"],
-			});
-
-			const products = response.data.products.edges.map(({ node }: { node: ShopifyProduct }) => node);
-			allProducts.push(...products);
-
-			hasNextPage = response.data.products.pageInfo.hasNextPage;
-			cursor = response.data.products.pageInfo.endCursor;
-		}
-
-		logPerformance(startTime, "getProducts", { edges: allProducts });
-		console.log("[SHOPIFY] Fetched products:", allProducts.length);
-		return allProducts;
-	} catch (error) {
-		console.error("Failed to fetch products:", error);
-		return [];
+		// Return cached data if available, even if expired
+		return cached?.data || null;
 	}
 }
 
@@ -1063,4 +1097,236 @@ export async function getAllBlogPosts() {
 
 	// Sort by date
 	return allPosts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+}
+
+export interface SiteSettings {
+	name: string;
+	description: string;
+	url: string;
+	keywords: string[];
+	images: Array<{
+		url: string;
+		width: number;
+		height: number;
+		altText?: string;
+	}>;
+	productsPageTitle: string;
+	productsPageDescription: string;
+	productsPageSections: Array<{
+		title: string;
+		content: string;
+	}>;
+}
+
+// Replace the getSiteSettings function
+export async function getSiteSettings(): Promise<SiteSettings> {
+	const startTime = performance.now();
+
+	try {
+		const query = `
+			query GetSiteSettings {
+				shop {
+					name
+					description
+					primaryDomain {
+						url
+					}
+					metafields(identifiers: [
+						{ namespace: "site_settings", key: "keywords" }
+						{ namespace: "site_settings", key: "images" }
+						{ namespace: "site_settings", key: "products_page_title" }
+						{ namespace: "site_settings", key: "products_page_description" }
+						{ namespace: "site_settings", key: "products_page_sections" }
+					]) {
+						key
+						value
+						type
+					}
+				}
+			}
+		`;
+
+		const { data } = await shopifyFetch<{
+			shop: {
+				name: string;
+				description: string;
+				primaryDomain: {
+					url: string;
+				};
+				metafields: Array<{
+					key: string;
+					value: string;
+					type: string;
+				}> | null;
+			};
+		}>({
+			query,
+			cache: "force-cache",
+			tags: ["settings"],
+		});
+
+		if (!data?.shop) {
+			throw new Error("No shop data returned");
+		}
+
+		// Parse and prepare settings
+		const settings: SiteSettings = {
+			name: data.shop.name || "Zugzology",
+			description: data.shop.description || "Premium mushroom cultivation supplies and equipment",
+			url: (data.shop.primaryDomain?.url || "https://zugzology.com").replace(/\/$/, ""),
+			keywords: [],
+			images: [],
+			productsPageTitle: "Premium Mushroom Growing Supplies",
+			productsPageDescription: "Discover our extensive collection of high-quality mushroom cultivation equipment and supplies.",
+			productsPageSections: [],
+		};
+
+		// Parse metafields
+		if (data.shop.metafields) {
+			for (const metafield of data.shop.metafields) {
+				if (!metafield?.key) continue;
+				try {
+					if (metafield.type === "json_string" && metafield.value) {
+						const parsedValue = JSON.parse(metafield.value);
+						if (metafield.key === "keywords" || metafield.key === "images" || metafield.key === "productsPageSections") {
+							settings[metafield.key] = Array.isArray(parsedValue) ? parsedValue : [];
+						} else {
+							(settings as any)[metafield.key] = parsedValue;
+						}
+					} else {
+						(settings as any)[metafield.key] = metafield.value;
+					}
+				} catch (e) {
+					console.warn(`Failed to parse metafield ${metafield.key}:`, e);
+				}
+			}
+		}
+
+		const duration = performance.now() - startTime;
+		console.log(`⚡ [Settings] Fetched in ${duration.toFixed(2)}ms`);
+
+		return settings;
+	} catch (error) {
+		console.error("Failed to fetch site settings:", error);
+		return {
+			name: "Zugzology",
+			description: "Premium mushroom cultivation supplies and equipment",
+			url: "https://zugzology.com",
+			keywords: [],
+			images: [],
+			productsPageTitle: "Premium Mushroom Growing Supplies",
+			productsPageDescription: "Discover our extensive collection of high-quality mushroom cultivation equipment and supplies.",
+			productsPageSections: [],
+		};
+	}
+}
+
+// Update getMenuItems to use caching
+export async function getMenuItems() {
+	"use cache";
+
+	const cacheKey = "menu_items";
+	const now = Date.now();
+	const cached = MEMORY_CACHE.get(cacheKey);
+
+	if (cached && now - cached.timestamp < MENU_CACHE_TIME * 1000) {
+		return cached.data;
+	}
+
+	// ... rest of getMenuItems implementation
+}
+
+// Add this function for global data caching
+async function getGlobalData() {
+	const cacheKey = GLOBAL_CACHE_KEY;
+	const now = Date.now();
+	const cached = MEMORY_CACHE.get(cacheKey);
+
+	if (cached && now - cached.timestamp < GLOBAL_CACHE_TIME * 1000) {
+		return cached.data;
+	}
+
+	if (REQUEST_DEDUPLICATION_CACHE.has(cacheKey)) {
+		return REQUEST_DEDUPLICATION_CACHE.get(cacheKey);
+	}
+
+	const fetchPromise = (async () => {
+		try {
+			const [menuItems, blogs, products] = await Promise.all([getMenuItems(), getBlogs(), getProducts()]);
+
+			const result = { menuItems, blogs, products };
+
+			MEMORY_CACHE.set(cacheKey, {
+				data: result,
+				timestamp: now,
+			});
+
+			return result;
+		} finally {
+			REQUEST_DEDUPLICATION_CACHE.delete(cacheKey);
+		}
+	})();
+
+	REQUEST_DEDUPLICATION_CACHE.set(cacheKey, fetchPromise);
+	return fetchPromise;
+}
+
+// Update getProductPageData to use global data
+export async function getProductPageData(handle: string) {
+	"use cache";
+
+	const cacheKey = `product_page_${handle}`;
+	const now = Date.now();
+	const cached = MEMORY_CACHE.get(cacheKey);
+
+	if (cached && now - cached.timestamp < PRODUCT_CACHE_TIME * 1000) {
+		return cached.data;
+	}
+
+	if (REQUEST_DEDUPLICATION_CACHE.has(cacheKey)) {
+		return REQUEST_DEDUPLICATION_CACHE.get(cacheKey);
+	}
+
+	const startTime = performance.now();
+
+	const fetchPromise = (async () => {
+		try {
+			// Get the full product data with media and metafields
+			const product = await getProduct(handle);
+
+			// Get global data for menu and blogs
+			const globalData = await getGlobalData();
+
+			const result = {
+				product: product || null,
+				menuItems: globalData.menuItems,
+				blogs: globalData.blogs,
+			};
+
+			MEMORY_CACHE.set(cacheKey, {
+				data: result,
+				timestamp: now,
+			});
+
+			const duration = performance.now() - startTime;
+			if (duration > 100) {
+				console.log(`⚡ [Product Page Data] ${duration.toFixed(2)}ms`, {
+					productHandle: handle,
+					hasProduct: !!product,
+					menuItems: globalData.menuItems?.length ?? 0,
+					blogs: globalData.blogs?.length ?? 0,
+				});
+			}
+
+			return result;
+		} catch (error) {
+			console.error("Failed to fetch product page data:", error);
+			return cached?.data || { product: null, menuItems: [], blogs: [] };
+		} finally {
+			REQUEST_DEDUPLICATION_CACHE.delete(cacheKey);
+		}
+	})();
+
+	REQUEST_DEDUPLICATION_CACHE.set(cacheKey, fetchPromise);
+	return fetchPromise;
 }

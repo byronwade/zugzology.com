@@ -1,41 +1,44 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Add any paths that should be protected by authentication
-const protectedPaths: string[] = [];
+// Define protected routes that require authentication
+const protectedRoutes = ["/account"];
 
-// Add paths that should be accessible only to non-authenticated users
-const authPaths = ["/login", "/register"];
-
-export function middleware(request: NextRequest) {
-	const customerAccessToken = request.cookies.get("customerAccessToken");
+export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 
-	// Check if the path is protected and user is not authenticated
-	if (protectedPaths.some((path) => pathname.startsWith(path)) && !customerAccessToken) {
-		const url = new URL("/login", request.url);
-		url.searchParams.set("from", pathname);
-		return NextResponse.redirect(url);
+	// Check if the route is protected
+	const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
+
+	// Get the token
+	const token = request.cookies.get("customerAccessToken");
+
+	// Handle protected routes
+	if (isProtectedRoute) {
+		if (!token) {
+			// Store the original URL to redirect back after login
+			const url = new URL("/login", request.url);
+			url.searchParams.set("callbackUrl", pathname);
+			return NextResponse.redirect(url);
+		}
 	}
 
-	// Check if the path is for non-authenticated users and user is authenticated
-	if (authPaths.some((path) => pathname.startsWith(path)) && customerAccessToken) {
-		return NextResponse.redirect(new URL("/account", request.url));
+	// Handle auth routes (login/register)
+	if (pathname.startsWith("/login") || pathname.startsWith("/register")) {
+		if (token) {
+			// If user is already logged in, redirect to account
+			// But only if they're not being redirected from a protected route
+			const callbackUrl = request.nextUrl.searchParams.get("callbackUrl");
+			if (callbackUrl && protectedRoutes.some((route) => callbackUrl.startsWith(route))) {
+				return NextResponse.redirect(new URL(callbackUrl, request.url));
+			}
+			return NextResponse.redirect(new URL("/account", request.url));
+		}
 	}
 
 	return NextResponse.next();
 }
 
 export const config = {
-	matcher: [
-		/*
-		 * Match all request paths except for the ones starting with:
-		 * - api (API routes)
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 * - public folder
-		 */
-		"/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|$).*)",
-	],
+	matcher: ["/account/:path*", "/login", "/register"],
 };

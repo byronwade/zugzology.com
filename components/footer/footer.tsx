@@ -1,176 +1,292 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
+import { Facebook, Twitter, Youtube, Instagram, Linkedin, Globe } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
 
 export function Footer() {
-	const [openSection, setOpenSection] = useState<string | null>(null);
-
-	const toggleSection = (section: string) => {
-		setOpenSection(openSection === section ? null : section);
-	};
-
 	return (
-		<footer className="footer bg-black text-white" role="contentinfo">
-			<div className="container mx-auto px-4">
-				<div className="footer__wrapper">
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-12">
-						{/* Mycology Supplies Column */}
-						<div className="footer__block-item">
-							<button onClick={() => toggleSection("supplies")} className="footer__title w-full text-left flex justify-between items-center text-lg font-semibold mb-4 py-4 md:py-0">
-								<span>Mycology Supplies</span>
-								<span className={`transform transition-transform duration-300 md:hidden ${openSection === "supplies" ? "rotate-45" : ""}`}>
-									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-									</svg>
-								</span>
-							</button>
-							<div className={`footer__content transition-all duration-300 overflow-hidden md:h-auto ${openSection === "supplies" ? "h-auto" : "h-0 md:h-auto"}`}>
-								<div className="space-y-2 text-gray-300">
-									<p>✅ Need something you don't see on our site?</p>
-									<p>✅ Want bulk pricing?</p>
-									<p>✅ Need a custom order?</p>
-									<p>Contact Us.</p>
-									<p className="mt-4">Thank you for putting your trust in the Zugzology team!</p>
-								</div>
-							</div>
+		<footer className="relative flex flex-col font-sans bg-black text-white" data-component-name="footer" data-viewable-component="true">
+			<section className="container mx-auto flex flex-col gap-16 py-16 my-0 sm:justify-start sm:pb-16 md:flex-row md:flex-nowrap md:justify-between md:pb-20 md:py-20 md:gap-20 xl:w-full bg-black text-white" data-section-name="footer" data-section-index="1" data-component-name="footer" data-viewable-component="true">
+				{/* Logo Section */}
+				<div className="min-w-[100px] flex items-start">
+					<Link href="/" className="text-white hover:text-white/80">
+						<div className="relative w-20 h-20">
+							<Image src="/logo.png" alt="Zugzology Logo" fill className="object-contain invert" sizes="24px" />
+						</div>
+					</Link>
+				</div>
+
+				{/* Navigation Grid */}
+				<div className="md:block md:justify-end">
+					<div className="flex flex-col flex-wrap gap-12 gap-x-4 md:gap-20 md:gap-x-16 sm:grid sm:max-h-fit sm:grid-cols-3 lg:grid-cols-4 max-h-[92rem] sm:max-h-[75rem]">
+						{/* Shopify Section */}
+						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="shopify">
+							<h2 className="text-base font-bold text-white">Shopify</h2>
+							<ul className="mt-4 md:mt-6">
+								<li>
+									<Link href="/about" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="about">
+										About
+									</Link>
+								</li>
+								<li>
+									<Link href="/careers" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="careers">
+										Careers
+									</Link>
+								</li>
+								<li>
+									<a href="https://shopifyinvestors.com/home/default.aspx" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="investors">
+										Investors
+									</a>
+								</li>
+								<li>
+									<a href="https://www.shopify.com/news" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="press-and-media">
+										Press and Media
+									</a>
+								</li>
+								<li>
+									<Link href="/partners" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="partners">
+										Partners
+									</Link>
+								</li>
+								<li>
+									<Link href="/affiliates" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="affiliates">
+										Affiliates
+									</Link>
+								</li>
+								<li>
+									<Link href="/legal" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="legal">
+										Legal
+									</Link>
+								</li>
+								<li>
+									<a href="https://www.shopifystatus.com/" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="service-status">
+										Service Status
+									</a>
+								</li>
+							</ul>
 						</div>
 
-						{/* Important Links Column */}
-						<div className="footer__block-item">
-							<button onClick={() => toggleSection("links")} className="footer__title w-full text-left flex justify-between items-center text-lg font-semibold mb-4 py-4 md:py-0">
-								<span>Important Links</span>
-								<span className={`transform transition-transform duration-300 md:hidden ${openSection === "links" ? "rotate-45" : ""}`}>
-									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-									</svg>
-								</span>
-							</button>
-							<div className={`footer__content transition-all duration-300 overflow-hidden md:h-auto ${openSection === "links" ? "h-auto" : "h-0 md:h-auto"}`}>
-								<ul className="space-y-3 text-gray-300" role="list">
-									<li>
-										<Link href="/collections/all" className="hover:text-white transition-colors">
-											All Products
-										</Link>
-									</li>
-									<li>
-										<Link href="/pages/instructions" className="hover:text-white transition-colors">
-											How To's
-										</Link>
-									</li>
-									<li>
-										<Link href="/pages/faq" className="hover:text-white transition-colors">
-											FAQ
-										</Link>
-									</li>
-									<li>
-										<Link href="/pages/contact" className="hover:text-white transition-colors">
-											Bulk Order
-										</Link>
-									</li>
-									<li>
-										<Link href="/pages/contact" className="hover:text-white transition-colors">
-											Contact Us
-										</Link>
-									</li>
-									<li>
-										<Link href="/policies/terms-of-service" className="hover:text-white transition-colors">
-											Terms of Service
-										</Link>
-									</li>
-									<li>
-										<Link href="/policies/refund-policy" className="hover:text-white transition-colors">
-											Returns
-										</Link>
-									</li>
-								</ul>
-							</div>
+						{/* Support Section */}
+						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="support">
+							<h2 className="text-base font-bold text-white">Support</h2>
+							<ul className="mt-4 md:mt-6">
+								<li>
+									<a href="https://help.shopify.com/en/questions" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="merchant-support">
+										Merchant Support
+									</a>
+								</li>
+								<li>
+									<a href="https://help.shopify.com/en/" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="help-center">
+										Help Center
+									</a>
+								</li>
+								<li>
+									<a href="https://www.shopify.com/partners/directory" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="hire-a-partner">
+										Hire a Partner
+									</a>
+								</li>
+								<li>
+									<a href="https://academy.shopify.com" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-academy">
+										Shopify Academy
+									</a>
+								</li>
+								<li>
+									<a href="https://community.shopify.com/c/Shopify-Community/ct-p/en" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-community">
+										Shopify Community
+									</a>
+								</li>
+							</ul>
 						</div>
 
-						{/* Disclaimer Column */}
-						<div className="footer__block-item">
-							<button onClick={() => toggleSection("disclaimer")} className="footer__title w-full text-left flex justify-between items-center text-lg font-semibold mb-4 py-4 md:py-0">
-								<span>Disclaimer</span>
-								<span className={`transform transition-transform duration-300 md:hidden ${openSection === "disclaimer" ? "rotate-45" : ""}`}>
-									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-									</svg>
-								</span>
-							</button>
-							<div className={`footer__content transition-all duration-300 overflow-hidden md:h-auto ${openSection === "disclaimer" ? "h-auto" : "h-0 md:h-auto"}`}>
-								<div className="text-gray-300">
-									<p>Mycology supplies are intended to assist the growth or research of legal mushrooms according to a customer's local laws. We don't condone the usage of our mycology supplies for any other purpose.</p>
-								</div>
-							</div>
+						{/* Developers Section */}
+						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="developers">
+							<h2 className="text-base font-bold text-white">Developers</h2>
+							<ul className="mt-4 md:mt-6">
+								<li>
+									<a href="https://shopify.dev" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-dev">
+										Shopify.dev
+									</a>
+								</li>
+								<li>
+									<a href="https://shopify.dev/api" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="api-documentation">
+										API Documentation
+									</a>
+								</li>
+								<li>
+									<a href="https://devdegree.ca" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="dev-degree">
+										Dev Degree
+									</a>
+								</li>
+							</ul>
+						</div>
+
+						{/* Products Section */}
+						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="products">
+							<h2 className="text-base font-bold text-white">Products</h2>
+							<ul className="mt-4 md:mt-6">
+								<li>
+									<a href="https://shop.app" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shop">
+										Shop
+									</a>
+								</li>
+								<li>
+									<Link href="/shop-pay" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shop-pay">
+										Shop Pay
+									</Link>
+								</li>
+								<li>
+									<Link href="/plus" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-plus">
+										Shopify Plus
+									</Link>
+								</li>
+								<li>
+									<Link href="/fulfillment" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-fulfillment-network">
+										Shopify Fulfillment Network
+									</Link>
+								</li>
+								<li>
+									<a href="https://www.linkpop.com/" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="linkpop">
+										Linkpop
+									</a>
+								</li>
+								<li>
+									<Link href="/enterprise" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="shopify-for-enterprise">
+										Shopify for Enterprise
+									</Link>
+								</li>
+							</ul>
+						</div>
+
+						{/* Global Impact Section */}
+						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="global-impact">
+							<h2 className="text-base font-bold text-white">Global Impact</h2>
+							<ul className="mt-4 md:mt-6">
+								<li>
+									<Link href="/climate" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="sustainability">
+										Sustainability
+									</Link>
+								</li>
+								<li>
+									<Link href="/about/social-impact" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="social-impact">
+										Social Impact
+									</Link>
+								</li>
+								<li>
+									<a href="https://www.shopify.com/1mbb" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="build-black">
+										Build Black
+									</a>
+								</li>
+								<li>
+									<a href="https://buildnative.shop" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="build-native">
+										Build Native
+									</a>
+								</li>
+								<li>
+									<Link href="/plus/commerce-trends" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="research">
+										Research
+									</Link>
+								</li>
+							</ul>
+						</div>
+
+						{/* Solutions Section */}
+						<div className="w-[calc(50%_-_1rem)] sm:w-fit" data-component-name="solutions">
+							<h2 className="text-base font-bold text-white">Solutions</h2>
+							<ul className="mt-4 md:mt-6">
+								<li>
+									<Link href="/online" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="online-store-builder">
+										Online Store Builder
+									</Link>
+								</li>
+								<li>
+									<Link href="/website/builder" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="website-builder">
+										Website Builder
+									</Link>
+								</li>
+								<li>
+									<Link href="/tour/ecommerce-website" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="ecommerce-website">
+										Ecommerce Website
+									</Link>
+								</li>
+							</ul>
 						</div>
 					</div>
-
-					{/* Footer Aside */}
-					<aside className="footer__aside border-t border-gray-800">
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8">
-							{/* Country/Region Selector */}
-							<div className="footer__aside-item">
-								<div className="flex items-center">
-									<button type="button" className="text-gray-300 hover:text-white transition-colors flex items-center">
-										United States (USD $)
-										<svg className="ml-2 w-4 h-4" viewBox="0 0 12 8" fill="none" stroke="currentColor">
-											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 2l4 4 4-4" />
-										</svg>
-									</button>
-								</div>
-							</div>
-
-							{/* Social Media */}
-							<div className="footer__aside-item">
-								<p className="text-sm font-semibold mb-4">Follow Us</p>
-								<ul className="flex gap-4" role="list">
-									<li>
-										<Link href="https://facebook.com/zugzology" target="_blank" rel="noopener" className="text-gray-300 hover:text-white transition-colors">
-											<span className="sr-only">Facebook</span>
-											<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-												<path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
-											</svg>
-										</Link>
-									</li>
-									<li>
-										<Link href="https://twitter.com/zugzology" target="_blank" rel="noopener" className="text-gray-300 hover:text-white transition-colors">
-											<span className="sr-only">Twitter</span>
-											<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-												<path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
-											</svg>
-										</Link>
-									</li>
-									<li>
-										<Link href="https://instagram.com/zugzology" target="_blank" rel="noopener" className="text-gray-300 hover:text-white transition-colors">
-											<span className="sr-only">Instagram</span>
-											<svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-												<path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z" />
-											</svg>
-										</Link>
-									</li>
-								</ul>
-							</div>
-
-							{/* Payment Methods */}
-							<div className="footer__aside-item">
-								<p className="text-sm font-semibold mb-4">We Accept</p>
-								<div className="flex flex-wrap gap-2">
-									<Image src="/images/payment/visa.svg" alt="Visa" width={38} height={24} />
-									<Image src="/images/payment/mastercard.svg" alt="Mastercard" width={38} height={24} />
-									<Image src="/images/payment/amex.svg" alt="American Express" width={38} height={24} />
-									<Image src="/images/payment/paypal.svg" alt="PayPal" width={38} height={24} />
-								</div>
-							</div>
-						</div>
-
-						{/* Copyright */}
-						<div className="text-center py-8 border-t border-gray-800">
-							<p className="text-sm text-gray-400">© 2025 Zugzology</p>
-						</div>
-					</aside>
 				</div>
-			</div>
+			</section>
+
+			{/* Bottom Section */}
+			<section className="border-t my-0 container mx-auto max-sm:mx-0 xl:w-full border-white border-opacity-20 bg-inherit" data-section-name="footer" data-section-index="2" data-component-name="footer" data-viewable-component="true">
+				<div className="flex flex-col items-center justify-center gap-4 py-8 sm:items-start sm:gap-8 lg:flex-row lg:justify-between lg:gap-10 bg-black text-white">
+					<div className="mt-1 flex w-full flex-col items-center justify-center sm:flex-row sm:items-start sm:justify-start sm:gap-8 lg:gap-14">
+						{/* Region Selector */}
+						<div className="relative hidden sm:block" data-click-outside="dismiss" data-component-name="regions">
+							<button aria-controls="regionSelector" aria-expanded="false" aria-haspopup="true" className="bg-transparent mx-auto md:inline-block py-3 text-[#E0E0E0] hover:text-white" type="button" data-component-name="region-selector-open" tabIndex={0} aria-label="Region Navigation. Current: USA">
+								<span className="inline-flex items-center">
+									<Globe className="mr-1 h-4 w-4" />
+									<span className="break-keep">USA</span>
+									<svg viewBox="0 0 10 5" aria-hidden="true" focusable="false" className="ml-2 h-3 w-3 fill-white">
+										<path d="m0 0 5 5 5-5H0z"></path>
+									</svg>
+								</span>
+							</button>
+						</div>
+
+						{/* Legal Links */}
+						<ul className="flex flex-col items-center flex-wrap sm:flex-row sm:items-start gap-x-8 md:gap-x-10">
+							<li className="font-semi-medium mt-2 block py-3 sm:mt-0 text-[#E0E0E0] hover:text-white">
+								<Link href="/legal/terms" className="hover:underline" data-component-name="terms-of-service">
+									Terms of Service
+								</Link>
+							</li>
+							<li className="font-semi-medium mt-2 block py-3 sm:mt-0 text-[#E0E0E0] hover:text-white">
+								<Link href="/legal/privacy" className="hover:underline" data-component-name="privacy-policy">
+									Privacy Policy
+								</Link>
+							</li>
+							<li className="font-semi-medium mt-2 block py-3 sm:mt-0 text-[#E0E0E0] hover:text-white">
+								<Link href="/sitemap" className="hover:underline" data-component-name="sitemap">
+									Sitemap
+								</Link>
+							</li>
+							<li className="font-semi-medium mt-2 block py-3 sm:mt-0 text-[#E0E0E0] hover:text-white">
+								<a href="https://privacy.shopify.com/en" className="hover:underline" data-component-name="privacy-choices">
+									Privacy Choices
+								</a>
+							</li>
+						</ul>
+					</div>
+
+					{/* Social Media Links */}
+					<ul className="flex gap-4 md:gap-6" data-component-name="social">
+						<li>
+							<a href="https://www.facebook.com/shopify" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-facebook" aria-label="External source: Facebook (Opens in a new window)">
+								<Facebook className="h-full w-full" />
+							</a>
+						</li>
+						<li>
+							<a href="https://twitter.com/shopify" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-twitter" aria-label="External source: Twitter (Opens in a new window)">
+								<Twitter className="h-full w-full" />
+							</a>
+						</li>
+						<li>
+							<a href="https://www.youtube.com/user/shopify" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-youtube" aria-label="External source: YouTube (Opens in a new window)">
+								<Youtube className="h-full w-full" />
+							</a>
+						</li>
+						<li>
+							<a href="https://www.instagram.com/shopify/" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-instagram" aria-label="External source: Instagram (Opens in a new window)">
+								<Instagram className="h-full w-full" />
+							</a>
+						</li>
+						<li>
+							<a href="https://www.linkedin.com/company/shopify" rel="me nofollow noopener noreferrer" target="_blank" className="block h-8 w-8 fill-white hover:fill-shade-30" data-component-name="social-linkedin" aria-label="External source: LinkedIn (Opens in a new window)">
+								<Linkedin className="h-full w-full" />
+							</a>
+						</li>
+					</ul>
+				</div>
+			</section>
 		</footer>
 	);
 }

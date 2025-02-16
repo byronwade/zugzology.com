@@ -1,5 +1,3 @@
-"use server";
-
 import "./globals.css";
 import type { Metadata } from "next";
 import Header from "@/components/header/header";
@@ -7,6 +5,11 @@ import { Providers } from "./providers";
 import { Footer } from "@/components/footer/footer";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
+import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
+import { cn } from "@/lib/utils";
+import { fontSans } from "@/lib/fonts";
+import { ThemeProvider } from "@/components/theme-provider";
+import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider";
 
 // Loading components
 function HeaderLoading() {
@@ -23,11 +26,9 @@ function FooterLoading() {
 
 // Optimized global settings with cache
 async function getGlobalSettings() {
-	"use cache";
-
-	return {
+	const settings = {
 		siteName: "Zugzology",
-		siteDescription: "Premium mushroom cultivation supplies and equipment.",
+		siteDescription: "Premium mushroom cultivation supplies and equipment. Find high-quality mushroom growing supplies, cultivation tools, and expert guidance for successful mushroom cultivation.",
 		socialLinks: {
 			twitter: "@zugzology",
 			facebook: "zugzology",
@@ -35,20 +36,20 @@ async function getGlobalSettings() {
 		},
 		googleVerificationId: "YOUR_GOOGLE_VERIFICATION_ID",
 	};
+
+	return settings;
 }
 
+// Move metadata to a function to make it dynamic if needed
 export async function generateMetadata(): Promise<Metadata> {
-	const settings = await getGlobalSettings();
-
 	return {
 		metadataBase: new URL("https://zugzology.com"),
 		title: {
-			template: `%s | ${settings.siteName}`,
-			default: `${settings.siteName} - Premium Mushroom Cultivation Supplies`,
+			default: "Zugzology - Premium Mushroom Cultivation Supplies",
+			template: "%s | Zugzology",
 		},
-		description: settings.siteDescription,
-		applicationName: settings.siteName,
-		keywords: ["mushroom cultivation", "mycology supplies", "cultivation equipment"],
+		description: "Premium mushroom cultivation supplies and equipment. Find high-quality mushroom growing supplies, cultivation tools, and expert guidance for successful mushroom cultivation.",
+		keywords: ["mushroom cultivation", "mushroom supplies", "growing equipment", "cultivation tools", "premium mushroom", "mycology supplies"],
 		authors: [{ name: "Zugzology" }],
 		creator: "Zugzology",
 		publisher: "Zugzology",
@@ -57,10 +58,30 @@ export async function generateMetadata(): Promise<Metadata> {
 			address: false,
 			telephone: false,
 		},
+		robots: {
+			index: true,
+			follow: true,
+			googleBot: {
+				index: true,
+				follow: true,
+				"max-video-preview": -1,
+				"max-image-preview": "large",
+				"max-snippet": -1,
+			},
+		},
+		verification: {
+			google: "YOUR_GOOGLE_VERIFICATION_ID",
+		},
+		alternates: {
+			canonical: "https://zugzology.com",
+		},
 		openGraph: {
 			type: "website",
 			locale: "en_US",
-			siteName: settings.siteName,
+			url: "https://zugzology.com",
+			siteName: "Zugzology",
+			title: "Zugzology - Premium Mushroom Cultivation Supplies",
+			description: "Premium mushroom cultivation supplies and equipment. Find high-quality mushroom growing supplies, cultivation tools, and expert guidance.",
 			images: [
 				{
 					url: "https://zugzology.com/og-image.jpg",
@@ -72,24 +93,39 @@ export async function generateMetadata(): Promise<Metadata> {
 		},
 		twitter: {
 			card: "summary_large_image",
-			site: settings.socialLinks.twitter,
+			title: "Zugzology - Premium Mushroom Cultivation Supplies",
+			description: "Premium mushroom cultivation supplies and equipment. Expert guidance for successful mushroom cultivation.",
+			creator: "@zugzology",
+			images: ["https://zugzology.com/twitter-image.jpg"],
 		},
-		robots: {
-			index: true,
-			follow: true,
-			googleBot: {
-				index: true,
-				follow: true,
-				"max-image-preview": "large",
-				"max-video-preview": -1,
-				"max-snippet": -1,
-			},
+		icons: {
+			icon: "/favicon.ico",
+			shortcut: "/favicon-16x16.png",
+			apple: "/apple-touch-icon.png",
+			other: [
+				{
+					rel: "icon",
+					type: "image/png",
+					sizes: "32x32",
+					url: "/favicon-32x32.png",
+				},
+				{
+					rel: "icon",
+					type: "image/png",
+					sizes: "16x16",
+					url: "/favicon-16x16.png",
+				},
+				{
+					rel: "mask-icon",
+					url: "/safari-pinned-tab.svg",
+					color: "#5bbad5",
+				},
+			],
 		},
-		alternates: {
-			canonical: "https://zugzology.com",
-		},
-		verification: {
-			google: settings.googleVerificationId,
+		manifest: "/site.webmanifest",
+		other: {
+			"msapplication-TileColor": "#603cba",
+			"theme-color": "#ffffff",
 		},
 	};
 }
@@ -97,30 +133,33 @@ export async function generateMetadata(): Promise<Metadata> {
 // Server Component for the app content
 async function AppContent({ children }: { children: React.ReactNode }) {
 	return (
-		<div className="flex min-h-screen flex-col">
-			<Suspense fallback={<HeaderLoading />}>
-				<Header />
-			</Suspense>
-			<Suspense fallback={<MainLoading />}>
-				<main className="flex-1">{children}</main>
-			</Suspense>
-			<Suspense fallback={<FooterLoading />}>
-				<Footer />
-			</Suspense>
-		</div>
+		<KeyboardShortcutsProvider>
+			<div className="flex min-h-screen flex-col">
+				<Suspense fallback={<HeaderLoading />}>
+					<Header />
+				</Suspense>
+				<Suspense fallback={<MainLoading />}>
+					<main className="flex-1">{children}</main>
+				</Suspense>
+				<Suspense fallback={<FooterLoading />}>
+					<Footer />
+				</Suspense>
+				<KeyboardShortcutsHelp />
+			</div>
+		</KeyboardShortcutsProvider>
 	);
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<head>
-				<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5329391577972523" crossOrigin="anonymous" />
-			</head>
-			<body>
-				<Providers>
-					<AppContent>{children}</AppContent>
-				</Providers>
+			<head />
+			<body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
+				<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+					<Providers>
+						<AppContent>{children}</AppContent>
+					</Providers>
+				</ThemeProvider>
 				<Toaster richColors position="top-center" />
 			</body>
 		</html>

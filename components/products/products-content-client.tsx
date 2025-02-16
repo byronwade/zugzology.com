@@ -5,8 +5,8 @@ import { useSearch } from "@/lib/providers/search-provider";
 import { ProductList } from "@/components/products/product-list";
 import { ProductsHeader } from "@/components/products/products-header";
 import { useMemo, useEffect, useRef } from "react";
-import Link from "next/link";
-import type { ShopifyCollection } from "@/lib/types";
+import { Link } from "@/components/ui/link";
+import type { ShopifyCollection, ShopifyProduct } from "@/lib/types";
 import { useProductFilters } from "@/lib/hooks/use-product-filters";
 import { Badge } from "@/components/ui/badge";
 
@@ -17,7 +17,7 @@ interface ProductsContentClientProps {
 
 export function ProductsContentClient({ collection, searchQuery }: ProductsContentClientProps) {
 	const { view, setView, mounted } = useViewMode();
-	const { debouncedQuery, searchResults, isSearching, setAllProducts } = useSearch();
+	const { searchQuery: debouncedQuery, searchResults, isSearching, setAllProducts } = useSearch();
 	const initRef = useRef(false);
 
 	// Get initial products from collection
@@ -34,18 +34,19 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 	}, [initialProducts, setAllProducts]);
 
 	// Apply filters to products
-	const { filteredProducts, filters, hasActiveFilters, updateFilter, handleClearFilters } = useProductFilters(initialProducts);
+	const { filteredProducts, filters, updateFilter } = useProductFilters(initialProducts);
 
 	// Get current products to display (search results or filtered products)
 	const products = useMemo(() => {
-		return isSearching ? searchResults : filteredProducts;
+		return isSearching ? searchResults.filter((result): result is { type: "product"; item: ShopifyProduct } => result.type === "product").map((result) => result.item) : filteredProducts;
 	}, [isSearching, searchResults, filteredProducts]);
 
 	// Show loading state during hydration
 	if (!mounted) {
 		return (
-			<div className="w-full h-screen flex items-center justify-center">
-				<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+			<div className="w-full h-screen flex items-center justify-center" role="status" aria-label="Loading products">
+				<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary" aria-hidden="true"></div>
+				<span className="sr-only">Loading products...</span>
 			</div>
 		);
 	}
@@ -53,12 +54,16 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 	// Handle empty search results
 	if (isSearching && !products.length) {
 		return (
-			<main className="w-full">
-				<ProductsHeader title={`Search Results for "${debouncedQuery}"`} description="No products found matching your search." count={0} view={view} onViewChange={setView} filters={filters} hasActiveFilters={hasActiveFilters} onUpdateFilter={updateFilter} onClearFilters={handleClearFilters} />
-				<section className="flex flex-col items-center justify-center py-12 px-4 text-center">
-					<p className="text-lg text-muted-foreground mb-4">No products found</p>
+			<main className="w-full" itemScope itemType="https://schema.org/SearchResultsPage">
+				<meta itemProp="name" content={`Search Results for "${debouncedQuery}" - Zugzology`} />
+				<meta itemProp="description" content={`No products found matching your search for "${debouncedQuery}"`} />
+				<ProductsHeader title={`Search Results for "${debouncedQuery}"`} description="No products found matching your search." count={0} view={view} onViewChange={setView} filters={filters} onUpdateFilter={updateFilter} />
+				<section className="flex flex-col items-center justify-center py-12 px-4 text-center" aria-label="No results message">
+					<p className="text-lg text-muted-foreground mb-4" role="alert">
+						No products found
+					</p>
 					<p className="text-sm text-muted-foreground mb-6">Try adjusting your search or filters to find what you're looking for.</p>
-					<Link prefetch={true} href="/products" className="text-primary hover:underline">
+					<Link prefetch={true} href="/products" className="text-primary hover:underline" aria-label="View all products">
 						View all products
 					</Link>
 				</section>
@@ -69,13 +74,17 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 	// Handle empty collection or no filtered results
 	if (!isSearching && !products.length) {
 		return (
-			<main className="w-full">
-				<ProductsHeader title={collection?.title || "Products"} description={collection?.description} count={0} view={view} onViewChange={setView} filters={filters} hasActiveFilters={hasActiveFilters} onUpdateFilter={updateFilter} onClearFilters={handleClearFilters} />
-				<section className="flex flex-col items-center justify-center py-12 px-4 text-center">
-					<p className="text-lg text-muted-foreground mb-4">No products found</p>
-					<p className="text-sm text-muted-foreground mb-6">{hasActiveFilters ? "Try adjusting your filters to see more products." : "This collection is currently empty."}</p>
-					{hasActiveFilters && (
-						<Link prefetch={true} href={`/collections/${collection.handle}`} className="text-primary hover:underline">
+			<main className="w-full" itemScope itemType="https://schema.org/CollectionPage">
+				<meta itemProp="name" content={`${collection?.title || "Products"} - Zugzology`} />
+				<meta itemProp="description" content={collection?.description || "Browse our collection of products"} />
+				<ProductsHeader title={collection?.title || "Products"} description={collection?.description} count={0} view={view} onViewChange={setView} filters={filters} onUpdateFilter={updateFilter} />
+				<section className="flex flex-col items-center justify-center py-12 px-4 text-center" aria-label="No products message">
+					<p className="text-lg text-muted-foreground mb-4" role="alert">
+						No products found
+					</p>
+					<p className="text-sm text-muted-foreground mb-6">{filters.sort !== "featured" ? "Try adjusting your filters to see more products." : "This collection is currently empty."}</p>
+					{filters.sort !== "featured" && (
+						<Link prefetch={true} href={`/collections/${collection.handle}`} className="text-primary hover:underline" aria-label="Clear all filters">
 							Clear all filters
 						</Link>
 					)}
@@ -85,9 +94,16 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 	}
 
 	return (
-		<main className="w-full">
-			<ProductsHeader title={isSearching ? `Search Results for "${debouncedQuery}"` : collection.title} description={isSearching ? `Found ${products.length} products matching your search` : hasActiveFilters ? `Showing ${products.length} filtered products` : collection.description} count={products.length} view={view} onViewChange={setView} filters={filters} hasActiveFilters={hasActiveFilters} onUpdateFilter={updateFilter} onClearFilters={handleClearFilters} />
-			<section className="px-4 py-6">
+		<main className="w-full" itemScope itemType="https://schema.org/CollectionPage">
+			<meta itemProp="name" content={`${isSearching ? `Search Results for "${debouncedQuery}"` : collection.title} - Zugzology`} />
+			<meta itemProp="description" content={isSearching ? `Found ${products.length} products matching your search` : collection.description} />
+			<meta itemProp="numberOfItems" content={String(products.length)} />
+
+			<ProductsHeader title={isSearching ? `Search Results for "${debouncedQuery}"` : collection.title} description={isSearching ? `Found ${products.length} products matching your search` : filters.sort !== "featured" ? `Showing ${products.length} filtered products` : collection.description} count={products.length} view={view} onViewChange={setView} filters={filters} onUpdateFilter={updateFilter} />
+
+			<section className="px-4 py-6" aria-label={isSearching ? "Search Results" : "Product Catalog"} itemScope itemType="https://schema.org/ItemList">
+				<meta itemProp="name" content={isSearching ? `Search Results for "${debouncedQuery}"` : collection.title} />
+				<meta itemProp="numberOfItems" content={String(products.length)} />
 				<ProductList products={products} view={view} />
 			</section>
 		</main>

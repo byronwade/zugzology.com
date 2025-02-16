@@ -62,15 +62,6 @@ const Breadcrumb = memo(({ title }: { title: string }) => (
 
 Breadcrumb.displayName = "Breadcrumb";
 
-// Loading component
-const LoadingSpinner = memo(() => (
-	<div className="w-full h-screen flex items-center justify-center">
-		<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
-	</div>
-));
-
-LoadingSpinner.displayName = "LoadingSpinner";
-
 // Memoize media array
 const getMediaArray = (product: ShopifyProduct) => {
 	const mediaItems: (ShopifyMediaImage | ShopifyMediaVideo)[] = [];
@@ -128,6 +119,10 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 	const [historyProducts, setHistoryProducts] = useState<ShopifyProduct[]>([]);
 	const [randomProducts, setRandomProducts] = useState<ShopifyProduct[]>([]);
 
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
 	// Track viewed products in localStorage
 	useEffect(() => {
 		if (!mounted) return;
@@ -182,10 +177,6 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 	// Memoize media array
 	const mediaItems = useMemo(() => getMediaArray(product), [product]);
 
-	useEffect(() => {
-		setMounted(true);
-	}, []);
-
 	// Memoize variant selection effect
 	useEffect(() => {
 		if (!mounted) return;
@@ -227,8 +218,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 		name: product.title,
 		description: product.description,
 		image: product.images?.edges[0]?.node?.url,
-		sku: product.variants?.edges[0]?.node?.sku,
-		mpn: product.variants?.edges[0]?.node?.sku,
+		identifier: product.variants?.edges[0]?.node?.id,
 		brand: {
 			"@type": "Brand",
 			name: product.vendor || "Zugzology",
@@ -255,7 +245,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 	const ratingValue = product.metafields?.edges.find(({ node }) => node.key === "rating")?.node.value;
 
 	if (reviewCount && ratingValue) {
-		jsonLd.aggregateRating = {
+		(jsonLd as any).aggregateRating = {
 			"@type": "AggregateRating",
 			ratingValue,
 			reviewCount,
@@ -264,9 +254,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 		};
 	}
 
-	if (!mounted) {
-		return <LoadingSpinner />;
-	}
+	if (!mounted) return null;
 
 	return (
 		<>

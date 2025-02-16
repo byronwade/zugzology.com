@@ -4,24 +4,7 @@ import { getCollection } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";
 import { ProductsContentClient } from "@/components/products/products-content-client";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import type { ShopifyProduct, ShopifyCollection } from "@/lib/types";
-
-// Loading component for better UX
-function CollectionLoading() {
-	return (
-		<div className="w-full h-screen animate-pulse">
-			<div className="max-w-screen-xl mx-auto px-4">
-				<div className="h-8 w-1/4 bg-gray-200 rounded mb-4" />
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-					{[...Array(12)].map((_, i) => (
-						<div key={i} className="bg-gray-200 rounded-lg h-64" />
-					))}
-				</div>
-			</div>
-		</div>
-	);
-}
 
 // Optimize collection data structure
 function optimizeCollectionData(collection: ShopifyCollection | null): ShopifyCollection | null {
@@ -109,17 +92,10 @@ async function getCollectionData(slug: string): Promise<ShopifyCollection | null
 	}
 }
 
-// Generate metadata for the collection
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-	const nextjs15 = await params;
-	if (!nextjs15?.slug) {
-		return {
-			title: "Collection Not Found",
-			description: "The requested collection could not be found.",
-		};
-	}
+export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
+	const nextParams = await params;
+	const collection = await getCollectionData(nextParams.slug);
 
-	const collection = await getCollectionData(nextjs15.slug);
 	if (!collection) {
 		return {
 			title: "Collection Not Found",
@@ -127,14 +103,37 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 		};
 	}
 
+	const title = `${collection.title} | Zugzology`;
+	const description = collection.description || `Shop our ${collection.title} collection at Zugzology. Premium mushroom cultivation supplies and equipment.`;
+
 	return {
-		title: collection.title,
-		description: collection.description || `Shop ${collection.title} at Zugzology`,
+		title,
+		description,
+		openGraph: {
+			title,
+			description,
+			type: "website",
+			images: collection.image
+				? [
+						{
+							url: collection.image.url,
+							width: collection.image.width,
+							height: collection.image.height,
+							alt: collection.image.altText || collection.title,
+						},
+				  ]
+				: undefined,
+		},
+		twitter: {
+			card: "summary_large_image",
+			title,
+			description,
+			images: collection.image ? [collection.image.url] : undefined,
+		},
 	};
 }
 
-// Collection page component with proper Suspense boundaries
-async function CollectionContent({ params, searchParams }: CollectionPageProps) {
+export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
 	const nextjs15 = await params;
 	const nextjs15Search = await searchParams;
 
@@ -148,17 +147,5 @@ async function CollectionContent({ params, searchParams }: CollectionPageProps) 
 		return notFound();
 	}
 
-	return (
-		<Suspense fallback={<CollectionLoading />}>
-			<ProductsContentClient collection={collection} searchQuery={nextjs15Search?.sort} />
-		</Suspense>
-	);
-}
-
-export default async function CollectionPage(props: CollectionPageProps) {
-	return (
-		<Suspense fallback={<CollectionLoading />}>
-			<CollectionContent {...props} />
-		</Suspense>
-	);
+	return <ProductsContentClient collection={collection} searchQuery={nextjs15Search?.sort} />;
 }

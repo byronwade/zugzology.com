@@ -1,19 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 import { formatPrice, cn } from "@/lib/utils";
 import type { ShopifyProduct } from "@/lib/types";
-import { AddToCartButton } from "@/components/products/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Sparkles, TrendingUp, Star, ShoppingBag, Zap, ArrowRight, ShoppingCart, Loader2 } from "lucide-react";
-import { useSearch } from "@/lib/providers/search-provider";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ShoppingCart, ArrowRight, ShoppingBag, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/providers/cart-provider";
 import { toast } from "sonner";
 import { useState } from "react";
+import { createCart, addToCart } from "@/lib/actions/shopify";
 
 interface ProductCardProps {
 	product: ShopifyProduct;
@@ -21,227 +18,235 @@ interface ProductCardProps {
 	view?: "grid" | "list";
 	variantId?: string;
 	quantity?: number;
-	source?: "history" | "recommended" | "trending" | "popular" | "complementary" | "related";
-	sectionId?: string;
-	isAvailable?: boolean;
 }
 
-export function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0, source, sectionId, isAvailable: propIsAvailable }: ProductCardProps) {
-	const router = useRouter();
-	const { setSearchQuery } = useSearch();
-	const { createNewCart } = useCart();
+export function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0 }: ProductCardProps) {
+	const { addItem } = useCart();
+	const [isAddingToCart, setIsAddingToCart] = useState(false);
 	const [isBuyingNow, setIsBuyingNow] = useState(false);
-	const firstImage = product.images?.edges?.[0]?.node;
+
+	// Get the first variant and its price
 	const firstVariant = product.variants?.edges?.[0]?.node;
-	const price = product.priceRange?.minVariantPrice?.amount || "0";
-	const productUrl = `/products/${product.handle}`;
-	const actualVariantId = variantId || firstVariant?.id;
+	const price = firstVariant?.price?.amount || "0";
 
-	// Updated variant check to be more precise
-	const hasVariants = product.variants?.edges?.length > 1 || product.options?.some((option) => option?.name !== "Title" && option?.values?.length > 0);
+	// Get the first image
+	const firstImage = product.images?.edges?.[0]?.node;
+	const imageUrl = firstImage?.url;
+	const imageAlt = firstImage?.altText || product.title;
 
-	// Use provided availability or fall back to variant check
-	const isAvailable = propIsAvailable ?? firstVariant?.availableForSale ?? false;
+	// Use product's availability if not explicitly provided
+	const isAvailable = firstVariant?.availableForSale ?? false;
 
-	const handleNavigate = () => {
-		setSearchQuery("");
+	// Determine product URL with collection and variant params if available
+	const productUrl = `/products/${product.handle}${collectionHandle ? `?collection=${collectionHandle}` : ""}${variantId ? `${collectionHandle ? "&" : "?"}variant=${variantId}` : ""}`;
+
+	const handleAddToCart = async (e: React.MouseEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+
+		if (!variantId || isAddingToCart) return;
+
+		setIsAddingToCart(true);
+		try {
+			await addItem({
+				merchandiseId: variantId,
+				quantity: 1,
+			});
+			toast.success("Added to cart");
+		} catch (error) {
+			console.error("Error adding to cart:", error);
+			toast.error("Failed to add to cart");
+		} finally {
+			setIsAddingToCart(false);
+		}
 	};
 
 	const handleBuyNow = async (e: React.MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
 
-		if (hasVariants) {
-			// If product has variants, redirect to product page
-			router.push(productUrl);
-			return;
-		}
-
-		if (!actualVariantId) {
-			toast.error("Please select a product variant");
-			return;
-		}
+		if (!variantId || isBuyingNow) return;
 
 		setIsBuyingNow(true);
 		try {
-			const merchandiseId = actualVariantId.includes("gid://shopify/ProductVariant/") ? actualVariantId : `gid://shopify/ProductVariant/${actualVariantId}`;
+			// Create a new cart
+			const cart = await createCart();
+			if (!cart?.id) {
+				throw new Error("Failed to create cart");
+			}
 
-			const cart = await createNewCart([
+			// Add the item to the cart
+			const updatedCart = await addToCart(cart.id, [
 				{
-					merchandiseId,
+					merchandiseId: variantId,
 					quantity: 1,
-					isPreOrder: !isAvailable,
 				},
 			]);
 
-			if (cart?.checkoutUrl) {
-				window.location.assign(cart.checkoutUrl);
-			} else {
-				throw new Error("No checkout URL available");
+			if (!updatedCart?.checkoutUrl) {
+				throw new Error("Failed to get checkout URL");
 			}
+
+			// Redirect to checkout
+			window.location.href = updatedCart.checkoutUrl;
 		} catch (error) {
-			console.error("Error in handleBuyNow:", error);
-			toast.error("Failed to proceed to checkout");
-		} finally {
+			console.error("Error processing buy now:", error);
+			toast.error("Failed to process purchase");
 			setIsBuyingNow(false);
 		}
 	};
 
-	const ImageContainer = ({ children, isListView = false }: { children: React.ReactNode; isListView?: boolean }) => (
-		<div className={cn("relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 hover:border-foreground/20 transition-colors duration-200", isListView ? "w-[200px] h-[200px] flex-shrink-0" : "aspect-square w-full")}>
-			{product.isGiftCard && (
-				<Badge variant="secondary" className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-600 z-10 text-xs font-semibold">
-					Digital Item
-				</Badge>
-			)}
-			{source && (
-				<div className="absolute top-2 left-2">
-					{source === "history" && (
-						<Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 text-xs">
-							<Clock className="w-3 h-3 mr-1" />
-							Recent
-						</Badge>
-					)}
-					{source === "recommended" && (
-						<Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100 text-xs">
-							<Sparkles className="w-3 h-3 mr-1" />
-							For You
-						</Badge>
-					)}
-					{source === "trending" && (
-						<Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
-							<TrendingUp className="w-3 h-3 mr-1" />
-							Trending
-						</Badge>
-					)}
-					{source === "popular" && (
-						<Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 text-xs">
-							<Star className="w-3 h-3 mr-1" />
-							Popular
-						</Badge>
-					)}
-					{source === "complementary" && (
-						<Badge variant="secondary" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100 text-xs">
-							<ShoppingBag className="w-3 h-3 mr-1" />
-							Pair With
-						</Badge>
-					)}
-					{source === "related" && (
-						<Badge variant="secondary" className="bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-100 text-xs">
-							<Zap className="w-3 h-3 mr-1" />
-							Similar
-						</Badge>
-					)}
-				</div>
-			)}
-			<div className="w-full h-full rounded-md overflow-hidden">{children}</div>
-		</div>
-	);
-
-	const ProductImage = ({ isListView = false }: { isListView?: boolean }) =>
-		firstImage ? (
-			<Image src={firstImage.url} alt={firstImage.altText || product.title} fill className="object-cover hover:scale-105 transition-transform duration-300 rounded-md" sizes={isListView ? "200px" : "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"} priority={view === "grid"} />
-		) : (
-			<div className="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-700 rounded-md">
-				<p className="text-sm text-neutral-500 dark:text-neutral-400">No image</p>
-			</div>
-		);
-
-	const ProductInfo = ({ isListView = false }: { isListView?: boolean }) => {
-		const TitleComponent = (
-			<div className={cn("flex flex-col", isListView && "min-h-0")}>
-				<h2 className={cn("font-medium text-base line-clamp-1", "hover:text-primary transition-colors")}>{product.title}</h2>
-				<div className="flex-1" />
-			</div>
-		);
-
-		// Get the compare at price from the product's price range
-		const compareAtPrice = product.priceRange?.maxVariantPrice?.amount;
-		const isOnSale = compareAtPrice && parseFloat(compareAtPrice) > parseFloat(price);
-		const discountPercentage = isOnSale ? Math.round((1 - parseFloat(price) / parseFloat(compareAtPrice)) * 100) : 0;
-
+	if (view === "list") {
 		return (
-			<div className={cn("flex flex-col", isListView ? "ml-4 flex-grow" : "mt-4 flex-1 justify-between")}>
-				<TooltipProvider>
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>{TitleComponent}</TooltipTrigger>
-						<TooltipContent side="top" className="max-w-[300px]">
-							<p className="text-sm">{product.title}</p>
-						</TooltipContent>
-					</Tooltip>
-				</TooltipProvider>
-				<div className="mt-2 flex items-center gap-2">
-					<div className="flex items-center gap-2">
-						<span className={cn("text-xl font-bold", isOnSale && "text-red-600 dark:text-red-500")}>{formatPrice(parseFloat(price))}</span>
-						{isOnSale && <span className="text-sm text-muted-foreground line-through">{formatPrice(parseFloat(compareAtPrice))}</span>}
-					</div>
-					{isOnSale && (
-						<Badge variant="destructive" className="text-xs font-semibold">
-							{discountPercentage}% OFF
-						</Badge>
-					)}
-				</div>
-				<div className="mt-2 space-y-1 text-sm">
-					{product.isGiftCard ? (
-						<p className="text-blue-600 dark:text-blue-500 font-medium">Digital Gift Card - Instant Delivery</p>
-					) : (
-						<>
-							<div className="flex flex-col gap-1">
-								{isAvailable ? (
-									<p className="text-green-600 dark:text-green-500 font-medium">{quantity > 0 ? `${quantity} in stock` : "In stock"}</p>
+			<div className="group py-4" role="article" aria-label={product.title}>
+				<div className="flex">
+					<Link href={productUrl} className="relative flex-shrink-0" aria-label={`View details for ${product.title}`}>
+						<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 hover:border-foreground/20 transition-colors duration-200 w-[200px] h-[200px]">
+							<div className="w-full h-full rounded-md overflow-hidden">
+								{imageUrl ? (
+									<Image src={imageUrl} alt={imageAlt} fill className="object-cover hover:scale-105 transition-transform duration-300 rounded-md" sizes="200px" />
 								) : (
-									<p className="text-amber-600 dark:text-amber-500 font-medium flex items-center gap-1">
-										<Clock className="h-4 w-4" />
-										Pre-order
-									</p>
+									<div className="flex h-full items-center justify-center">
+										<ShoppingBag className="h-12 w-12 text-neutral-400" aria-hidden="true" />
+									</div>
 								)}
+							</div>
+						</div>
+					</Link>
+
+					<div className="flex flex-col ml-4 flex-grow">
+						<Link href={productUrl} className="block" aria-label={`View details for ${product.title}`}>
+							<div className="flex flex-col min-h-0">
+								<h2 className="font-medium text-base line-clamp-1 group-hover:text-primary transition-colors">{product.title}</h2>
+								<div className="flex-1" />
+							</div>
+
+							<div className="mt-2 flex items-center gap-2">
+								<div className="flex items-center gap-2">
+									<span className="text-xl font-bold">{formatPrice(parseFloat(price))}</span>
+								</div>
+							</div>
+
+							{quantity > 0 && (
+								<div className="mt-2 space-y-1 text-sm">
+									<div className="flex flex-col gap-1">
+										<p className="text-green-600 dark:text-green-500 font-medium">{quantity} in stock</p>
+										<p className="text-green-600 dark:text-green-500">FREE Shipping</p>
+									</div>
+								</div>
+							)}
+						</Link>
+
+						<div className="mt-3 space-y-2">
+							<Button type="button" className="w-full bg-secondary hover:bg-secondary/80 text-foreground border border-foreground/10 hover:border-foreground/20 shadow-none h-10 max-w-[200px]" onClick={handleAddToCart} disabled={isAddingToCart || !isAvailable || !variantId} aria-label={isAddingToCart ? "Adding to cart..." : "Add to cart"}>
+								<div className="flex items-center justify-center gap-2">
+									{isAddingToCart ? (
+										<>
+											<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+											<span>Adding...</span>
+										</>
+									) : (
+										<>
+											<ShoppingCart className="h-4 w-4" aria-hidden="true" />
+											<span>Add to Cart</span>
+										</>
+									)}
+								</div>
+							</Button>
+
+							<Button type="button" className="w-full flex items-center justify-center max-w-[200px]" disabled={isBuyingNow || !isAvailable || !variantId} onClick={handleBuyNow} aria-label="Buy now">
+								{isBuyingNow ? (
+									<>
+										<Loader2 className="h-4 w-4 animate-spin mr-2" aria-hidden="true" />
+										<span>Processing...</span>
+									</>
+								) : (
+									<>
+										Buy Now
+										<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+									</>
+								)}
+							</Button>
+						</div>
+
+						<Link href={productUrl} className="block mt-4" aria-label={`View details for ${product.title}`}>
+							<p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3">{product.description}</p>
+						</Link>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="group py-4 bg-background rounded-lg" role="article" aria-label={product.title}>
+			<Link href={productUrl} className="block" aria-label={`View details for ${product.title}`}>
+				<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 hover:border-foreground/20 transition-colors duration-200 aspect-square w-full">
+					<div className="w-full h-full rounded-md overflow-hidden">
+						{imageUrl ? (
+							<Image src={imageUrl} alt={imageAlt} fill className="object-cover hover:scale-105 transition-transform duration-300 rounded-md" sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw" />
+						) : (
+							<div className="flex h-full items-center justify-center">
+								<ShoppingBag className="h-12 w-12 text-neutral-400" aria-hidden="true" />
+							</div>
+						)}
+					</div>
+				</div>
+
+				<div className="flex flex-col mt-4 flex-1 justify-between">
+					<div className="flex flex-col">
+						<h2 className="font-medium text-base line-clamp-1 group-hover:text-primary transition-colors">{product.title}</h2>
+						<div className="flex-1" />
+					</div>
+
+					<div className="mt-2 flex items-center gap-2">
+						<div className="flex items-center gap-2">
+							<span className="text-xl font-bold">{formatPrice(parseFloat(price))}</span>
+						</div>
+					</div>
+
+					{quantity > 0 && (
+						<div className="mt-2 space-y-1 text-sm">
+							<div className="flex flex-col gap-1">
+								<p className="text-green-600 dark:text-green-500 font-medium">{quantity} in stock</p>
 								<p className="text-green-600 dark:text-green-500">FREE Shipping</p>
 							</div>
-						</>
+						</div>
 					)}
 				</div>
-				<div className="mt-3 space-y-2">
-					<AddToCartButton className={cn("w-full bg-secondary hover:bg-secondary/80 text-foreground border border-foreground/10 hover:border-foreground/20 shadow-none", isListView && "max-w-[200px]")} variantId={actualVariantId} availableForSale={isAvailable} quantity={quantity} hasVariants={hasVariants} productHandle={product.handle} />
-					<Button variant="default" className={cn("w-full flex items-center justify-center", isListView && "max-w-[200px]")} onClick={handleBuyNow} disabled={isBuyingNow}>
-						{isBuyingNow ? (
+			</Link>
+
+			<div className="mt-3 space-y-2">
+				<Button type="button" className="w-full bg-secondary hover:bg-secondary/80 text-foreground border border-foreground/10 hover:border-foreground/20 shadow-none h-10" onClick={handleAddToCart} disabled={isAddingToCart || !isAvailable || !variantId} aria-label={isAddingToCart ? "Adding to cart..." : "Add to cart"}>
+					<div className="flex items-center justify-center gap-2">
+						{isAddingToCart ? (
 							<>
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Processing...
+								<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+								<span>Adding...</span>
 							</>
 						) : (
 							<>
-								Buy Now
-								<ArrowRight className="ml-2 h-4 w-4" />
+								<ShoppingCart className="h-4 w-4" aria-hidden="true" />
+								<span>Add to Cart</span>
 							</>
 						)}
-					</Button>
-				</div>
-				{isListView && <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3">{product.description}</p>}
-			</div>
-		);
-	};
+					</div>
+				</Button>
 
-	const CardContainer = ({ children }: { children: React.ReactNode }) => <div className="group py-4 block">{children}</div>;
-
-	return view === "grid" ? (
-		<CardContainer>
-			<Link href={productUrl} prefetch={true} onClick={handleNavigate}>
-				<ImageContainer>
-					<ProductImage />
-				</ImageContainer>
-			</Link>
-			<ProductInfo />
-		</CardContainer>
-	) : (
-		<CardContainer>
-			<div className="flex">
-				<Link href={productUrl} prefetch={true} onClick={handleNavigate}>
-					<ImageContainer isListView>
-						<ProductImage isListView />
-					</ImageContainer>
-				</Link>
-				<ProductInfo isListView />
+				<Button type="button" className="w-full flex items-center justify-center" disabled={isBuyingNow || !isAvailable || !variantId} onClick={handleBuyNow} aria-label="Buy now">
+					{isBuyingNow ? (
+						<>
+							<Loader2 className="h-4 w-4 animate-spin mr-2" aria-hidden="true" />
+							<span>Processing...</span>
+						</>
+					) : (
+						<>
+							Buy Now
+							<ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+						</>
+					)}
+				</Button>
 			</div>
-		</CardContainer>
+		</div>
 	);
 }

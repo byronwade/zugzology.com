@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { createCart, addToCart } from "@/lib/actions/shopify";
 
 interface ProductActionsProps {
 	selectedVariant: ShopifyProductVariant;
@@ -23,7 +24,7 @@ interface ProductActionsProps {
 }
 
 export function ProductActions({ selectedVariant, quantity, onQuantityChange, productHandle }: ProductActionsProps) {
-	const { addItem, createNewCart } = useCart();
+	const { addItem } = useCart();
 	const [isLoading, setIsLoading] = useState(false);
 	const [isBuyingNow, setIsBuyingNow] = useState(false);
 
@@ -61,27 +62,32 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 
 		setIsBuyingNow(true);
 		try {
-			const merchandiseId = selectedVariant.id.includes("gid://shopify/ProductVariant/") ? selectedVariant.id : `gid://shopify/ProductVariant/${selectedVariant.id}`;
+			// Create a new cart
+			const cart = await createCart();
+			if (!cart?.id) {
+				throw new Error("Failed to create cart");
+			}
 
-			const cart = await createNewCart([
+			// Add the item to the cart
+			const merchandiseId = selectedVariant.id.includes("gid://shopify/ProductVariant/") ? selectedVariant.id : `gid://shopify/ProductVariant/${selectedVariant.id}`;
+			const updatedCart = await addToCart(cart.id, [
 				{
 					merchandiseId,
 					quantity,
-					isPreOrder: !selectedVariant.availableForSale,
 				},
 			]);
 
-			if (cart?.checkoutUrl) {
-				window.location.assign(cart.checkoutUrl);
-			} else {
-				throw new Error("No checkout URL available");
+			if (!updatedCart?.checkoutUrl) {
+				throw new Error("Failed to get checkout URL");
 			}
+
+			// Redirect to checkout
+			window.location.href = updatedCart.checkoutUrl;
 		} catch (error) {
 			console.error("Error in handleBuyNow:", error);
 			toast.error("Failed to proceed to checkout");
-		} finally {
-			setIsBuyingNow(false);
 		}
+		setIsBuyingNow(false);
 	};
 
 	const handleQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {

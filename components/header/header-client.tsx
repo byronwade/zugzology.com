@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { Search, Sun, Moon, Sprout, User, ShoppingCart, Menu, Sparkles, X, ChevronRight, Brain, TestTube, Leaf, BookOpen } from "lucide-react";
+import { Link } from "@/components/ui/link";
+import { Search, Sun, Moon, Sprout, User, ShoppingCart, Menu, Sparkles, X, ChevronRight, Brain, TestTube, Leaf, BookOpen, ShoppingBag, Star, Tag, Package, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "next-themes";
@@ -19,6 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import type { ShopifyBlog } from "@/lib/types";
 import { SearchDropdown } from "@/components/search/search-dropdown";
 import { useSearch } from "@/lib/providers/search-provider";
+import Cookies from "js-cookie";
+import { SignOutButton } from "@/components/auth/sign-out-button";
+import { getCustomer } from "@/lib/services/shopify-customer";
 
 interface MenuItem {
 	id: string;
@@ -30,6 +33,7 @@ interface MenuItem {
 interface HeaderClientProps {
 	initialMenuItems: MenuItem[];
 	blogs: ShopifyBlog[];
+	isAuthenticated: boolean;
 }
 
 interface MicroDosingCard {
@@ -40,9 +44,10 @@ interface MicroDosingCard {
 	tag: string;
 }
 
-export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
+export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: HeaderClientProps) {
 	const { theme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
+	const [authState, setAuthState] = useState(isAuthenticated);
 	const router = useRouter();
 	const { openCart, cart, isInitialized } = useCart();
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -51,32 +56,20 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 	const { searchQuery, setSearchQuery, isSearching, setIsDropdownOpen, searchResults, allProducts, isDropdownOpen } = useSearch();
 	const [inputValue, setInputValue] = useState("");
 
-	// Debug logging
+	// Handle initial mount and auth state changes
 	useEffect(() => {
-		console.log("[HEADER] Search state:", {
-			searchQuery,
-			inputValue,
-			isSearching,
-			isDropdownOpen,
-			resultsCount: searchResults.length,
-			allProductsCount: allProducts.length,
-		});
-	}, [searchQuery, inputValue, isSearching, isDropdownOpen, searchResults, allProducts]);
-
-	// Sync input value with search query
-	useEffect(() => {
-		if (searchQuery !== inputValue) {
-			setInputValue(searchQuery);
-		}
-	}, [searchQuery]);
-
-	useEffect(() => {
+		console.log("💫 [Header Client] Component mounted, initial auth:", isAuthenticated);
 		setMounted(true);
-	}, []);
+		setAuthState(isAuthenticated);
+	}, [isAuthenticated]);
 
+	// Return null only for initial mount
 	if (!mounted) {
+		console.log("⏳ [Header Client] Not mounted yet");
 		return null;
 	}
+
+	console.log("🎯 [Header Client] Rendering with auth state:", authState);
 
 	// Only show cart quantity when both mounted and cart is initialized
 	const cartQuantity = cart?.totalQuantity ?? 0;
@@ -169,7 +162,7 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 	];
 
 	return (
-		<header className={cn("bg-background text-foreground sticky top-0 z-50")}>
+		<header className={cn("bg-background border-b sticky top-0 z-50")}>
 			{/* Top Bar */}
 			<div className="px-2 sm:px-4 py-3">
 				<div className="flex items-center justify-between gap-4">
@@ -189,7 +182,7 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 							<div className="relative">
 								<Input
 									type="text"
-									className="w-full pr-4 pl-10 text-[16px] h-8 sm:h-10 transition-colors focus:outline-none focus:ring-2 focus:ring-primary appearance-none select-none [&::-webkit-search-decoration]:hidden [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden"
+									className="w-full pr-4 pl-10 text-[16px] h-8 sm:h-10 bg-muted/50 focus:bg-background transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none select-none [&::-webkit-search-decoration]:hidden [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-results-button]:hidden [&::-webkit-search-results-decoration]:hidden"
 									placeholder={searchPlaceholder}
 									value={inputValue}
 									onChange={handleSearchChange}
@@ -202,7 +195,7 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 								/>
 								<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 								{inputValue && (
-									<Button type="button" variant="ghost" size="icon" onClick={handleSearchClear} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+									<Button type="button" variant="ghost" size="icon" onClick={handleSearchClear} className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7">
 										<X className="h-4 w-4" />
 										<span className="sr-only">Clear search</span>
 									</Button>
@@ -215,113 +208,160 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 					</div>
 
 					{/* Action Buttons */}
-					<div className="flex items-center space-x-2 flex-shrink-0">
+					<div className="flex items-center gap-2 flex-shrink-0">
+						{/* Learn & Grow Button */}
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white dark:bg-green-500 dark:hover:bg-green-600 h-8 sm:h-10 px-2 sm:px-4">
-									<Sprout className="h-4 w-4" />
+								<Button variant="ghost" size="sm" className="h-8 sm:h-10 px-2.5 sm:px-3">
+									<Sprout className="h-4 w-4 sm:mr-2" />
 									<span className="hidden sm:inline">Learn & Grow</span>
 								</Button>
 							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-[300px] p-2">
-								<div className="space-y-2">
-									{blogs?.map((blog) => (
-										<Link key={blog.id} href={`/blogs/${blog.handle}`} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted transition-colors">
-											<div className="flex-1">
-												<div className="flex items-center justify-between">
-													<h3 className="font-medium">{blog.title}</h3>
-													<span className="text-xs text-muted-foreground">{blog.articles.edges.length} articles</span>
-												</div>
-												<p className="text-sm text-muted-foreground">{blog.articles.edges[0]?.node.excerpt || "Explore our articles"}</p>
-											</div>
-										</Link>
-									))}
-									{!blogs?.length && <div className="p-2 text-sm text-muted-foreground">No blogs available</div>}
-								</div>
-							</DropdownMenuContent>
-						</DropdownMenu>
-
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white dark:bg-purple-500 dark:hover:bg-purple-600 h-8 sm:h-10 px-2 sm:px-4">
-									<Sparkles className="h-4 w-4" />
-									<span className="hidden sm:inline">Microdosing</span>
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-[340px] p-3">
-								<div className="grid grid-cols-2 gap-2">
-									{microDosingCards.map((card) => (
-										<Link key={card.href} href={card.href} className="group flex flex-col p-3 rounded-lg border hover:border-primary transition-colors">
-											<div className="mb-2">
-												{card.icon === "Brain" && <Brain className="h-5 w-5 text-purple-500" />}
-												{card.icon === "TestTube" && <TestTube className="h-5 w-5 text-purple-500" />}
-												{card.icon === "Leaf" && <Leaf className="h-5 w-5 text-purple-500" />}
-												{card.icon === "BookOpen" && <BookOpen className="h-5 w-5 text-purple-500" />}
-											</div>
-											<div>
-												<div className="flex items-center justify-between mb-1">
-													<h3 className="font-medium text-sm">{card.title}</h3>
-													<Badge variant="secondary" className="text-xs">
-														{card.tag}
+							<DropdownMenuContent align="end" className="w-[300px]">
+								{blogs?.map((blog) => (
+									<DropdownMenuItem key={blog.id} asChild>
+										<Link href={`/blogs/${blog.handle}`} className="flex items-start gap-3 p-3 cursor-pointer">
+											<div className="flex-1 min-w-0">
+												<div className="flex items-center justify-between gap-2">
+													<h3 className="font-medium truncate">{blog.title}</h3>
+													<Badge variant="secondary" className="shrink-0">
+														{blog.articles.edges.length}
 													</Badge>
 												</div>
-												<p className="text-xs text-muted-foreground">{card.description}</p>
+												<p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{blog.articles.edges[0]?.node.excerpt || "Explore our articles"}</p>
 											</div>
 										</Link>
-									))}
-								</div>
+									</DropdownMenuItem>
+								))}
 							</DropdownMenuContent>
 						</DropdownMenu>
 
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="outline" className="h-8 sm:h-10 w-8 sm:w-10 p-0">
-									<User className="h-4 w-4" />
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-48">
-								<DropdownMenuItem asChild>
-									<Link href="/account" className="w-full">
-										Account
-									</Link>
-								</DropdownMenuItem>
-								<DropdownMenuItem asChild>
-									<Link href="/orders" className="w-full">
-										Orders
-									</Link>
-								</DropdownMenuItem>
-								<DropdownMenuSeparator />
-								<DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
-									{mounted && theme === "dark" ? (
-										<div className="flex items-center w-full">
-											<Sun className="h-4 w-4 mr-2" />
-											Light Mode
+						{/* Hide Microdosing Button */}
+						<div className="hidden">
+							{/* Original Microdosing Button Content */}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="default" size="sm" className="h-8 sm:h-10 px-2.5 sm:px-3">
+										<Sparkles className="h-4 w-4 sm:mr-2" />
+										<span className="hidden sm:inline">Microdosing</span>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-[400px] p-4">
+									<div className="space-y-4">
+										{/* Header */}
+										<div className="space-y-1.5">
+											<h3 className="font-semibold text-lg">Microdosing Resources</h3>
+											<p className="text-sm text-muted-foreground">Everything you need to know about microdosing</p>
 										</div>
-									) : (
-										<div className="flex items-center w-full">
-											<Moon className="h-4 w-4 mr-2" />
-											Dark Mode
-										</div>
-									)}
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
 
-						<Button variant="outline" className="relative h-8 sm:h-10 w-8 sm:w-10 p-0" onClick={openCart}>
-							<ShoppingCart className="h-4 w-4" />
-							{showCartQuantity && <span className="absolute -top-1 -right-1 h-4 w-4 text-xs bg-primary text-primary-foreground rounded-full flex items-center justify-center">{cartQuantity}</span>}
+										{/* Cards Grid */}
+										<div className="grid grid-cols-1 gap-3">
+											{microDosingCards.map((card) => (
+												<DropdownMenuItem key={card.href} asChild className="p-0">
+													<Link href={card.href} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted cursor-pointer w-full">
+														<div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+															{card.icon === "Brain" && <Brain className="h-5 w-5" />}
+															{card.icon === "TestTube" && <TestTube className="h-5 w-5" />}
+															{card.icon === "Leaf" && <Leaf className="h-5 w-5" />}
+															{card.icon === "BookOpen" && <BookOpen className="h-5 w-5" />}
+														</div>
+														<div className="flex-1 min-w-0">
+															<div className="flex items-center justify-between gap-2">
+																<p className="font-medium">{card.title}</p>
+																<Badge variant="outline" className="font-normal">
+																	{card.tag}
+																</Badge>
+															</div>
+															<p className="text-sm text-muted-foreground truncate">{card.description}</p>
+														</div>
+													</Link>
+												</DropdownMenuItem>
+											))}
+										</div>
+
+										{/* Footer */}
+										<div className="pt-3 border-t">
+											<DropdownMenuItem asChild className="p-0">
+												<Link href="/guides/microdosing" className="flex items-center justify-between p-2 rounded-md hover:bg-muted w-full text-sm text-muted-foreground">
+													View all microdosing resources
+													<ChevronRight className="h-4 w-4" />
+												</Link>
+											</DropdownMenuItem>
+										</div>
+									</div>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+
+						{/* Help Button */}
+						<Button variant="ghost" size="sm" className="h-8 sm:h-10 px-2.5 sm:px-3" asChild>
+							<Link href="/help">
+								<HelpCircle className="h-4 w-4 sm:mr-2" />
+								<span className="hidden sm:inline">Help</span>
+							</Link>
 						</Button>
+
+						<div className="flex items-center border-l ml-2 pl-2 h-8 sm:h-10">
+							{/* Account Button/Dropdown */}
+							{authState ? (
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button variant="ghost" size="icon" className="h-8 sm:h-10 w-8 sm:w-10 rounded-full">
+											<User className="h-4 w-4" />
+											<span className="sr-only">Account menu</span>
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end" className="w-[200px]">
+										<DropdownMenuItem asChild>
+											<Link href="/account" className="w-full cursor-pointer" prefetch={true}>
+												<User className="h-4 w-4 mr-2" />
+												Account
+											</Link>
+										</DropdownMenuItem>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
+											{theme === "dark" ? (
+												<>
+													<Sun className="h-4 w-4 mr-2" />
+													Light Mode
+												</>
+											) : (
+												<>
+													<Moon className="h-4 w-4 mr-2" />
+													Dark Mode
+												</>
+											)}
+										</DropdownMenuItem>
+										<DropdownMenuSeparator />
+										<SignOutButton onSignOut={() => setAuthState(false)} />
+									</DropdownMenuContent>
+								</DropdownMenu>
+							) : (
+								<Link href="/login" passHref>
+									<Button variant="ghost" size="icon" className="h-8 sm:h-10 w-8 sm:w-10 rounded-full">
+										<User className="h-4 w-4" />
+										<span className="sr-only">Login</span>
+									</Button>
+								</Link>
+							)}
+
+							{/* Cart Button */}
+							<Button variant="ghost" className="relative h-8 sm:h-10 w-8 sm:w-10 p-0 rounded-full" onClick={openCart}>
+								<ShoppingCart className="h-4 w-4" />
+								{showCartQuantity && <span className="absolute -top-2 -right-2 min-w-[20px] h-5 text-xs bg-purple-500 text-white rounded-full flex items-center justify-center px-1.5">{cartQuantity}</span>}
+							</Button>
+						</div>
 					</div>
 				</div>
 			</div>
 
 			{/* Navigation */}
-			<nav className="border-y bg-muted">
+			<nav className="border-t">
 				<div className="px-2 sm:px-4">
 					<div className="flex items-center py-1">
 						<Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
 							<SheetTrigger asChild>
-								<Button variant="outline" size="sm" className="flex items-center gap-2 shrink-0 mr-4">
+								<Button variant="ghost" size="sm" className="flex items-center gap-2 shrink-0 mr-4">
 									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
 										<line x1="4" x2="20" y1="12" y2="12" />
 										<line x1="4" x2="20" y1="6" y2="6" />
@@ -337,9 +377,9 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 								<ScrollArea className="h-[calc(100vh-60px)]">
 									<div className="grid gap-0.5 p-1">
 										{allMenuItems.map((item) => (
-											<Link key={item.id} href={item.url} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-secondary rounded-md transition-colors duration-200" onClick={() => setIsSheetOpen(false)}>
+											<Link key={item.id} href={item.url} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors duration-200" onClick={() => setIsSheetOpen(false)}>
 												<span>{item.title}</span>
-												<ChevronRight className="w-4 h-4" />
+												<ChevronRight className="w-4 h-4 text-muted-foreground" />
 											</Link>
 										))}
 									</div>
@@ -350,7 +390,7 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 						<ScrollArea className="w-full whitespace-nowrap">
 							<div className="flex items-center space-x-4">
 								{mainMenuItems.map((item) => (
-									<Link prefetch={true} key={item.id} href={item.url} className="text-sm hover:text-foreground/80 py-1 shrink-0 transition-colors">
+									<Link prefetch={true} key={item.id} href={item.url} className="text-sm text-muted-foreground hover:text-foreground py-1 shrink-0 transition-colors">
 										{item.title}
 									</Link>
 								))}

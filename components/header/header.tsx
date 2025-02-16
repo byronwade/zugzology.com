@@ -3,9 +3,58 @@
 import { Suspense } from "react";
 import { getMenuItems } from "./menu-items";
 import { HeaderClient } from "./header-client";
-import { getBlogs, getProducts } from "@/lib/actions/shopify";
+import { getBlogs, getProducts, getAllBlogPosts } from "@/lib/actions/shopify";
 import { InitializeSearch } from "@/components/search/initialize-search";
+import { cookies } from "next/headers";
+import { getCustomer } from "@/lib/services/shopify-customer";
 
+// Fetch data with dynamic behavior and caching
+async function getHeaderData() {
+	"use cache";
+
+	try {
+		const startTime = performance.now();
+		const [menuItems, blogs, products, blogPosts] = await Promise.all([getMenuItems(), getBlogs(), getProducts(), getAllBlogPosts()]);
+
+		const duration = performance.now() - startTime;
+		if (duration > 100) {
+			console.log(`⚡ [Header Data] ${duration.toFixed(2)}ms`, {
+				menuItems: menuItems.length,
+				blogs: blogs.length,
+				products: products.length,
+				blogPosts: blogPosts.length,
+			});
+		}
+
+		return { menuItems, blogs, products, blogPosts };
+	} catch (error) {
+		console.error("❌ [Header Data] Error:", error);
+		return { menuItems: [], blogs: [], products: [], blogPosts: [] };
+	}
+}
+
+// Check authentication status on the server with caching
+async function checkAuth() {
+	try {
+		const cookieStore = await cookies();
+		const customerAccessToken = cookieStore.get("customerAccessToken")?.value;
+
+		if (!customerAccessToken) {
+			return false;
+		}
+
+		const customer = await getCustomer(customerAccessToken);
+		return !!customer;
+	} catch (error) {
+		if (error instanceof Error && error.message.includes("prerendering")) {
+			return false;
+		}
+		console.error("❌ [Header Server] Auth check error:", error);
+		return false;
+	}
+}
+
+// Loading component with skeleton UI
 function HeaderLoading() {
 	return (
 		<div className="w-full h-16 bg-background animate-pulse">
@@ -23,57 +72,25 @@ function HeaderLoading() {
 	);
 }
 
-// Fetch header data with proper caching
-async function getHeaderData() {
-	"use cache";
-
-	try {
-		const startTime = performance.now();
-
-		// Parallel fetch with static caching
-		const [menuItems, blogs, products] = await Promise.all([
-			getMenuItems().catch((error) => {
-				console.error("❌ [Header] Menu fetch error:", error);
-				return [];
-			}),
-			getBlogs().catch((error) => {
-				console.error("❌ [Header] Blogs fetch error:", error);
-				return [];
-			}),
-			getProducts().catch((error) => {
-				console.error("❌ [Header] Products fetch error:", error);
-				return [];
-			}),
-		]);
-
-		const duration = performance.now() - startTime;
-		if (duration > 100) {
-			console.log(`🔄 [Header] Data fetched in ${duration.toFixed(2)}ms`);
-		}
-
-		return { menuItems, blogs, products };
-	} catch (error) {
-		console.error(
-			"❌ [Header] Error fetching data:",
-			error instanceof Error
-				? {
-						message: error.message,
-						stack: error.stack?.split("\n").slice(0, 3),
-				  }
-				: "Unknown error"
-		);
-		return { menuItems: [], blogs: [], products: [] };
-	}
-}
-
-export default async function Header() {
-	const { menuItems, blogs, products } = await getHeaderData();
+// Server Component for header content
+async function HeaderContent() {
+	const { menuItems, blogs, products, blogPosts } = await getHeaderData();
+	const isAuthenticated = await checkAuth();
 
 	return (
+		<>
+			<InitializeSearch products={products} blogPosts={blogPosts} />
+			<HeaderClient initialMenuItems={menuItems} blogs={blogs} isAuthenticated={isAuthenticated} />
+		</>
+	);
+}
+
+// Main Header Component
+export default async function Header() {
+	return (
 		<div className="sticky top-0 z-50">
-			<InitializeSearch products={products} />
 			<Suspense fallback={<HeaderLoading />}>
-				<HeaderClient initialMenuItems={menuItems} blogs={blogs} />
+				<HeaderContent />
 			</Suspense>
 		</div>
 	);

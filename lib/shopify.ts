@@ -14,6 +14,17 @@ interface ShopifyFetchOptions {
 	isCustomerAccount?: boolean;
 }
 
+interface ShopifyFetchParams {
+	query: string;
+	variables?: Record<string, unknown>;
+	headers?: Record<string, string>;
+}
+
+interface ShopifyResponse<T> {
+	data: T;
+	errors?: Array<{ message: string }>;
+}
+
 // Helper function to get GraphQL API URL
 export function getStorefrontApiUrl(): string {
 	if (!domain) {
@@ -76,95 +87,37 @@ function formatDataSize(data: any): string {
 }
 
 // Helper function to make GraphQL requests with better error handling and caching
-export async function shopifyFetch<T>({ query, variables, cache = "force-cache", isAdminApi = false, isCustomerAccount = false }: ShopifyFetchOptions): Promise<{ data: T }> {
+export async function shopifyFetch<T>({ query, variables = {}, headers = {} }: ShopifyFetchParams): Promise<ShopifyResponse<T>> {
 	try {
-		if (!domain) {
-			console.error("Missing required environment variables");
-			throw new Error("Shopify environment variables are not properly configured");
-		}
+		const endpoint = `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`;
 
-		// Validate required variables
-		if (variables) {
-			for (const [key, value] of Object.entries(variables)) {
-				if (value === undefined || value === null) {
-					throw new Error(`Required variable "${key}" is missing or invalid`);
-				}
-			}
-		}
-
-		let url;
-		if (isCustomerAccount) {
-			url = getCustomerAccountApiUrl();
-		} else if (isAdminApi) {
-			url = getAdminApiUrl();
-		} else {
-			url = getStorefrontApiUrl();
-		}
-
-		const apiType = isCustomerAccount ? "Customer Account" : isAdminApi ? "Admin" : "Storefront";
-		const startTime = performance.now();
-
-		// Determine caching strategy based on request type
-		const cacheStrategy = isCustomerAccount ? "no-store" : cache;
-
-		// Use unstable_cache for server-side caching with revalidation
-		const response = await fetch(url, {
+		const response = await fetch(endpoint, {
 			method: "POST",
-			headers: getHeaders(isAdminApi, isCustomerAccount),
+			headers: {
+				"Content-Type": "application/json",
+				"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN as string,
+				...headers,
+			},
 			body: JSON.stringify({
 				query,
 				variables,
 			}),
-			cache: cacheStrategy,
-			next: {
-				// Use dynamic revalidation based on request type
-				revalidate: isCustomerAccount ? 0 : cache === "force-cache" ? 3600 : 60,
-			},
 		});
 
-		if (!response.ok) {
-			const text = await response.text();
-			console.error(`❌ [${apiType} API] HTTP Error:`, {
-				status: response.status,
-				statusText: response.statusText,
-				body: text,
-				url,
-				variables,
-			});
-			throw new Error(`Shopify API responded with status ${response.status}: ${text}`);
-		}
-
 		const json = await response.json();
-		const duration = performance.now() - startTime;
 
-		// Enhanced error logging
 		if (json.errors) {
-			const errors = json.errors.map((e: any) => e.message);
-			console.error(`❌ [${apiType} API] GraphQL Errors:`, {
-				errors,
-				query: query.slice(0, 200) + "...",
+			console.error("❌ [Shopify API] GraphQL Errors:", {
+				errors: json.errors,
+				query,
 				variables,
 			});
-			throw new Error(`Shopify GraphQL Error: ${errors.join(", ")}`);
+			throw new Error(`Shopify GraphQL Error: ${json.errors.map((e: any) => e.message).join(", ")}`);
 		}
 
-		// Log performance metrics for slow queries
-		if (duration > 100) {
-			console.log(`⚡ [${apiType} API] ${duration.toFixed(2)}ms | Size: ${formatDataSize(json.data)} | Cache: ${cacheStrategy}`);
-		}
-
-		return json;
+		return json as ShopifyResponse<T>;
 	} catch (error) {
-		if (error instanceof Error) {
-			console.error("❌ [Shopify API] Error:", {
-				message: error.message,
-				stack: error.stack?.split("\n").slice(0, 3),
-				query: query.slice(0, 200) + "...",
-				variables,
-			});
-		} else {
-			console.error("❌ [Shopify API] Unknown error:", error);
-		}
+		console.error("❌ [Shopify API] Fetch error:", error);
 		throw error;
 	}
 }

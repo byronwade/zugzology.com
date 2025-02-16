@@ -1,104 +1,121 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Link } from "@/components/ui/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Icons } from "@/components/ui/icons";
+import { Loader2, LogIn } from "lucide-react";
 
 interface LoginFormProps {
-	redirectTo?: string;
+	error?: string;
+	registered?: boolean;
+	callbackUrl?: string;
+	storeName: string;
 }
 
-export function LoginForm({ redirectTo }: LoginFormProps) {
+export function LoginForm({ error: initialError, registered, callbackUrl, storeName }: LoginFormProps) {
 	const router = useRouter();
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState("");
-	const [mounted, setMounted] = useState(false);
-
-	// Handle hydration mismatch
-	useEffect(() => {
-		setMounted(true);
-	}, []);
+	const [error, setError] = useState<string | null>(initialError || null);
+	const [loading, setLoading] = useState(false);
 
 	async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setIsLoading(true);
-		setError("");
+		setError(null);
+		setLoading(true);
 
 		const formData = new FormData(event.currentTarget);
-		const email = formData.get("email") as string;
-		const password = formData.get("password") as string;
+		const data = {
+			email: formData.get("email") as string,
+			password: formData.get("password") as string,
+		};
 
 		try {
 			const response = await fetch("/api/auth/login", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ email, password }),
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(data),
+				credentials: "include", // Important for cookies
 			});
 
-			const data = await response.json();
+			const result = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.message || "Failed to login");
+				throw new Error(result.message || "Login failed");
 			}
 
-			// Redirect to the original destination or account page
-			router.push(redirectTo || "/account");
-			router.refresh();
+			// If login was successful, redirect to callback URL or account page
+			router.push(callbackUrl || "/account");
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "An error occurred");
-		} finally {
-			setIsLoading(false);
+			setError(err instanceof Error ? err.message : "Login failed");
+			setLoading(false);
 		}
 	}
 
-	if (!mounted) {
-		return (
-			<div className="w-full h-[400px] flex items-center justify-center">
-				<Icons.spinner className="h-8 w-8 animate-spin" />
-			</div>
-		);
-	}
-
 	return (
-		<Card className="w-full">
-			<CardHeader>
-				<CardTitle>Sign In</CardTitle>
-				<CardDescription>Enter your email and password to access your account</CardDescription>
-			</CardHeader>
-			<form onSubmit={onSubmit} suppressHydrationWarning>
-				<CardContent className="space-y-4">
+		<div className="container relative flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+			<div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
+				<div className="absolute inset-0 bg-zinc-900" />
+				<div className="relative z-20 flex items-center text-lg font-medium">
+					<Link href="/">{storeName}</Link>
+				</div>
+				<div className="relative z-20 mt-auto">
+					<blockquote className="space-y-2">
+						<p className="text-lg">"Welcome back to {storeName}. Access your account to manage orders and explore our premium mushroom cultivation supplies."</p>
+					</blockquote>
+				</div>
+			</div>
+			<div className="p-4 lg:p-8">
+				<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+					<div className="flex flex-col space-y-2 text-center">
+						<h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+						<p className="text-sm text-muted-foreground">Sign in to your account to continue</p>
+					</div>
+
+					{registered && (
+						<Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-900">
+							<AlertDescription className="text-green-800 dark:text-green-200">Registration successful! Please sign in with your new account.</AlertDescription>
+						</Alert>
+					)}
+
 					{error && (
 						<Alert variant="destructive">
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
-					<div className="space-y-2">
-						<Label htmlFor="email">Email</Label>
-						<Input id="email" name="email" type="email" placeholder="name@example.com" required disabled={isLoading} suppressHydrationWarning />
+
+					<form onSubmit={onSubmit} className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="email">Email</Label>
+							<Input id="email" name="email" type="email" placeholder="john@example.com" required disabled={loading} />
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="password">Password</Label>
+							<Input id="password" name="password" type="password" required disabled={loading} />
+						</div>
+						<Button className="w-full" type="submit" disabled={loading}>
+							{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+							Sign In
+						</Button>
+					</form>
+
+					<div className="space-y-2 text-center text-sm">
+						<Link href="/forgot-password" className="text-muted-foreground hover:text-primary underline underline-offset-4">
+							Forgot your password?
+						</Link>
+						<p className="text-muted-foreground">
+							Don't have an account?{" "}
+							<Link href="/register" className="underline underline-offset-4 hover:text-primary">
+								Sign up
+							</Link>
+						</p>
 					</div>
-					<div className="space-y-2">
-						<Label htmlFor="password">Password</Label>
-						<Input id="password" name="password" type="password" required disabled={isLoading} suppressHydrationWarning />
-					</div>
-				</CardContent>
-				<CardFooter className="flex flex-col space-y-4">
-					<Button type="submit" className="w-full" disabled={isLoading}>
-						{isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-						Sign In
-					</Button>
-					<Button variant="outline" type="button" className="w-full" onClick={() => router.push("/register")}>
-						Create Account
-					</Button>
-					<Button variant="link" type="button" className="w-full" onClick={() => router.push("/forgot-password")}>
-						Forgot Password?
-					</Button>
-				</CardFooter>
-			</form>
-		</Card>
+				</div>
+			</div>
+		</div>
 	);
 }

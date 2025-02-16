@@ -6,7 +6,7 @@ import { ProductSection } from "@/components/products/sections/recommendations/p
 import type { ShopifyProduct, ShopifyBlogArticle } from "@/lib/types";
 import { calculateTrendingScore } from "./utils/tracking";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/components/ui/link";
 
 interface ProductRecommendationsProps {
 	featuredProducts: ShopifyProduct[];
@@ -376,7 +376,7 @@ export function ProductRecommendations({ featuredProducts, relatedPosts, current
 	const limitedTimeOffers = getLimitedTimeOffers();
 
 	return (
-		<section className="w-full py-16 border-t" itemScope itemType="https://schema.org/ItemList" aria-label="Product recommendations">
+		<section className="w-full pb-24" itemScope itemType="https://schema.org/ItemList" aria-label="Product recommendations">
 			<div className="container mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
 				<meta itemProp="name" content="Product Recommendations" />
 				<meta itemProp="description" content="Personalized product recommendations based on your browsing history and preferences" />

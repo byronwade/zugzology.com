@@ -1,7 +1,63 @@
+export interface ShopifyImage {
+	url: string;
+	altText: string | null;
+	width: number;
+	height: number;
+}
+
+export interface ShopifyMediaImage {
+	id: string;
+	mediaContentType: "IMAGE";
+	image: ShopifyImage;
+}
+
+export interface ShopifyMediaVideo {
+	id: string;
+	mediaContentType: "VIDEO";
+	sources: Array<{
+		url: string;
+		mimeType: string;
+		format: string;
+		height?: number;
+		width?: number;
+	}>;
+	previewImage: ShopifyImage;
+}
+
+export interface ShopifyExternalVideo {
+	id: string;
+	mediaContentType: "EXTERNAL_VIDEO";
+	embedUrl: string;
+	host: "YOUTUBE" | "VIMEO";
+	previewImage: ShopifyImage;
+}
+
 export interface ShopifyProductOption {
 	id: string;
 	name: string;
 	values: string[];
+}
+
+export interface ShopifyProductVariant {
+	id: string;
+	title: string;
+	sku: string;
+	availableForSale: boolean;
+	quantityAvailable: number;
+	price: {
+		amount: string;
+		currencyCode: string;
+	};
+	compareAtPrice?: {
+		amount: string;
+		currencyCode: string;
+	};
+	selectedOptions: Array<{
+		name: string;
+		value: string;
+	}>;
+	requiresShipping: boolean;
+	image?: ShopifyImage;
 }
 
 export interface ShopifyProduct {
@@ -122,42 +178,7 @@ export interface ShopifyCollection {
 			node: ShopifyProduct;
 		}>;
 	};
-	image?: {
-		url: string;
-		altText: string | null;
-		width: number;
-		height: number;
-	};
-}
-
-export interface ShopifyProductVariant {
-	id: string;
-	title: string;
-	availableForSale: boolean;
-	quantityAvailable: number;
-	price: {
-		amount: string;
-		currencyCode: string;
-	};
-	selectedOptions: Array<{
-		name: string;
-		value: string;
-	}>;
-	requiresShipping: boolean;
-	image?: {
-		url: string;
-		altText: string | null;
-		width?: number;
-		height?: number;
-	};
-}
-
-export interface ShopifyImage {
-	url: string;
-	altText: string | null;
-	width: number;
-	height: number;
-	variantIds?: string[];
+	image?: ShopifyImage;
 }
 
 export interface ShopifyBlogArticle {
@@ -172,14 +193,14 @@ export interface ShopifyBlogArticle {
 		name: string;
 		email?: string;
 	};
-	image?: {
-		url: string;
-		width: number;
-		height: number;
-		altText: string | null;
-	};
+	image?: ShopifyImage;
 	blogHandle?: string;
 	blogTitle?: string;
+	tags?: string[];
+	blog?: {
+		handle: string;
+		title: string;
+	};
 }
 
 export interface ShopifyBlog {
@@ -193,7 +214,15 @@ export interface ShopifyBlog {
 	};
 }
 
-export type ShopifyCart = Cart;
+export interface CartItem {
+	merchandiseId: string;
+	quantity: number;
+	isPreOrder?: boolean;
+	attributes?: Array<{
+		key: string;
+		value: string;
+	}>;
+}
 
 export interface Cart {
 	id: string;
@@ -241,12 +270,7 @@ export interface Cart {
 						handle: string;
 						images: {
 							edges: Array<{
-								node: {
-									url: string;
-									altText: string | null;
-									width: number;
-									height: number;
-								};
+								node: ShopifyImage;
 							}>;
 						};
 					};
@@ -256,31 +280,7 @@ export interface Cart {
 	};
 }
 
-export interface CartItem {
-	merchandiseId: string;
-	quantity: number;
-	isPreOrder?: boolean;
-	attributes?: Array<{
-		key: string;
-		value: string;
-	}>;
-}
-
-export interface ProductWithEdges extends Omit<ShopifyProduct, "variants" | "images"> {
-	images: {
-		edges: Array<{
-			node: {
-				url: string;
-				altText: string | null;
-			};
-		}>;
-	};
-	variants: {
-		edges: Array<{
-			node: ShopifyProductVariant;
-		}>;
-	};
-}
+export type ShopifyCart = Cart;
 
 export interface ProductsQueryOptions {
 	first?: number;
@@ -289,101 +289,72 @@ export interface ProductsQueryOptions {
 	query?: string;
 }
 
-export interface ProductVariant {
+export interface ShopifyCustomerAddress {
 	id: string;
-	title: string;
-	price: {
-		amount: string;
-		currencyCode: string;
-	};
-	compareAtPrice?: {
-		amount: string;
-		currencyCode: string;
-	};
-	selectedOptions: Array<{
-		name: string;
-		value: string;
-	}>;
-	image?: {
-		url: string;
-		altText?: string;
-	};
+	address1: string;
+	address2: string | null;
+	city: string;
+	province: string;
+	country: string;
+	zip: string;
 }
 
-export interface Product {
+export interface ShopifyCustomer {
 	id: string;
-	handle: string;
-	title: string;
-	description: string;
-	images: {
+	firstName: string | null;
+	lastName: string | null;
+	email: string;
+	phone: string | null;
+	createdAt: string;
+	defaultAddress: ShopifyCustomerAddress | null;
+	addresses: {
+		edges: Array<{
+			node: ShopifyCustomerAddress;
+		}>;
+	};
+	orders: {
 		edges: Array<{
 			node: {
-				url: string;
-				altText?: string;
+				id: string;
+				orderNumber: number;
+				totalPrice: {
+					amount: string;
+					currencyCode: string;
+				};
+				processedAt: string;
+				fulfillmentStatus: string;
+				lineItems: {
+					edges: Array<{
+						node: {
+							title: string;
+							quantity: number;
+							originalTotalPrice: {
+								amount: string;
+								currencyCode: string;
+							};
+							variant: {
+								id: string;
+								title: string;
+								price: {
+									amount: string;
+									currencyCode: string;
+								};
+								image?: ShopifyImage;
+								product?: {
+									id: string;
+									title: string;
+									handle: string;
+									images: {
+										edges: Array<{
+											node: ShopifyImage;
+										}>;
+									};
+								};
+							};
+						};
+					}>;
+				};
 			};
 		}>;
-	};
-	variants: {
-		edges: Array<{
-			node: ProductVariant;
-		}>;
-	};
-	tags?: string[];
-	metafields?: Array<{
-		key: string;
-		value: string;
-	}>;
-}
-
-export interface ShopifyMediaImage {
-	id: string;
-	mediaContentType: "IMAGE";
-	image: ShopifyImage;
-}
-
-export interface ShopifyMediaVideo {
-	id: string;
-	mediaContentType: "VIDEO";
-	sources: Array<{
-		url: string;
-		mimeType: string;
-		format: string;
-		height?: number;
-		width?: number;
-	}>;
-	previewImage: {
-		url: string;
-		altText: string | null;
-		width: number;
-		height: number;
-	};
-}
-
-export interface ShopifyExternalVideo {
-	id: string;
-	mediaContentType: "EXTERNAL_VIDEO";
-	embedUrl: string;
-	host: string;
-	previewImage: {
-		url: string;
-		altText: string | null;
-		width: number;
-		height: number;
-	};
-}
-
-export interface ShopifyMedia {
-	id: string;
-	mediaContentType: "IMAGE" | "VIDEO";
-	alt?: string | null;
-}
-
-export interface YouTubeVideo {
-	id: string;
-	mediaContentType: "YOUTUBE";
-	url: string;
-	thumbnail: {
-		url: string;
-		altText: string | null;
 	};
 }

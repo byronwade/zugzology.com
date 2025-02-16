@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useState, useRef } from "react";
+import { Link } from "@/components/ui/link";
 import Image from "next/image";
 import { useSearch } from "@/lib/providers/search-provider";
 import { formatPrice } from "@/lib/utils";
@@ -9,12 +9,23 @@ import { Clock, Search, TrendingUp, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter, usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { ShopifyProduct, ShopifyBlogArticle } from "@/lib/types";
 
 export function SearchDropdown() {
 	const router = useRouter();
 	const pathname = usePathname();
-	const { searchResults, isSearching, searchQuery, isDropdownOpen, recentSearches, addRecentSearch, allProducts, setIsDropdownOpen } = useSearch();
+	const { searchResults, isSearching, searchQuery, isDropdownOpen, recentSearches, addRecentSearch, setIsDropdownOpen } = useSearch();
 	const [isMobile, setIsMobile] = useState(false);
+	const [selectedIndex, setSelectedIndex] = useState(-1);
+	const dropdownRef = useRef<HTMLDivElement>(null);
+
+	// Split results into products and blog posts with proper typing
+	const productResults = searchResults.filter((result): result is { type: "product"; item: ShopifyProduct } => result.type === "product").map((result) => result.item);
+	const blogResults = searchResults.filter((result): result is { type: "blog"; item: ShopifyBlogArticle } => result.type === "blog").map((result) => result.item);
+
+	const displayedProducts = productResults.slice(0, isMobile ? 2 : 4);
+	const displayedBlogs = blogResults.slice(0, isMobile ? 1 : 2);
 
 	// Handle responsive state
 	useEffect(() => {
@@ -37,6 +48,74 @@ export function SearchDropdown() {
 		setIsDropdownOpen(false);
 	}, [pathname, setIsDropdownOpen]);
 
+	// Reset selected index when search results change
+	useEffect(() => {
+		setSelectedIndex(-1);
+	}, [searchResults]);
+
+	// Handle keyboard navigation
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (!isDropdownOpen) return;
+
+			const totalResults = displayedProducts.length + displayedBlogs.length;
+
+			switch (e.key) {
+				case "ArrowDown":
+					e.preventDefault();
+					setSelectedIndex((prev) => {
+						const maxIndex = totalResults - 1;
+						return prev < maxIndex ? prev + 1 : 0;
+					});
+					break;
+				case "ArrowUp":
+					e.preventDefault();
+					setSelectedIndex((prev) => {
+						const maxIndex = totalResults - 1;
+						return prev > 0 ? prev - 1 : maxIndex;
+					});
+					break;
+				case "Enter":
+					e.preventDefault();
+					if (selectedIndex === -1 && searchQuery.trim()) {
+						// If no item is selected and there's a search query, submit the search
+						handleSearchClick(searchQuery);
+					} else if (selectedIndex >= 0 && selectedIndex < totalResults) {
+						// If an item is selected, navigate to it
+						let selectedItem;
+						if (selectedIndex < displayedProducts.length) {
+							selectedItem = displayedProducts[selectedIndex];
+							router.push(`/products/${selectedItem.handle}`);
+						} else {
+							selectedItem = displayedBlogs[selectedIndex - displayedProducts.length];
+							router.push(`/blogs/${selectedItem.blogHandle}/${selectedItem.handle}`);
+						}
+						setIsDropdownOpen(false);
+						if (searchQuery.trim()) {
+							addRecentSearch(searchQuery);
+						}
+					}
+					break;
+				case "Escape":
+					setIsDropdownOpen(false);
+					break;
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [isDropdownOpen, selectedIndex, displayedProducts, displayedBlogs, router, searchQuery, addRecentSearch, setIsDropdownOpen]);
+
+	// Scroll selected item into view
+	useEffect(() => {
+		if (selectedIndex >= 0 && dropdownRef.current) {
+			const selectedElement = dropdownRef.current.querySelector(`[data-index="${selectedIndex}"]`);
+			if (selectedElement) {
+				selectedElement.scrollIntoView({ block: "nearest" });
+			}
+		}
+	}, [selectedIndex]);
+
 	useEffect(() => {
 		console.log("[DROPDOWN] State:", {
 			isDropdownOpen,
@@ -44,9 +123,8 @@ export function SearchDropdown() {
 			isSearching,
 			resultsCount: searchResults.length,
 			recentSearchesCount: recentSearches.length,
-			allProductsCount: allProducts.length,
 		});
-	}, [isDropdownOpen, searchQuery, isSearching, searchResults, recentSearches, allProducts]);
+	}, [isDropdownOpen, searchQuery, isSearching, searchResults, recentSearches]);
 
 	if (!isDropdownOpen) {
 		console.log("[DROPDOWN] Not showing - dropdown is closed");
@@ -57,27 +135,18 @@ export function SearchDropdown() {
 		console.log("[DROPDOWN] Search clicked:", { query });
 		addRecentSearch(query);
 		setIsDropdownOpen(false);
-	};
-
-	const handleViewAllResults = () => {
-		if (searchQuery.trim()) {
-			addRecentSearch(searchQuery);
-			setIsDropdownOpen(false);
-			router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-		}
+		router.push(`/search?q=${encodeURIComponent(query)}`);
 	};
 
 	const handleProductClick = () => {
 		if (searchQuery.trim()) {
-			handleSearchClick(searchQuery);
+			addRecentSearch(searchQuery);
 		}
 		setIsDropdownOpen(false);
 	};
 
-	const displayedResults = searchResults.slice(0, isMobile ? 2 : 4);
-
 	return (
-		<div className="fixed md:absolute left-0 right-0 md:top-full mt-2 bg-white dark:bg-neutral-950 border-t border-b md:border md:rounded-lg shadow-lg overflow-hidden md:mx-0 -mx-4 z-[100]">
+		<div className="fixed md:absolute left-0 right-0 md:top-full mt-2 bg-white dark:bg-neutral-950 border-t border-b md:border md:rounded-lg shadow-lg overflow-hidden md:mx-0 -mx-4 z-[100]" ref={dropdownRef}>
 			<ScrollArea className="max-h-[60vh] md:max-h-[80vh]">
 				<div className="p-4">
 					{/* Recent Searches */}
@@ -114,45 +183,93 @@ export function SearchDropdown() {
 
 					{/* Search Results */}
 					{!isSearching && searchResults.length > 0 && (
-						<div className="space-y-4">
-							{displayedResults.map((product) => (
-								<Link key={product.id} href={`/products/${product.handle}`} className="flex items-start gap-4 p-2 hover:bg-accent rounded-lg transition-colors" onClick={handleProductClick}>
-									{/* Product Image */}
-									{product.images?.edges[0]?.node && (
-										<div className="relative w-16 h-16 flex-shrink-0">
-											<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">
-												<Image src={product.images.edges[0].node.url} alt={product.images.edges[0].node.altText || product.title} fill className="object-cover" sizes="64px" />
-											</div>
-										</div>
-									)}
-
-									{/* Product Info */}
-									<div className="flex-1 min-w-0">
-										<h4 className="text-sm font-medium line-clamp-1">{product.title}</h4>
-										<p className="text-sm text-muted-foreground line-clamp-1">{product.description}</p>
-										<div className="flex items-center gap-2 mt-1">
-											<span className="text-sm font-medium">{formatPrice(parseFloat(product.priceRange.minVariantPrice.amount))}</span>
-											{product.tags?.includes("trending") && (
-												<Badge variant="secondary" className="text-[10px] px-1 py-0">
-													<TrendingUp className="w-3 h-3 mr-1" />
-													Trending
-												</Badge>
+						<div className="space-y-6">
+							{/* Product Results */}
+							{displayedProducts.length > 0 && (
+								<div className="space-y-4">
+									<h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+										<Tag className="w-4 h-4 mr-2" />
+										Products
+									</h3>
+									{displayedProducts.map((product, index) => (
+										<Link key={product.id} href={`/products/${product.handle}`} className={cn("flex items-start gap-4 p-2 hover:bg-accent rounded-lg transition-colors", selectedIndex === index && "bg-accent")} data-index={index} onClick={handleProductClick}>
+											{/* Product Image */}
+											{product.images?.edges[0]?.node && (
+												<div className="relative w-16 h-16 flex-shrink-0">
+													<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">
+														<Image src={product.images.edges[0].node.url} alt={product.images.edges[0].node.altText || product.title} fill className="object-cover" sizes="64px" />
+													</div>
+												</div>
 											)}
-										</div>
-									</div>
 
-									{/* Product Type */}
-									{product.productType && (
-										<div className="text-xs text-muted-foreground flex items-center">
-											<Tag className="w-3 h-3 mr-1" />
-											{product.productType}
-										</div>
-									)}
-								</Link>
-							))}
+											{/* Product Info */}
+											<div className="flex-1 min-w-0">
+												<h4 className="text-sm font-medium line-clamp-1">{product.title}</h4>
+												<p className="text-sm text-muted-foreground line-clamp-1">{product.description}</p>
+												<div className="flex items-center gap-2 mt-1">
+													<span className="text-sm font-medium">{formatPrice(parseFloat(product.priceRange.minVariantPrice.amount))}</span>
+													{product.tags?.includes("trending") && (
+														<Badge variant="secondary" className="text-[10px] px-1 py-0">
+															<TrendingUp className="w-3 h-3 mr-1" />
+															Trending
+														</Badge>
+													)}
+												</div>
+											</div>
+
+											{/* Product Type */}
+											{product.productType && (
+												<div className="text-xs text-muted-foreground flex items-center">
+													<Tag className="w-3 h-3 mr-1" />
+													{product.productType}
+												</div>
+											)}
+										</Link>
+									))}
+								</div>
+							)}
+
+							{/* Blog Results */}
+							{displayedBlogs.length > 0 && (
+								<div className="space-y-4">
+									<h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+										<Clock className="w-4 h-4 mr-2" />
+										Blog Posts
+									</h3>
+									{displayedBlogs.map((post, index) => (
+										<Link key={post.id} href={`/blogs/${post.blogHandle}/${post.handle}`} className={cn("flex items-start gap-4 p-2 hover:bg-accent rounded-lg transition-colors", selectedIndex === index + displayedProducts.length && "bg-accent")} data-index={index + displayedProducts.length} onClick={handleProductClick}>
+											{/* Blog Post Image */}
+											{post.image && (
+												<div className="relative w-16 h-16 flex-shrink-0">
+													<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">
+														<Image src={post.image.url} alt={post.image.altText || post.title} fill className="object-cover" sizes="64px" />
+													</div>
+												</div>
+											)}
+
+											{/* Blog Post Info */}
+											<div className="flex-1 min-w-0">
+												<h4 className="text-sm font-medium line-clamp-1">{post.title}</h4>
+												<p className="text-sm text-muted-foreground line-clamp-1">{post.excerpt}</p>
+												<div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+													<span>{post.author.name}</span>
+													<span>•</span>
+													<time dateTime={post.publishedAt}>
+														{new Date(post.publishedAt).toLocaleDateString("en-US", {
+															year: "numeric",
+															month: "long",
+															day: "numeric",
+														})}
+													</time>
+												</div>
+											</div>
+										</Link>
+									))}
+								</div>
+							)}
 
 							{/* View All Results */}
-							<button onClick={handleViewAllResults} className="block w-full text-center text-sm text-primary hover:text-primary/80 py-2 border-t">
+							<button onClick={() => handleSearchClick(searchQuery)} className="block w-full text-center text-sm text-primary hover:text-primary/80 py-2 border-t">
 								View all {searchResults.length} results
 							</button>
 						</div>

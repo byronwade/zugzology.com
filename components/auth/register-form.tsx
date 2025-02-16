@@ -1,132 +1,118 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Link } from "@/components/ui/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Icons } from "@/components/ui/icons";
+import { Loader2, UserPlus } from "lucide-react";
 
-export function RegisterForm() {
+interface RegisterFormProps {
+	storeName: string;
+}
+
+export function RegisterForm({ storeName }: RegisterFormProps) {
 	const router = useRouter();
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState("");
-	const [mounted, setMounted] = useState(false);
-
-	useEffect(() => {
-		setMounted(true);
-	}, []);
+	const [error, setError] = useState<string | null>(null);
+	const [loading, setLoading] = useState(false);
 
 	async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		setIsLoading(true);
-		setError("");
+		setError(null);
+		setLoading(true);
 
 		const formData = new FormData(event.currentTarget);
-		const firstName = formData.get("firstName") as string;
-		const lastName = formData.get("lastName") as string;
-		const email = formData.get("email") as string;
-		const password = formData.get("password") as string;
-		const confirmPassword = formData.get("confirmPassword") as string;
-
-		if (password !== confirmPassword) {
-			setError("Passwords do not match");
-			setIsLoading(false);
-			return;
-		}
+		const data = {
+			firstName: formData.get("firstName") as string,
+			lastName: formData.get("lastName") as string,
+			email: formData.get("email") as string,
+			password: formData.get("password") as string,
+		};
 
 		try {
-			console.log("Starting registration process...");
-
 			const response = await fetch("/api/auth/register", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					Accept: "application/json",
 				},
-				body: JSON.stringify({
-					firstName,
-					lastName,
-					email,
-					password,
-				}),
+				body: JSON.stringify(data),
+				credentials: "include", // Important for cookies
 			});
 
-			console.log("Registration response status:", response.status);
-			const data = await response.json();
-			console.log("Registration response data:", data);
+			const result = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.message || "Failed to create account");
+				throw new Error(result.message || "Registration failed");
 			}
 
-			console.log("Registration successful, redirecting...");
-			router.push("/login?registered=true");
-			router.refresh();
+			// If registration was successful, redirect to account page
+			router.push("/account");
 		} catch (err) {
-			console.error("Registration error details:", err);
-			setError(err instanceof Error ? err.message : "An error occurred during registration");
-		} finally {
-			setIsLoading(false);
+			setError(err instanceof Error ? err.message : "Registration failed");
+			setLoading(false);
 		}
 	}
 
-	if (!mounted) {
-		return (
-			<div className="w-full h-[600px] flex items-center justify-center">
-				<Icons.spinner className="h-8 w-8 animate-spin" />
-			</div>
-		);
-	}
-
 	return (
-		<Card className="w-full">
-			<CardHeader>
-				<CardTitle>Create Account</CardTitle>
-				<CardDescription>Enter your details to create a new account</CardDescription>
-			</CardHeader>
-			<form onSubmit={onSubmit} suppressHydrationWarning>
-				<CardContent className="space-y-4">
+		<div className="container relative flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+			<div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
+				<div className="absolute inset-0 bg-zinc-900" />
+				<div className="relative z-20 flex items-center text-lg font-medium">
+					<Link href="/">{storeName}</Link>
+				</div>
+				<div className="relative z-20 mt-auto">
+					<blockquote className="space-y-2">
+						<p className="text-lg">"Join our community of mushroom enthusiasts and discover the best products for your growing needs at {storeName}."</p>
+					</blockquote>
+				</div>
+			</div>
+			<div className="p-4 lg:p-8">
+				<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+					<div className="flex flex-col space-y-2 text-center">
+						<h1 className="text-2xl font-semibold tracking-tight">Create an account</h1>
+						<p className="text-sm text-muted-foreground">Enter your information below to create your account</p>
+					</div>
+
 					{error && (
 						<Alert variant="destructive">
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
-					<div className="grid grid-cols-2 gap-4">
+
+					<form onSubmit={onSubmit} className="space-y-4">
 						<div className="space-y-2">
 							<Label htmlFor="firstName">First Name</Label>
-							<Input id="firstName" name="firstName" autoComplete="given-name" required disabled={isLoading} suppressHydrationWarning />
+							<Input id="firstName" name="firstName" placeholder="John" required disabled={loading} />
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="lastName">Last Name</Label>
-							<Input id="lastName" name="lastName" autoComplete="family-name" required disabled={isLoading} suppressHydrationWarning />
+							<Input id="lastName" name="lastName" placeholder="Doe" required disabled={loading} />
 						</div>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="email">Email</Label>
-						<Input id="email" name="email" type="email" autoComplete="email" placeholder="name@example.com" required disabled={isLoading} suppressHydrationWarning />
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="password">Password</Label>
-						<Input id="password" name="password" type="password" autoComplete="new-password" required disabled={isLoading} suppressHydrationWarning minLength={5} />
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="confirmPassword">Confirm Password</Label>
-						<Input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required disabled={isLoading} suppressHydrationWarning minLength={5} />
-					</div>
-				</CardContent>
-				<CardFooter className="flex flex-col space-y-4">
-					<Button type="submit" className="w-full" disabled={isLoading}>
-						{isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
-						{isLoading ? "Creating Account..." : "Create Account"}
-					</Button>
-					<Button variant="outline" type="button" className="w-full" onClick={() => router.push("/login")}>
-						Already have an account? Sign In
-					</Button>
-				</CardFooter>
-			</form>
-		</Card>
+						<div className="space-y-2">
+							<Label htmlFor="email">Email</Label>
+							<Input id="email" name="email" type="email" placeholder="john@example.com" required disabled={loading} />
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="password">Password</Label>
+							<Input id="password" name="password" type="password" required disabled={loading} minLength={5} pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{5,}$" title="Password must be at least 5 characters and include at least one uppercase letter, one lowercase letter, and one number" />
+							<p className="text-xs text-muted-foreground">Password must be at least 5 characters and include at least one uppercase letter, one lowercase letter, and one number</p>
+						</div>
+						<Button className="w-full" type="submit" disabled={loading}>
+							{loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+							Create Account
+						</Button>
+					</form>
+
+					<p className="px-8 text-center text-sm text-muted-foreground">
+						Already have an account?{" "}
+						<Link href="/login" className="underline underline-offset-4 hover:text-primary">
+							Sign in
+						</Link>
+					</p>
+				</div>
+			</div>
+		</div>
 	);
 }
