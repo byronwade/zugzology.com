@@ -1,9 +1,6 @@
 "use client";
 
 import React from "react";
-import { Grid2X2, List } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { SortOption } from "@/lib/hooks/use-product-filters";
 
@@ -11,8 +8,6 @@ interface ProductsHeaderProps {
 	title: string;
 	description?: string;
 	count?: number;
-	onViewChange?: (view: "grid" | "list") => void;
-	view?: "grid" | "list";
 	filters: {
 		sort: SortOption;
 	};
@@ -28,9 +23,9 @@ const sortOptions = [
 	{ value: "newest", label: "Newest" },
 ] as const;
 
-export function ProductsHeader({ title, description, count, onViewChange, view = "grid", filters, onUpdateFilter }: ProductsHeaderProps) {
+export function ProductsHeader({ title, description, count, filters, onUpdateFilter }: ProductsHeaderProps) {
 	return (
-		<section className="sticky top-[98px] md:top-[104px] bg-background z-10 border-b py-2 px-4">
+		<section className="sticky top-[var(--header-height)] bg-background z-10 border-b py-2 px-4">
 			<div className="flex items-center justify-between gap-4">
 				<div className="flex-1 min-w-0">
 					<h1 className="text-xl font-semibold text-foreground truncate">{title}</h1>
@@ -41,27 +36,17 @@ export function ProductsHeader({ title, description, count, onViewChange, view =
 
 					{/* Sort Select */}
 					<Select value={filters.sort} onValueChange={(value) => onUpdateFilter("sort", value)}>
-						<SelectTrigger className="w-[180px]">
+						<SelectTrigger className="w-[100px] sm:w-[180px] text-sm sm:text-base">
 							<SelectValue placeholder="Sort by" />
 						</SelectTrigger>
-						<SelectContent>
+						<SelectContent className="min-w-[120px] sm:min-w-[180px]">
 							{sortOptions.map((option) => (
-								<SelectItem key={option.value} value={option.value}>
+								<SelectItem key={option.value} value={option.value} className="text-sm sm:text-base">
 									{option.label}
 								</SelectItem>
 							))}
 						</SelectContent>
 					</Select>
-
-					{/* View Toggle */}
-					<div className="flex items-center border rounded-md overflow-hidden">
-						<Button onClick={() => onViewChange?.("grid")} variant={view === "grid" ? "default" : "ghost"} size="icon" className={cn("h-8 w-8", view === "grid" && "bg-primary text-primary-foreground")} title="Grid view">
-							<Grid2X2 className="h-4 w-4" />
-						</Button>
-						<Button onClick={() => onViewChange?.("list")} variant={view === "list" ? "default" : "ghost"} size="icon" className={cn("h-8 w-8", view === "list" && "bg-primary text-primary-foreground")} title="List view">
-							<List className="h-4 w-4" />
-						</Button>
-					</div>
 				</div>
 			</div>
 		</section>

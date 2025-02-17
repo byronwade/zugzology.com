@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { fontSans } from "@/lib/fonts";
 import { ThemeProvider } from "@/components/theme-provider";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider";
+import { WishlistProvider } from "@/lib/providers/wishlist-provider";
 
 // Loading components
 function HeaderLoading() {
@@ -153,12 +154,16 @@ async function AppContent({ children }: { children: React.ReactNode }) {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<head />
+			<head>
+				<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+			</head>
 			<body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
-				<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-					<Providers>
-						<AppContent>{children}</AppContent>
-					</Providers>
+				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+					<WishlistProvider>
+						<Providers>
+							<AppContent>{children}</AppContent>
+						</Providers>
+					</WishlistProvider>
 				</ThemeProvider>
 				<Toaster richColors position="top-center" />
 			</body>

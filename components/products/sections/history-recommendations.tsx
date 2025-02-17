@@ -22,15 +22,22 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 
 	const usedProductIds = new Set<string>();
 
-	// Helper to ensure minimum products
+	// Helper to ensure minimum products and respect mobile limits
 	const ensureMinimumProducts = (inputProducts: ShopifyProduct[], minCount: number = 6) => {
-		if (inputProducts.length >= minCount) return inputProducts.slice(0, 12); // Cap at 12
-		const needed = minCount - inputProducts.length;
+		// For mobile, we want to limit to 4 items per section
+		const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+		const maxItems = isMobile ? 4 : 12;
+		const targetCount = isMobile ? Math.min(4, minCount) : minCount;
+
+		if (inputProducts.length >= targetCount) return inputProducts.slice(0, maxItems);
+
+		const needed = targetCount - inputProducts.length;
 		const additionalProducts = randomProducts
 			.filter(filterCurrentProduct)
 			.filter((p: ShopifyProduct) => !inputProducts.some((existing) => existing.id === p.id))
 			.slice(0, needed);
-		return [...inputProducts, ...additionalProducts].slice(0, 12); // Cap at 12
+
+		return [...inputProducts, ...additionalProducts].slice(0, maxItems);
 	};
 
 	// Prepare different product sections with unique products, ordered by conversion potential
@@ -48,7 +55,7 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 					score: calculateTrendingScore(product),
 				}))
 				.sort((a, b) => b.score - a.score)
-				.slice(0, 12)
+				.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
 				.map(({ product }) => ({
 					product,
 					source: "trending" as const,
@@ -63,6 +70,7 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 			products: products
 				.filter(filterCurrentProduct)
 				.filter((p) => isUnique(p, usedProductIds))
+				.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
 				.map((p) => ({ product: p, source: "history" as const, sectionId: "recently-viewed" })),
 		},
 		{
@@ -73,6 +81,7 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 			products: recommendedProducts
 				.filter(filterCurrentProduct)
 				.filter((p) => isUnique(p, usedProductIds))
+				.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
 				.map((p) => ({ product: p, source: "recommended" as const, sectionId: "recommended" })),
 		},
 		{
@@ -83,6 +92,7 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 			products: randomProducts
 				.filter(filterCurrentProduct)
 				.filter((p) => isUnique(p, usedProductIds))
+				.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
 				.map((p) => ({ product: p, source: "related" as const, sectionId: "related" })),
 		},
 	];
@@ -94,10 +104,11 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 			products:
 				section.products.length > 0
 					? section.products
-					: section.id === "related" // Use related as fallback for empty sections
+					: section.id === "related"
 					? randomProducts
 							.filter(filterCurrentProduct)
 							.filter((p) => isUnique(p, usedProductIds))
+							.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
 							.map((p) => ({ product: p, source: "related" as const, sectionId: "related" }))
 					: [],
 		}))
@@ -109,13 +120,14 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 				sectionId: section.id,
 			})),
 		}))
-		.filter((section) => section.products.length >= 6)
+		.filter((section) => section.products.length >= (typeof window !== "undefined" && window.innerWidth < 640 ? 2 : 6))
 		.sort((a, b) => a.priority - b.priority);
 
 	// Ensure we have at least one section with minimum products
 	if (processedSections.length === 0) {
+		const minProducts = typeof window !== "undefined" && window.innerWidth < 640 ? 2 : 6;
 		const fallbackProducts = ensureMinimumProducts(randomProducts.filter(filterCurrentProduct));
-		if (fallbackProducts.length >= 6) {
+		if (fallbackProducts.length >= minProducts) {
 			processedSections.push({
 				id: "discover",
 				title: "Discover More",

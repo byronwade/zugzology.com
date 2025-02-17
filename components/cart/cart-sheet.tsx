@@ -3,14 +3,68 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/providers/cart-provider";
-import { Loader2, ShoppingCart, Trash2, X } from "lucide-react";
+import { Loader2, ShoppingCart, Trash2, X, Check } from "lucide-react";
 import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo, useState, useRef } from "react";
 import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcut";
+
+// Debounce helper function
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+	let timeout: NodeJS.Timeout;
+	return (...args: Parameters<T>) => {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func(...args), wait);
+	};
+}
 
 export function CartSheet() {
 	const { cart, isOpen, openCart, closeCart, isLoading, updateItem, removeItem } = useCart();
+	const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+	const [pendingUpdates, setPendingUpdates] = useState<{ [key: string]: number | "" }>({});
+	const [updatingItems, setUpdatingItems] = useState<{ [key: string]: boolean }>({});
+	const touchStartX = useRef<number>(0);
+	const touchEndX = useRef<number>(0);
+	const sheetRef = useRef<HTMLDivElement>(null);
+	const [isDragging, setIsDragging] = useState(false);
+	const [dragOffset, setDragOffset] = useState(0);
+
+	// Initialize quantities from cart
+	useEffect(() => {
+		if (cart?.lines?.edges) {
+			const initialQuantities = cart.lines.edges.reduce((acc, { node }) => {
+				acc[node.id] = node.quantity;
+				return acc;
+			}, {} as { [key: string]: number });
+			setQuantities(initialQuantities);
+			setPendingUpdates({});
+		}
+	}, [cart?.lines?.edges]);
+
+	// Touch event handlers
+	const handleTouchStart = (e: React.TouchEvent) => {
+		touchStartX.current = e.touches[0].clientX;
+		setIsDragging(true);
+		setDragOffset(0);
+	};
+
+	const handleTouchMove = (e: React.TouchEvent) => {
+		if (!isDragging) return;
+		const currentX = e.touches[0].clientX;
+		const diff = currentX - touchStartX.current;
+		// Only allow dragging to the right
+		if (diff < 0) return;
+		setDragOffset(Math.min(diff, window.innerWidth));
+	};
+
+	const handleTouchEnd = () => {
+		setIsDragging(false);
+		// If dragged more than 100px to the right, close the sheet
+		if (dragOffset > 100) {
+			closeCart();
+		}
+		setDragOffset(0);
+	};
 
 	// Register keyboard shortcut
 	useKeyboardShortcut("shift+o", () => {
@@ -21,16 +75,64 @@ export function CartSheet() {
 		}
 	});
 
-	// Memoize handlers to prevent unnecessary re-renders
+	// Handle quantity change
+	const handleQuantityChange = useCallback((lineId: string, value: string) => {
+		// Allow empty string or numbers
+		if (value === "" || !isNaN(parseInt(value))) {
+			setPendingUpdates((prev) => ({
+				...prev,
+				[lineId]: value === "" ? "" : parseInt(value),
+			}));
+		}
+	}, []);
+
+	// Handle update quantity
 	const handleUpdateQuantity = useCallback(
-		async (lineId: string, quantity: number) => {
+		async (lineId: string, quantity: number | "") => {
+			// Don't allow updating with empty value or zero
+			if (quantity === "" || quantity === 0) {
+				setPendingUpdates((prev) => {
+					const newUpdates = { ...prev };
+					delete newUpdates[lineId];
+					return newUpdates;
+				});
+				return;
+			}
+
+			if (quantity === quantities[lineId]) {
+				setPendingUpdates((prev) => {
+					const newUpdates = { ...prev };
+					delete newUpdates[lineId];
+					return newUpdates;
+				});
+				return;
+			}
+
+			setUpdatingItems((prev) => ({ ...prev, [lineId]: true }));
 			try {
 				await updateItem(lineId, quantity);
+				setPendingUpdates((prev) => {
+					const newUpdates = { ...prev };
+					delete newUpdates[lineId];
+					return newUpdates;
+				});
+				setQuantities((prev) => ({
+					...prev,
+					[lineId]: quantity,
+				}));
 			} catch (error) {
 				console.error("Update quantity error:", error);
+				// Reset to previous quantity on error
+				setPendingUpdates((prev) => {
+					const newUpdates = { ...prev };
+					delete newUpdates[lineId];
+					return newUpdates;
+				});
+			} finally {
+				setUpdatingItems((prev) => ({ ...prev, [lineId]: false }));
 			}
 		},
-		[updateItem]
+		[updateItem, quantities]
 	);
 
 	const handleRemoveItem = useCallback(
@@ -64,7 +166,17 @@ export function CartSheet() {
 				if (!open) closeCart();
 			}}
 		>
-			<SheetContent className="fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out inset-y-0 right-0 h-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right flex flex-col w-full sm:max-w-lg">
+			<SheetContent
+				ref={sheetRef}
+				onTouchStart={handleTouchStart}
+				onTouchMove={handleTouchMove}
+				onTouchEnd={handleTouchEnd}
+				style={{
+					transform: `translateX(${dragOffset}px)`,
+					transition: isDragging ? "none" : "transform 0.3s ease-out",
+				}}
+				className="fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out inset-y-0 right-0 h-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right flex flex-col w-full sm:max-w-lg touch-pan-y"
+			>
 				<SheetHeader className="flex flex-col space-y-2 text-center sm:text-left">
 					<SheetTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
 						<ShoppingCart className="h-5 w-5" />
@@ -89,6 +201,9 @@ export function CartSheet() {
 				<div className="flex-1 overflow-y-auto py-4">
 					{cartData.items.map(({ node }) => {
 						const productImage = node.merchandise.product.images.edges[0]?.node;
+						const isPendingUpdate = pendingUpdates[node.id] !== undefined;
+						const isUpdating = updatingItems[node.id];
+						const currentQuantity = pendingUpdates[node.id] ?? quantities[node.id] ?? node.quantity;
 
 						return (
 							<div key={node.id} className="flex gap-4 py-4 border-b">
@@ -105,13 +220,14 @@ export function CartSheet() {
 									<h3 className="font-medium">{node.merchandise.product.title}</h3>
 									<p className="text-sm text-muted-foreground">{node.merchandise.title !== "Default Title" && node.merchandise.title}</p>
 									<div className="flex items-center gap-2 mt-2">
-										<select value={node.quantity} onChange={(e) => handleUpdateQuantity(node.id, Number(e.target.value))} className="h-8 w-20 rounded-md border" disabled={isLoading}>
-											{[...Array(10)].map((_, i) => (
-												<option key={i + 1} value={i + 1}>
-													{i + 1}
-												</option>
-											))}
-										</select>
+										<div className="flex items-center gap-2">
+											<input type="number" inputMode="numeric" pattern="[0-9]*" min="1" autoFocus={false} tabIndex={-1} value={currentQuantity === "" ? "" : currentQuantity} onChange={(e) => handleQuantityChange(node.id, e.target.value)} className="w-16 h-8 rounded-md border px-2 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" disabled={isLoading || isUpdating} />
+											{isPendingUpdate && (
+												<Button size="sm" variant="outline" onClick={() => handleUpdateQuantity(node.id, pendingUpdates[node.id])} disabled={isUpdating || pendingUpdates[node.id] === "" || pendingUpdates[node.id] === 0} className="h-8 px-2">
+													{isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+												</Button>
+											)}
+										</div>
 										<Button variant="ghost" size="icon" onClick={() => handleRemoveItem(node.id)} disabled={isLoading} className="hover:bg-accent hover:text-accent-foreground h-9 w-9">
 											<Trash2 className="h-4 w-4" />
 										</Button>

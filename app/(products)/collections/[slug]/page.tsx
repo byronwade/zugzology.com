@@ -1,39 +1,69 @@
 "use server";
 
-import { getCollection } from "@/lib/actions/shopify";
+import { getCollection, getCollectionDiscounts } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";
 import { ProductsContentClient } from "@/components/products/products-content-client";
 import type { Metadata } from "next";
 import type { ShopifyProduct, ShopifyCollection } from "@/lib/types";
 
 // Optimize collection data structure
-function optimizeCollectionData(collection: ShopifyCollection | null): ShopifyCollection | null {
+function optimizeCollectionData(collection: ShopifyCollection | null, discountInfo: { discountAmount: number; discountType: "percentage" | "fixed_amount" } | null): ShopifyCollection | null {
 	if (!collection) return null;
 
 	return {
 		...collection,
 		products: {
-			edges: collection.products.edges.map(({ node }) => ({
-				node: {
-					id: node.id,
-					title: node.title,
-					handle: node.handle,
-					description: node.description,
-					priceRange: node.priceRange,
-					productType: node.productType,
-					publishedAt: node.publishedAt,
-					availableForSale: node.availableForSale,
-					options: node.options,
-					vendor: node.vendor,
-					tags: node.tags,
-					variants: {
-						edges: node.variants.edges,
+			edges: collection.products.edges.map(({ node }) => {
+				// Apply discount to product prices if available
+				let priceRange = node.priceRange;
+				let variants = node.variants;
+
+				if (discountInfo) {
+					// Calculate discounted prices
+					const applyDiscount = (price: string) => {
+						const originalPrice = parseFloat(price);
+						if (discountInfo.discountType === "percentage") {
+							return (originalPrice * (1 - discountInfo.discountAmount / 100)).toString();
+						} else {
+							return (originalPrice - discountInfo.discountAmount).toString();
+						}
+					};
+
+					// Update price range
+					priceRange = {
+						minVariantPrice: {
+							...node.priceRange.minVariantPrice,
+							amount: applyDiscount(node.priceRange.minVariantPrice.amount),
+						},
+						maxVariantPrice: {
+							...node.priceRange.maxVariantPrice,
+							amount: applyDiscount(node.priceRange.maxVariantPrice.amount),
+						},
+					};
+
+					// Update variant prices
+					variants = {
+						edges: node.variants.edges.map(({ node: variant }) => ({
+							node: {
+								...variant,
+								compareAtPrice: variant.price, // Store original price as compareAtPrice
+								price: {
+									...variant.price,
+									amount: applyDiscount(variant.price.amount),
+								},
+							},
+						})),
+					};
+				}
+
+				return {
+					node: {
+						...node,
+						priceRange,
+						variants,
 					},
-					images: {
-						edges: node.images.edges.slice(0, 1), // Only keep first image for initial render
-					},
-				},
-			})),
+				};
+			}),
 		},
 	};
 }
@@ -63,14 +93,14 @@ async function getCollectionData(slug: string): Promise<ShopifyCollection | null
 	const startTime = performance.now();
 
 	try {
-		const collection = await getCollection(handle);
+		const [collection, discountInfo] = await Promise.all([getCollection(handle), getCollectionDiscounts(handle)]);
 
 		if (!collection) {
 			console.error(`Collection not found: ${handle}`);
 			return null;
 		}
 
-		const optimizedCollection = optimizeCollectionData(collection);
+		const optimizedCollection = optimizeCollectionData(collection, discountInfo);
 		const duration = performance.now() - startTime;
 
 		if (duration > 100) {

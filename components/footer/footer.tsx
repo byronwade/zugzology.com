@@ -7,7 +7,7 @@ import Image from "next/image";
 export function Footer() {
 	return (
 		<footer className="relative flex flex-col font-sans bg-black text-white" data-component-name="footer" data-viewable-component="true">
-			<section className="container mx-auto flex flex-col gap-16 py-16 my-0 sm:justify-start sm:pb-16 md:flex-row md:flex-nowrap md:justify-between md:pb-20 md:py-20 md:gap-20 xl:w-full bg-black text-white" data-section-name="footer" data-section-index="1" data-component-name="footer" data-viewable-component="true">
+			<section className="container mx-auto flex flex-col gap-16 p-4 sm:py-16 my-0 sm:justify-start sm:pb-16 md:flex-row md:flex-nowrap md:justify-between md:pb-20 md:py-20 md:gap-20 xl:w-full bg-black text-white" data-section-name="footer" data-section-index="1" data-component-name="footer" data-viewable-component="true">
 				{/* Logo Section */}
 				<div className="min-w-[100px] flex items-start">
 					<Link href="/" className="text-white hover:text-white/80">

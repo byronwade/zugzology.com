@@ -1,6 +1,5 @@
 "use client";
 
-import { useViewMode } from "@/hooks/use-view-mode";
 import { useSearch } from "@/lib/providers/search-provider";
 import { ProductList } from "@/components/products/product-list";
 import { ProductsHeader } from "@/components/products/products-header";
@@ -8,7 +7,6 @@ import { useMemo, useEffect, useRef } from "react";
 import { Link } from "@/components/ui/link";
 import type { ShopifyCollection, ShopifyProduct } from "@/lib/types";
 import { useProductFilters } from "@/lib/hooks/use-product-filters";
-import { Badge } from "@/components/ui/badge";
 
 interface ProductsContentClientProps {
 	collection: ShopifyCollection;
@@ -16,7 +14,6 @@ interface ProductsContentClientProps {
 }
 
 export function ProductsContentClient({ collection, searchQuery }: ProductsContentClientProps) {
-	const { view, setView, mounted } = useViewMode();
 	const { searchQuery: debouncedQuery, searchResults, isSearching, setAllProducts } = useSearch();
 	const initRef = useRef(false);
 
@@ -41,23 +38,13 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 		return isSearching ? searchResults.filter((result): result is { type: "product"; item: ShopifyProduct } => result.type === "product").map((result) => result.item) : filteredProducts;
 	}, [isSearching, searchResults, filteredProducts]);
 
-	// Show loading state during hydration
-	if (!mounted) {
-		return (
-			<div className="w-full h-screen flex items-center justify-center" role="status" aria-label="Loading products">
-				<div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary" aria-hidden="true"></div>
-				<span className="sr-only">Loading products...</span>
-			</div>
-		);
-	}
-
 	// Handle empty search results
 	if (isSearching && !products.length) {
 		return (
 			<main className="w-full" itemScope itemType="https://schema.org/SearchResultsPage">
 				<meta itemProp="name" content={`Search Results for "${debouncedQuery}" - Zugzology`} />
 				<meta itemProp="description" content={`No products found matching your search for "${debouncedQuery}"`} />
-				<ProductsHeader title={`Search Results for "${debouncedQuery}"`} description="No products found matching your search." count={0} view={view} onViewChange={setView} filters={filters} onUpdateFilter={updateFilter} />
+				<ProductsHeader title={`Search Results for "${debouncedQuery}"`} description="No products found matching your search." count={0} filters={filters} onUpdateFilter={updateFilter} />
 				<section className="flex flex-col items-center justify-center py-12 px-4 text-center" aria-label="No results message">
 					<p className="text-lg text-muted-foreground mb-4" role="alert">
 						No products found
@@ -77,7 +64,7 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 			<main className="w-full" itemScope itemType="https://schema.org/CollectionPage">
 				<meta itemProp="name" content={`${collection?.title || "Products"} - Zugzology`} />
 				<meta itemProp="description" content={collection?.description || "Browse our collection of products"} />
-				<ProductsHeader title={collection?.title || "Products"} description={collection?.description} count={0} view={view} onViewChange={setView} filters={filters} onUpdateFilter={updateFilter} />
+				<ProductsHeader title={collection?.title || "Products"} description={collection?.description} count={0} filters={filters} onUpdateFilter={updateFilter} />
 				<section className="flex flex-col items-center justify-center py-12 px-4 text-center" aria-label="No products message">
 					<p className="text-lg text-muted-foreground mb-4" role="alert">
 						No products found
@@ -99,12 +86,12 @@ export function ProductsContentClient({ collection, searchQuery }: ProductsConte
 			<meta itemProp="description" content={isSearching ? `Found ${products.length} products matching your search` : collection.description} />
 			<meta itemProp="numberOfItems" content={String(products.length)} />
 
-			<ProductsHeader title={isSearching ? `Search Results for "${debouncedQuery}"` : collection.title} description={isSearching ? `Found ${products.length} products matching your search` : filters.sort !== "featured" ? `Showing ${products.length} filtered products` : collection.description} count={products.length} view={view} onViewChange={setView} filters={filters} onUpdateFilter={updateFilter} />
+			<ProductsHeader title={isSearching ? `Search Results for "${debouncedQuery}"` : collection.title} description={isSearching ? `Found ${products.length} products matching your search` : filters.sort !== "featured" ? `Showing ${products.length} filtered products` : collection.description} count={products.length} filters={filters} onUpdateFilter={updateFilter} />
 
 			<section className="px-4 py-6" aria-label={isSearching ? "Search Results" : "Product Catalog"} itemScope itemType="https://schema.org/ItemList">
 				<meta itemProp="name" content={isSearching ? `Search Results for "${debouncedQuery}"` : collection.title} />
 				<meta itemProp="numberOfItems" content={String(products.length)} />
-				<ProductList products={products} view={view} />
+				<ProductList products={products} />
 			</section>
 		</main>
 	);

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShopifyProductVariant } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/providers/cart-provider";
-import { Loader2, ShoppingCart, Package, ArrowRight, Shield, TruckIcon, Gift, Star, Info, Check, ChevronDown, HeartHandshake, Users, Headphones, Percent } from "lucide-react";
+import { Loader2, ShoppingCart, Package, ArrowRight, Shield, TruckIcon, Star, Info, Check, HeartHandshake, Users, Headphones, Percent, Heart, Share2, Link2, Mail, MessageCircle, BookmarkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { createCart, addToCart } from "@/lib/actions/shopify";
+import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ProductActionsProps {
 	selectedVariant: ShopifyProductVariant;
@@ -27,8 +29,15 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 	const { addItem } = useCart();
 	const [isLoading, setIsLoading] = useState(false);
 	const [isBuyingNow, setIsBuyingNow] = useState(false);
+	const [isWishlisted, setIsWishlisted] = useState(false);
 
 	console.log("Product Handle:", productHandle);
+
+	// Check if product is in wishlist on mount
+	useEffect(() => {
+		const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
+		setIsWishlisted(wishlist.includes(productHandle));
+	}, [productHandle]);
 
 	const handleAddToCart = async () => {
 		if (!selectedVariant?.id) {
@@ -113,6 +122,62 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 		onQuantityChange(finalQuantity);
 	};
 
+	const formatDeliveryDate = () => {
+		const today = new Date();
+		// Add 3-5 business days for standard shipping
+		const deliveryDate = new Date(today);
+		deliveryDate.setDate(today.getDate() + 5); // Using max delivery time for conservative estimate
+
+		return deliveryDate.toLocaleDateString("en-US", {
+			weekday: "short",
+			month: "short",
+			day: "numeric",
+		});
+	};
+
+	const handleWishlist = () => {
+		const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
+		let newWishlist;
+
+		if (isWishlisted) {
+			newWishlist = wishlist.filter((item: string) => item !== productHandle);
+			toast.success("Removed from wishlist");
+		} else {
+			newWishlist = [...wishlist, productHandle];
+			toast.success("Added to wishlist");
+		}
+
+		localStorage.setItem("wishlist", JSON.stringify(newWishlist));
+		setIsWishlisted(!isWishlisted);
+	};
+
+	const handleShare = async (platform: string) => {
+		const productUrl = `https://zugzology.com/products/${productHandle}`;
+		const productTitle = selectedVariant.title;
+
+		switch (platform) {
+			case "copy":
+				await navigator.clipboard.writeText(productUrl);
+				toast.success("Link copied to clipboard");
+				break;
+			case "facebook":
+				window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`, "_blank");
+				break;
+			case "twitter":
+				window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(productUrl)}&text=${encodeURIComponent(productTitle)}`, "_blank");
+				break;
+			case "pinterest":
+				window.open(`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(productUrl)}&description=${encodeURIComponent(productTitle)}`, "_blank");
+				break;
+			case "whatsapp":
+				window.open(`https://wa.me/?text=${encodeURIComponent(productTitle + " " + productUrl)}`, "_blank");
+				break;
+			case "email":
+				window.open(`mailto:?subject=${encodeURIComponent(productTitle)}&body=${encodeURIComponent(productUrl)}`, "_blank");
+				break;
+		}
+	};
+
 	return (
 		<TooltipProvider>
 			<Card className="rounded-lg border border-foreground/15 shadow-none w-full mx-auto">
@@ -120,7 +185,17 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 					{/* Price and Stock Status */}
 					<div className="space-y-1.5">
 						<div className="flex items-center justify-between">
-							<div className="text-3xl font-bold text-primary">{formatPrice(parseFloat(selectedVariant?.price?.amount || "0"))}</div>
+							<div className="flex items-center gap-2">
+								<div className="text-3xl font-bold text-primary">{formatPrice(parseFloat(selectedVariant?.price?.amount || "0"))}</div>
+								{selectedVariant?.compareAtPrice && parseFloat(selectedVariant.compareAtPrice.amount) > parseFloat(selectedVariant.price.amount) && (
+									<>
+										<div className="text-xl text-muted-foreground line-through">{formatPrice(parseFloat(selectedVariant.compareAtPrice.amount))}</div>
+										<Badge variant="destructive" className="text-xs font-semibold">
+											{Math.round(((parseFloat(selectedVariant.compareAtPrice.amount) - parseFloat(selectedVariant.price.amount)) / parseFloat(selectedVariant.compareAtPrice.amount)) * 100)}% OFF
+										</Badge>
+									</>
+								)}
+							</div>
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<Badge variant="secondary" className="text-xs font-semibold cursor-help">
@@ -132,28 +207,28 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 								</TooltipContent>
 							</Tooltip>
 						</div>
-						{selectedVariant?.availableForSale ? (
-							<div className="text-sm text-green-600 font-medium flex items-center">
-								<div className="w-2 h-2 rounded-full bg-green-600 mr-2" />
-								In Stock
+						{/* Stock and Shipping Info */}
+						<div className="space-y-2">
+							{/* Stock Status */}
+							<div className="flex items-center justify-between">
+								<div className={cn("flex items-center gap-1.5", selectedVariant.availableForSale ? "text-green-600" : "text-red-600")}>
+									<span className="text-sm font-medium">{selectedVariant.availableForSale ? "In Stock" : "Out of Stock"}</span>
+								</div>
+								{selectedVariant.availableForSale && selectedVariant.quantityAvailable > 0 && selectedVariant.quantityAvailable <= 10 && <span className="text-xs text-muted-foreground">{selectedVariant.quantityAvailable > 10 ? "10+" : selectedVariant.quantityAvailable} left</span>}
 							</div>
-						) : (
-							<div className="text-sm text-yellow-600 font-medium flex items-center">
-								<div className="w-2 h-2 rounded-full bg-yellow-600 mr-2" />
-								Pre-order
+
+							{/* Shipping Info */}
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-1.5 text-primary">
+									<span className="text-sm">FREE Shipping</span>
+								</div>
+								<span className="text-xs text-muted-foreground">Delivery by {formatDeliveryDate()}</span>
 							</div>
-						)}
-						{typeof selectedVariant.quantityAvailable === "number" && <p className="text-sm text-neutral-600">{selectedVariant.quantityAvailable} units available</p>}
-					</div>
 
-					<div className="flex items-center space-x-1">
-						{[1, 2, 3, 4, 5].map((star) => (
-							<Star key={star} className="w-4 h-4 fill-primary text-primary" />
-						))}
-						<span className="text-sm text-muted-foreground ml-2">(4.8 out of 5)</span>
+							{/* Additional Info */}
+							<p className="text-xs text-muted-foreground">Orders placed before 2 PM EST ship same day</p>
+						</div>
 					</div>
-
-					<Separator className="my-4" />
 
 					{/* Updated Quantity Selector */}
 					<div className="space-y-2">
@@ -194,6 +269,41 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 								</>
 							)}
 						</Button>
+
+						{/* Wishlist and Share Buttons */}
+						<div className="flex gap-2 mt-4">
+							<Button variant="outline" onClick={handleWishlist} className={cn("flex-1", isWishlisted && "bg-primary/5 border-primary text-primary")}>
+								<Heart className={cn("mr-2 h-4 w-4", isWishlisted && "fill-primary")} />
+								{isWishlisted ? "Saved" : "Save for Later"}
+							</Button>
+
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline" className="flex-1">
+										<Share2 className="mr-2 h-4 w-4" />
+										Share
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-56">
+									<DropdownMenuItem onClick={() => handleShare("copy")} className="cursor-pointer">
+										<Link2 className="mr-2 h-4 w-4" />
+										Copy Link
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => handleShare("facebook")} className="cursor-pointer">
+										<BookmarkIcon className="mr-2 h-4 w-4" />
+										Facebook
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => handleShare("twitter")} className="cursor-pointer">
+										<MessageCircle className="mr-2 h-4 w-4" />
+										Twitter
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => handleShare("email")} className="cursor-pointer">
+										<Mail className="mr-2 h-4 w-4" />
+										Email
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
 					</div>
 
 					<Separator className="my-4" />
@@ -441,7 +551,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						</AccordionItem>
 
 						{/* Social Proof */}
-						<AccordionItem value="social-proof" className="border rounded-lg bg-accent/50">
+						{/* <AccordionItem value="social-proof" className="border rounded-lg bg-accent/50">
 							<AccordionTrigger className="px-4 py-2 hover:no-underline">
 								<div className="flex items-center">
 									<Users className="h-5 w-5 mr-2 text-primary" />
@@ -480,7 +590,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 									</div>
 								</div>
 							</AccordionContent>
-						</AccordionItem>
+						</AccordionItem> */}
 					</Accordion>
 				</CardContent>
 			</Card>

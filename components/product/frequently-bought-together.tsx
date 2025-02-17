@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { ChevronRight, Info } from "lucide-react";
 import { type ShopifyProduct } from "@/lib/types";
@@ -18,10 +18,36 @@ interface FrequentlyBoughtTogetherProps {
 	complementaryProducts: ShopifyProduct[];
 }
 
+// Custom hook for mobile detection
+function useIsMobile() {
+	const [isMobile, setIsMobile] = useState(false);
+
+	useEffect(() => {
+		const checkMobile = () => {
+			setIsMobile(window.innerWidth < 640);
+		};
+
+		// Initial check
+		checkMobile();
+
+		// Add event listener
+		window.addEventListener("resize", checkMobile);
+
+		// Cleanup
+		return () => window.removeEventListener("resize", checkMobile);
+	}, []);
+
+	return isMobile;
+}
+
 export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }: FrequentlyBoughtTogetherProps) {
 	const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set([mainProduct.id]));
 	const [isLoading, setIsLoading] = useState(false);
-	const { addItem, createNewCart } = useCart();
+	const { addItem } = useCart();
+	const isMobile = useIsMobile();
+
+	// Limit complementary products on mobile
+	const displayProducts = isMobile ? complementaryProducts.slice(0, 4) : complementaryProducts;
 
 	const toggleProduct = (productId: string) => {
 		setSelectedProducts((prev) => {
@@ -35,7 +61,7 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 		});
 	};
 
-	const allProducts = [mainProduct, ...complementaryProducts];
+	const allProducts = [mainProduct, ...displayProducts];
 
 	const totalPrice = useMemo(() => {
 		return allProducts.filter((product) => selectedProducts.has(product.id)).reduce((sum, product) => sum + parseFloat(product.priceRange.minVariantPrice.amount), 0);
@@ -89,19 +115,18 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 						</Tooltip>
 					</TooltipProvider>
 				</div>
-				<div className="flex items-start space-x-4">
-					<div className="flex-shrink-0">
-						<Image src={getProductImage(mainProduct)} alt={mainProduct.title} width={120} height={120} className="rounded-lg object-cover" />
-					</div>
-					<div>
-						<h3 className="text-lg font-semibold">{mainProduct.title}</h3>
-						<p className="text-sm text-gray-500 mt-1">{mainProduct.description}</p>
-						<p className="text-lg font-bold mt-2">${parseFloat(mainProduct.priceRange.minVariantPrice.amount).toFixed(2)}</p>
+				<div className={isMobile ? "space-y-4" : "flex items-start space-x-4"}>
+					<div className={isMobile ? "flex items-center space-x-4" : "flex-shrink-0"}>
+						<Image src={getProductImage(mainProduct)} alt={mainProduct.title} width={isMobile ? 80 : 120} height={isMobile ? 80 : 120} className="rounded-lg object-cover" />
+						<div className={isMobile ? "flex-1" : ""}>
+							<h3 className={`font-semibold ${isMobile ? "text-base" : "text-lg"}`}>{mainProduct.title}</h3>
+							<p className={`font-bold mt-2 ${isMobile ? "text-base" : "text-lg"}`}>${parseFloat(mainProduct.priceRange.minVariantPrice.amount).toFixed(2)}</p>
+						</div>
 					</div>
 				</div>
 				<Separator />
 				<div className="space-y-4">
-					{complementaryProducts.map((product) => (
+					{displayProducts.map((product) => (
 						<div key={product.id} className="flex items-start justify-between">
 							<div className="flex items-start space-x-4">
 								<div className="relative w-16 h-16 flex-shrink-0">
@@ -109,7 +134,6 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 								</div>
 								<div>
 									<p className="font-medium">{product.title}</p>
-									<p className="text-sm text-gray-500">{product.description}</p>
 									<p className="text-sm font-bold mt-1">${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}</p>
 								</div>
 							</div>

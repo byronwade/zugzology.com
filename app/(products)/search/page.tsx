@@ -130,7 +130,30 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 		title: query ? `Search Results for "${query}"` : "All Products",
 		description: query ? `Found ${filteredProducts.length} items matching your search` : "Browse our complete catalog",
 		products: {
-			edges: filteredProducts.map((product) => ({ node: product })),
+			edges: filteredProducts.map((product) => ({
+				node: {
+					id: product.id,
+					title: product.title,
+					handle: product.handle,
+					description: product.description,
+					descriptionHtml: product.descriptionHtml || product.description,
+					isGiftCard: product.isGiftCard || false,
+					availableForSale: product.availableForSale,
+					productType: product.productType || "",
+					vendor: product.vendor || "",
+					tags: product.tags || [],
+					options: product.options || [],
+					publishedAt: product.publishedAt || new Date().toISOString(),
+					priceRange: product.priceRange,
+					images: {
+						edges: product.images.edges.slice(0, 1), // Only keep first image for initial render
+					},
+					variants: {
+						edges: [product.variants.edges[0]], // Only keep first variant for initial render
+					},
+					metafields: product.metafields,
+				},
+			})),
 		},
 	};
 

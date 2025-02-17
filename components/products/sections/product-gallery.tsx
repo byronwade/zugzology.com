@@ -132,30 +132,58 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 
 	// Filter and validate media
 	const validMedia = useMemo(() => {
+		console.log("Raw media array:", media); // Debug log
+
 		if (!media || !Array.isArray(media)) {
 			console.warn("Invalid media array provided to ProductGallery");
 			return [];
 		}
-		return media.filter((item) => {
+
+		const filtered = media.filter((item): item is ShopifyMediaImage | ShopifyMediaVideo | ShopifyExternalVideo => {
 			if (!item) {
 				console.warn("Null or undefined media item found");
 				return false;
 			}
-			if (item.mediaContentType === "IMAGE") {
-				return item.image?.url;
+
+			console.log("Processing media item:", {
+				type: item.mediaContentType,
+				item: item,
+			}); // Debug log
+
+			const mediaType = item.mediaContentType as string;
+			switch (mediaType) {
+				case "IMAGE":
+					const image = item as ShopifyMediaImage;
+					const hasValidImage = Boolean(image.image?.url);
+					console.log("Image media item:", { hasValidImage, url: image.image?.url });
+					return hasValidImage;
+
+				case "VIDEO":
+					const video = item as ShopifyMediaVideo;
+					const hasValidVideo = Boolean(video.sources?.[0]?.url);
+					console.log("Video media item:", { hasValidVideo, sources: video.sources });
+					return hasValidVideo;
+
+				case "EXTERNAL_VIDEO":
+					const externalVideo = item as ShopifyExternalVideo;
+					const hasValidExternalVideo = Boolean(externalVideo.embedUrl);
+					console.log("External video media item:", { hasValidExternalVideo, embedUrl: externalVideo.embedUrl });
+					return hasValidExternalVideo;
+
+				default:
+					console.warn("Unknown media type:", mediaType);
+					return false;
 			}
-			if (item.mediaContentType === "VIDEO") {
-				return item.sources?.[0]?.url;
-			}
-			if (item.mediaContentType === "EXTERNAL_VIDEO") {
-				return item.embedUrl;
-			}
-			return false;
 		});
+
+		console.log("Filtered valid media:", filtered); // Debug log
+		return filtered;
 	}, [media]);
 
 	// Get YouTube videos
 	const youtubeVideos = useMemo(() => {
+		console.log("Processing YouTube videos from:", product?.youtubeVideos?.references?.edges); // Debug log
+
 		if (!product?.youtubeVideos?.references?.edges) {
 			return [];
 		}
@@ -164,6 +192,8 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 			const metaobjects = product.youtubeVideos.references.edges;
 			const processedVideos = metaobjects
 				.map((edge: { node: { type: string; fields: Array<{ key: string; value: string; type: string }> } }, index: number) => {
+					console.log("Processing YouTube edge:", edge); // Debug log
+
 					const fields = edge.node.fields;
 					const urlField = fields.find((field) => field.key === "youtube_link");
 
@@ -175,6 +205,8 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 					try {
 						const linkData = JSON.parse(urlField.value);
 						const url = linkData.url;
+
+						console.log("Parsed YouTube URL:", url); // Debug log
 
 						if (!url) {
 							console.warn(`No URL in JSON data for metaobject ${index + 1}`);
@@ -192,6 +224,7 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 							id: `youtube-${videoId}`,
 							mediaContentType: "YOUTUBE" as const,
 							url,
+							embedUrl: getYouTubeEmbedUrl(url),
 							thumbnail: {
 								url: getYouTubeThumbnail(videoId),
 								altText: `YouTube video thumbnail ${index + 1}`,
@@ -204,6 +237,7 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 				})
 				.filter(Boolean) as YouTubeVideo[];
 
+			console.log("Processed YouTube videos:", processedVideos); // Debug log
 			return processedVideos;
 		} catch (error) {
 			console.error("Error processing YouTube videos:", error);
@@ -324,7 +358,7 @@ export function ProductGallery({ media, title, selectedIndex = 0, onMediaSelect,
 
 				{/* Main Media Display */}
 				<div className="flex-1">
-					<div className="relative aspect-square group bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-foreground/10 [touch-action:pan-y_pinch-zoom]" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+					<div className="relative aspect-square group bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-foreground/10 [touch-action:pan-y_pinch-zoom] overflow-hidden" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
 						{activeMedia.mediaContentType === "VIDEO" ? (
 							<div className="relative w-full h-full">
 								<video ref={videoRef} src={(activeMedia as ShopifyMediaVideo).sources[0]?.url} poster={(activeMedia as ShopifyMediaVideo).previewImage?.url} className="w-full h-full object-contain rounded-lg" controls={isPlaying} playsInline onClick={handleVideoPlay}>
