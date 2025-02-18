@@ -2,126 +2,119 @@
 "use cache";
 
 import { shopifyFetch } from "./client";
-import { MEMORY_CACHE, CACHE_TIMES, getObjectSize } from "./cache";
+import { CACHE_TIMES } from "./cache-config";
 import type { ProductResponse, CollectionResponse } from "./types";
 import type { ShopifyProduct, ShopifyCollection } from "../../types";
+import { unstable_cache } from "next/cache";
 
 export async function getProduct(handle: string): Promise<ShopifyProduct | null> {
-	const cacheKey = `product_${handle}`;
-	const now = Date.now();
-	const cached = MEMORY_CACHE.get(cacheKey);
-
-	if (cached && now - cached.timestamp < CACHE_TIMES.PRODUCTS * 1000) {
-		return cached.data;
-	}
-
-	try {
-		const { data } = await shopifyFetch<ProductResponse>({
-			query: `
-        query getProduct($handle: String!) {
-          product(handle: $handle) {
-            id
-            title
-            handle
-            description
-            descriptionHtml
-            availableForSale
-            variants(first: 1) {
-              edges {
-                node {
-                  id
-                  title
-                  availableForSale
-                  quantityAvailable
-                  price {
-                    amount
-                    currencyCode
+	return unstable_cache(
+		async () => {
+			try {
+				const { data } = await shopifyFetch<ProductResponse>({
+					query: `
+            query getProduct($handle: String!) {
+              product(handle: $handle) {
+                id
+                title
+                handle
+                description
+                descriptionHtml
+                availableForSale
+                variants(first: 1) {
+                  edges {
+                    node {
+                      id
+                      title
+                      availableForSale
+                      quantityAvailable
+                      price {
+                        amount
+                        currencyCode
+                      }
+                    }
+                  }
+                }
+                images(first: 1) {
+                  edges {
+                    node {
+                      url
+                      altText
+                      width
+                      height
+                    }
                   }
                 }
               }
             }
-            images(first: 1) {
-              edges {
-                node {
+          `,
+					variables: { handle },
+					tags: [`product-${handle}`],
+				});
+
+				return data?.product ?? null;
+			} catch (error) {
+				console.error("Error fetching product:", error);
+				return null;
+			}
+		},
+		[`product-${handle}`],
+		{
+			revalidate: CACHE_TIMES.PRODUCTS,
+			tags: [`product-${handle}`],
+		}
+	)();
+}
+
+export async function getCollection(handle: string): Promise<ShopifyCollection | null> {
+	return unstable_cache(
+		async () => {
+			try {
+				const { data } = await shopifyFetch<CollectionResponse>({
+					query: `
+            query getCollection($handle: String!) {
+              collection(handle: $handle) {
+                id
+                title
+                handle
+                description
+                image {
                   url
                   altText
                   width
                   height
                 }
-              }
-            }
-          }
-        }
-      `,
-			variables: { handle },
-			tags: [`product-${handle}`],
-		});
-
-		if (data?.product) {
-			const size = getObjectSize(data.product);
-			MEMORY_CACHE.set(cacheKey, {
-				data: data.product,
-				timestamp: now,
-				size,
-			});
-		}
-
-		return data?.product ?? null;
-	} catch (error) {
-		console.error("Error fetching product:", error);
-		return cached?.data || null;
-	}
-}
-
-export async function getCollection(handle: string): Promise<ShopifyCollection | null> {
-	const cacheKey = `collection_${handle}`;
-	const now = Date.now();
-	const cached = MEMORY_CACHE.get(cacheKey);
-
-	if (cached && now - cached.timestamp < CACHE_TIMES.COLLECTIONS * 1000) {
-		return cached.data;
-	}
-
-	try {
-		const { data } = await shopifyFetch<CollectionResponse>({
-			query: `
-        query getCollection($handle: String!) {
-          collection(handle: $handle) {
-            id
-            title
-            handle
-            description
-            products(first: 100) {
-              edges {
-                node {
-                  id
-                  title
-                  handle
+                products(first: 100) {
+                  edges {
+                    node {
+                      id
+                      title
+                      handle
+                    }
+                  }
                 }
               }
             }
-          }
-        }
-      `,
-			variables: { handle },
+          `,
+					variables: { handle },
+					tags: [`collection-${handle}`],
+				});
+
+				return data?.collection ?? null;
+			} catch (error) {
+				console.error("Error fetching collection:", error);
+				return null;
+			}
+		},
+		[`collection-${handle}`],
+		{
+			revalidate: CACHE_TIMES.COLLECTIONS,
 			tags: [`collection-${handle}`],
-		});
-
-		if (data?.collection) {
-			const size = getObjectSize(data.collection);
-			MEMORY_CACHE.set(cacheKey, {
-				data: data.collection,
-				timestamp: now,
-				size,
-			});
 		}
-
-		return data?.collection ?? null;
-	} catch (error) {
-		console.error("Error fetching collection:", error);
-		return cached?.data || null;
-	}
+	)();
 }
+
+export { getAllCollections } from "./actions";
 
 // Re-export everything from cache and types
 export * from "./cache";

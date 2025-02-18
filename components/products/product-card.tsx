@@ -9,7 +9,7 @@ import { ShoppingCart, Star, ShoppingBag, Loader2, Package, Clock, Users, Heart 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/providers/cart-provider";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { useWishlist } from "@/lib/providers/wishlist-provider";
 
 export interface ProductCardProps {
@@ -19,7 +19,7 @@ export interface ProductCardProps {
 	variantId?: string;
 	quantity?: number;
 	onAddToCart?: () => void;
-	isAddingToCart?: boolean;
+	isAddingToCartProp?: boolean;
 	onRemoveFromWishlist?: (handle: string) => void;
 	onAddToWishlist?: (handle: string) => void;
 }
@@ -78,88 +78,120 @@ const formatDeliveryDate = () => {
 
 // Remove all console.log statements and optimize metafield checks
 const getRatingData = (product: ShopifyProduct) => {
-	const metafields = product.metafields?.edges || [];
+	const metafields = product.metafields || [];
 	return {
-		rating: parseFloat(metafields.find((edge) => edge.node.namespace === "custom" && edge.node.key === "rating")?.node.value || "0"),
-		ratingCount: parseInt(metafields.find((edge) => edge.node.namespace === "custom" && edge.node.key === "rating_count")?.node.value || "0", 10),
-		recentPurchases: parseInt(metafields.find((edge) => edge.node.namespace === "custom" && edge.node.key === "recent_purchases")?.node.value || "0", 10),
+		rating: parseFloat(metafields.find((field) => field?.namespace === "custom" && field?.key === "rating")?.value || "0"),
+		ratingCount: parseInt(metafields.find((field) => field?.namespace === "custom" && field?.key === "rating_count")?.value || "0", 10),
+		recentPurchases: parseInt(metafields.find((field) => field?.namespace === "custom" && field?.key === "recent_purchases")?.value || "0", 10),
 	};
 };
 
-export function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0, onAddToCart, isAddingToCart, onRemoveFromWishlist, onAddToWishlist }: ProductCardProps) {
+// Add this at the top level, outside the component
+const calculateDiscountPercentage = (compareAtPrice: string, price: string) => {
+	if (!compareAtPrice || !price) return 0;
+	return Math.round(((parseFloat(compareAtPrice) - parseFloat(price)) / parseFloat(compareAtPrice)) * 100);
+};
+
+// Memoize the ProductCard component
+export const ProductCard = memo(function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0, onAddToCart, isAddingToCartProp, onRemoveFromWishlist, onAddToWishlist }: ProductCardProps) {
 	const { addItem } = useCart();
-	const [isAddingToCartState, setIsAddingToCart] = useState(false);
+	const [isAddingToCartLocal, setIsAddingToCartLocal] = useState(false);
 	const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-	const isWishlisted = isInWishlist(product.handle);
 
-	// Get the first variant and its price
-	const firstVariant = product.variants?.edges?.[0]?.node;
-	const price = firstVariant?.price?.amount || "0";
-	const compareAtPrice = firstVariant?.compareAtPrice?.amount;
-	const hasDiscount = compareAtPrice && parseFloat(compareAtPrice) > parseFloat(price);
+	// Memoize expensive calculations
+	const productDetails = useMemo(() => {
+		const firstVariant = product.variants?.nodes?.[0];
+		const price = firstVariant?.price?.amount || "0";
+		const compareAtPrice = firstVariant?.compareAtPrice?.amount;
+		const hasDiscount = compareAtPrice && parseFloat(compareAtPrice) > parseFloat(price);
+		const discountPercentage = hasDiscount ? calculateDiscountPercentage(compareAtPrice, price) : 0;
+		const firstImage = product.images?.nodes?.[0];
 
-	// Get the first image
-	const firstImage = product.images?.edges?.[0]?.node;
-	const imageUrl = firstImage?.url;
-	const imageAlt = firstImage?.altText || product.title;
+		return {
+			firstVariant,
+			price,
+			compareAtPrice,
+			hasDiscount,
+			discountPercentage,
+			imageUrl: firstImage?.url,
+			imageAlt: firstImage?.altText || product.title,
+			isAvailable: firstVariant?.availableForSale ?? false,
+		};
+	}, [product]);
 
-	// Use product's availability if not explicitly provided
-	const isAvailable = firstVariant?.availableForSale ?? false;
+	const isWishlisted = useMemo(() => isInWishlist(product.handle), [isInWishlist, product.handle]);
+	const isAddingToCartState = isAddingToCartLocal || isAddingToCartProp;
 	const isLowStock = quantity > 0 && quantity <= 10;
 
-	// Calculate discount percentage if there's a sale
-	const discountPercentage = hasDiscount ? Math.round(((parseFloat(compareAtPrice) - parseFloat(price)) / parseFloat(compareAtPrice)) * 100) : 0;
+	// Memoize the product URL
+	const productUrl = useMemo(() => {
+		return `/products/${product.handle}${collectionHandle ? `?collection=${collectionHandle}` : ""}${variantId ? `${collectionHandle ? "&" : "?"}variant=${variantId}` : ""}`;
+	}, [product.handle, collectionHandle, variantId]);
+
+	const handleAddToCart = useCallback(
+		async (e: React.MouseEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (!variantId) {
+				toast.error("Please select a product variant");
+				return;
+			}
+
+			setIsAddingToCartLocal(true);
+			try {
+				const merchandiseId = variantId.includes("gid://shopify/ProductVariant/") ? variantId : `gid://shopify/ProductVariant/${variantId}`;
+
+				await addItem({
+					merchandiseId,
+					quantity: 1,
+				});
+
+				if (onAddToCart) {
+					onAddToCart();
+				}
+
+				toast.success("Added to cart");
+			} catch (error) {
+				console.error("Error in handleAddToCart:", error);
+				toast.error("Failed to add to cart");
+			} finally {
+				setIsAddingToCartLocal(false);
+			}
+		},
+		[variantId, addItem, onAddToCart]
+	);
+
+	const handleWishlistToggle = useCallback(() => {
+		if (isWishlisted) {
+			removeFromWishlist(product.handle);
+		} else {
+			addToWishlist(product.handle);
+		}
+	}, [isWishlisted, product.handle, removeFromWishlist, addToWishlist]);
 
 	// Get rating data
 	const { rating, ratingCount, recentPurchases } = getRatingData(product);
 	const hasRating = rating > 0 && ratingCount > 0;
 	const purchaseText = formatRecentPurchases(recentPurchases);
 
-	// Determine product URL with collection and variant params if available
-	const productUrl = `/products/${product.handle}${collectionHandle ? `?collection=${collectionHandle}` : ""}${variantId ? `${collectionHandle ? "&" : "?"}variant=${variantId}` : ""}`;
+	// Calculate discount percentage if there's a sale
+	const discountPercentage = productDetails.hasDiscount ? productDetails.discountPercentage : 0;
 
-	const handleAddToCart = async (e: React.MouseEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-
-		if (onAddToCart) {
-			onAddToCart();
-		} else {
-			setIsAddingToCart(true);
-			try {
-				await addItem({
-					merchandiseId: variantId,
-					quantity: 1,
-				});
-				toast.success("Added to cart");
-			} catch (error) {
-				console.error("Error adding to cart:", error);
-				toast.error("Failed to add to cart");
-			} finally {
-				setIsAddingToCart(false);
-			}
-		}
-	};
-
-	const handleWishlistToggle = () => {
-		if (isWishlisted) {
-			removeFromWishlist(product.handle);
-		} else {
-			addToWishlist(product.handle);
-		}
-	};
+	// Use product's availability if not explicitly provided
+	const isAvailable = productDetails.isAvailable;
 
 	return (
 		<div className={cn("group relative h-full sm:border sm:border-foreground/10 sm:hover:border-foreground/20 transition-colors duration-200 sm:rounded-lg sm:my-0.5", view === "grid" ? "flex flex-col" : "flex flex-row gap-4 py-4")}>
-			<Button variant="ghost" size="icon" className="absolute right-2 top-2 z-10" onClick={handleWishlistToggle}>
+			<Button variant="ghost" size="icon" className="absolute right-2 top-2 z-[1]" onClick={handleWishlistToggle}>
 				<Heart className={cn("h-5 w-5 transition-colors duration-200", isWishlisted ? "fill-red-500 stroke-red-500" : "stroke-foreground/60 group-hover:stroke-foreground/80")} />
 			</Button>
 
 			{/* Product Image */}
 			<Link href={productUrl} className={cn("block shrink-0", view === "grid" ? "w-full" : "w-24 sm:w-32")}>
 				<div className={cn("relative bg-neutral-100 dark:bg-neutral-800 overflow-hidden", view === "grid" ? "aspect-square w-full sm:rounded-t-lg" : "aspect-square w-24 h-24 sm:w-32 sm:h-32 rounded-lg")}>
-					{firstImage ? (
-						<Image src={firstImage.url} alt={firstImage.altText || product.title} fill className="object-cover hover:scale-105 transition-transform duration-300" sizes={view === "grid" ? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" : "96px"} priority />
+					{productDetails.imageUrl ? (
+						<Image src={productDetails.imageUrl} alt={productDetails.imageAlt} fill priority={view === "grid"} className="object-cover hover:scale-105 transition-transform duration-300" sizes={view === "grid" ? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" : "96px"} />
 					) : (
 						<div className="absolute inset-0 flex items-center justify-center">
 							<Package className="h-8 w-8 text-neutral-400" />
@@ -191,20 +223,20 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 
 					{/* Price Section */}
 					<div className="mt-2">
-						{hasDiscount && (
+						{productDetails.hasDiscount && (
 							<div className="flex items-center gap-1">
-								<span className="text-sm text-muted-foreground line-through">List Price: {formatPrice(parseFloat(compareAtPrice || "0"))}</span>
+								<span className="text-sm text-muted-foreground line-through">List Price: {formatPrice(parseFloat(productDetails.compareAtPrice || "0"))}</span>
 							</div>
 						)}
 						<div className="flex items-baseline gap-2">
-							<span className="text-xl font-medium" aria-label={`Price: ${formatPrice(parseFloat(price))}`}>
+							<span className="text-xl font-medium" aria-label={`Price: ${formatPrice(parseFloat(productDetails.price))}`}>
 								<span className="text-sm">$</span>
-								<span>{Math.floor(parseFloat(price))}</span>
-								<span className="text-sm">{(parseFloat(price) % 1).toFixed(2).substring(1)}</span>
+								<span>{Math.floor(parseFloat(productDetails.price))}</span>
+								<span className="text-sm">{(parseFloat(productDetails.price) % 1).toFixed(2).substring(1)}</span>
 							</span>
-							{hasDiscount && (
+							{productDetails.hasDiscount && (
 								<span className="text-sm text-red-600 font-medium">
-									Save {discountPercentage}% ({formatPrice(parseFloat(compareAtPrice || "0") - parseFloat(price))})
+									Save {discountPercentage}% ({formatPrice(parseFloat(productDetails.compareAtPrice || "0") - parseFloat(productDetails.price))})
 								</span>
 							)}
 						</div>
@@ -228,9 +260,9 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 
 				{/* Add to Cart and Wishlist Buttons */}
 				<div className="flex items-stretch gap-2 mt-2">
-					<Button variant="outline" className="flex-1 min-w-0 h-10" onClick={handleAddToCart} disabled={isAddingToCart || !isAvailable || !variantId}>
+					<Button variant="outline" className="flex-1 min-w-0 h-10" onClick={handleAddToCart} disabled={isAddingToCartState || !isAvailable || !variantId}>
 						<div className="flex items-center justify-center w-full">
-							{isAddingToCart ? (
+							{isAddingToCartState ? (
 								<>
 									<Loader2 className="h-4 w-4 animate-spin mr-2" />
 									<span>Adding...</span>
@@ -247,4 +279,4 @@ export function ProductCard({ product, collectionHandle, view = "grid", variantI
 			</div>
 		</div>
 	);
-}
+});

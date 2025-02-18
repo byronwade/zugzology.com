@@ -28,15 +28,16 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 
 	// Ensure complementaryProducts is an array and validate each product
 	const validComplementaryProducts = Array.isArray(complementaryProducts)
-		? complementaryProducts.filter((product) => {
-				const isValid = Boolean(product?.id && product?.title && product?.priceRange?.minVariantPrice?.amount && product?.variants?.edges?.[0]?.node);
-
-				if (!isValid) {
-					console.warn("Invalid complementary product:", product);
-				}
-
-				return isValid;
-		  })
+		? complementaryProducts
+				.filter((product) => {
+					const isValid = Boolean(product?.id && product?.title && product?.priceRange?.minVariantPrice?.amount && product?.variants?.nodes?.[0]);
+					if (!isValid) {
+						console.warn("Invalid complementary product:", product);
+					}
+					return isValid;
+				})
+				// Remove duplicates based on product ID
+				.filter((product, index, self) => index === self.findIndex((p) => p.id === product.id))
 		: [];
 
 	// If no valid complementary products, don't render the component
@@ -68,7 +69,7 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 	}, [selectedProducts, allProducts]);
 
 	const getProductImage = (product: ShopifyProduct) => {
-		return product.images?.edges[0]?.node?.url || "/placeholder.svg";
+		return product.images?.nodes?.[0]?.url || "/placeholder.svg";
 	};
 
 	const handleAddToCart = async () => {
@@ -76,7 +77,7 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 		try {
 			const selectedProductsArray = allProducts.filter((product) => selectedProducts.has(product.id));
 			const cartItems = selectedProductsArray.map((product) => ({
-				merchandiseId: product.variants.edges[0].node.id,
+				merchandiseId: product.variants.nodes[0].id,
 				quantity: 1,
 			}));
 
@@ -121,21 +122,19 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 					</div>
 					<div>
 						<h3 className="text-lg font-semibold">{mainProduct.title}</h3>
-						<p className="text-sm text-gray-500 mt-1">{mainProduct.description}</p>
 						<p className="text-lg font-bold mt-2">${parseFloat(mainProduct.priceRange.minVariantPrice.amount).toFixed(2)}</p>
 					</div>
 				</div>
 				<Separator />
 				<div className="space-y-4">
 					{validComplementaryProducts.map((product) => (
-						<div key={product.id} className="flex items-start justify-between">
+						<div key={`complementary-${product.id}`} className="flex items-start justify-between">
 							<div className="flex items-start space-x-4">
 								<div className="relative w-16 h-16 flex-shrink-0">
 									<Image src={getProductImage(product)} alt={product.title} fill className="object-cover rounded-md" sizes="(max-width: 64px) 100vw, 64px" />
 								</div>
 								<div>
 									<p className="font-medium">{product.title}</p>
-									<p className="text-sm text-gray-500">{product.description}</p>
 									<p className="text-sm font-bold mt-1">${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}</p>
 								</div>
 							</div>

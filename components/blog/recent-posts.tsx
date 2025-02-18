@@ -16,13 +16,20 @@ export function RecentPosts({ posts }: RecentPostsProps) {
 				{posts.slice(0, 3).map((post) => (
 					<Link key={post.id} href={`/blogs/${post.blogHandle}/${post.handle}`} className="group">
 						<article className="space-y-4">
-							{post.image && (
-								<div className="not-prose">
-									<div className="aspect-[16/9] relative overflow-hidden rounded-xl transition-transform group-hover:scale-[1.02] border border-foreground/10 hover:border-foreground/20">
+							<div className="not-prose">
+								<div className="aspect-[16/9] relative overflow-hidden rounded-xl transition-transform group-hover:scale-[1.02] border border-foreground/10 hover:border-foreground/20">
+									{post.image ? (
 										<Image src={post.image.url} alt={post.image.altText || post.title} fill className="object-cover rounded-xl" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
-									</div>
+									) : (
+										<div className="absolute inset-0 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-center p-4">
+											<div className="space-y-2">
+												<p className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">🍄 A Mushroom Pic</p>
+												<p className="text-neutral-400 dark:text-neutral-500 text-xs">Still Growing...</p>
+											</div>
+										</div>
+									)}
 								</div>
-							)}
+							</div>
 							<div className="space-y-2">
 								<div className="space-y-1">
 									<p className="text-sm font-medium text-purple-600 dark:text-purple-400">{post.blogTitle}</p>

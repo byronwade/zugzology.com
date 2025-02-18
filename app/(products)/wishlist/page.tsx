@@ -24,7 +24,7 @@ export default function WishlistPage() {
 
 	const loadWishlistProducts = async () => {
 		try {
-			const products = await Promise.all(wishlist.map((handle: string) => getProduct(handle)));
+			const products = await Promise.all(wishlist.filter((handle: string) => handle && typeof handle === "string").map((handle: string) => getProduct(handle)));
 			setWishlistProducts(products.filter((p): p is ShopifyProduct => p !== null));
 		} catch (error) {
 			console.error("Error loading wishlist products:", error);
@@ -87,10 +87,21 @@ export default function WishlistPage() {
 			const cart = await createCart();
 			if (!cart?.id) throw new Error("Failed to create cart");
 
-			const items: CartItem[] = wishlistProducts.map((product) => ({
-				merchandiseId: `gid://shopify/ProductVariant/${product.variants.edges[0].node.id}`,
-				quantity: 1,
-			}));
+			const items: CartItem[] = wishlistProducts.map((product) => {
+				// Get the first variant from the nodes array
+				const variant = product.variants?.nodes?.[0];
+				if (!variant?.id) {
+					throw new Error(`No variant found for product: ${product.title}`);
+				}
+
+				// Ensure the variant ID has the correct format
+				const formattedVariantId = variant.id.includes("gid://shopify/ProductVariant/") ? variant.id : `gid://shopify/ProductVariant/${variant.id}`;
+
+				return {
+					merchandiseId: formattedVariantId,
+					quantity: 1,
+				};
+			});
 
 			const updatedCart = await addToCart(cart.id, items);
 

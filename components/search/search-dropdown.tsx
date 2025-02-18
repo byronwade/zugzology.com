@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ShopifyProduct, ShopifyBlogArticle } from "@/lib/types";
+import { ImagePlaceholder } from "@/components/ui/image-placeholder";
 
 export function SearchDropdown() {
 	const router = useRouter();
@@ -77,7 +78,7 @@ export function SearchDropdown() {
 					break;
 				case "Enter":
 					e.preventDefault();
-					if (selectedIndex === -1 && searchQuery.trim()) {
+					if (selectedIndex === -1 && searchQuery?.trim()) {
 						// If no item is selected and there's a search query, submit the search
 						handleSearchClick(searchQuery);
 					} else if (selectedIndex >= 0 && selectedIndex < totalResults) {
@@ -85,13 +86,17 @@ export function SearchDropdown() {
 						let selectedItem;
 						if (selectedIndex < displayedProducts.length) {
 							selectedItem = displayedProducts[selectedIndex];
-							router.push(`/products/${selectedItem.handle}`);
+							if (selectedItem?.handle) {
+								router.push(`/products/${selectedItem.handle}`);
+							}
 						} else {
 							selectedItem = displayedBlogs[selectedIndex - displayedProducts.length];
-							router.push(`/blogs/${selectedItem.blogHandle}/${selectedItem.handle}`);
+							if (selectedItem?.handle && selectedItem?.blogHandle) {
+								router.push(`/blogs/${selectedItem.blogHandle}/${selectedItem.handle}`);
+							}
 						}
 						setIsDropdownOpen(false);
-						if (searchQuery.trim()) {
+						if (searchQuery?.trim()) {
 							addRecentSearch(searchQuery);
 						}
 					}
@@ -145,6 +150,26 @@ export function SearchDropdown() {
 		setIsDropdownOpen(false);
 	};
 
+	// Helper function to get product image URL safely
+	const getProductImageUrl = (product: ShopifyProduct): string | undefined => {
+		return product.images?.nodes?.[0]?.url || product.media?.nodes?.[0]?.previewImage?.url;
+	};
+
+	// Helper function to get blog image URL safely
+	const getBlogImageUrl = (post: ShopifyBlogArticle): string | undefined => {
+		return post.image?.url;
+	};
+
+	// Helper function to get product image alt text safely
+	const getProductImageAlt = (product: ShopifyProduct): string => {
+		return product.images?.nodes?.[0]?.altText || product.media?.nodes?.[0]?.previewImage?.altText || product.title;
+	};
+
+	// Helper function to get blog image alt text safely
+	const getBlogImageAlt = (post: ShopifyBlogArticle): string => {
+		return post.image?.altText || post.title;
+	};
+
 	return (
 		<div className="fixed md:absolute left-0 right-0 md:top-full mt-2 bg-white dark:bg-neutral-950 border-t border-b md:border md:rounded-lg shadow-lg overflow-hidden md:mx-0 -mx-4 z-[100]" ref={dropdownRef}>
 			<ScrollArea className="max-h-[60vh] md:max-h-[80vh]">
@@ -194,13 +219,9 @@ export function SearchDropdown() {
 									{displayedProducts.map((product, index) => (
 										<Link key={product.id} href={`/products/${product.handle}`} className={cn("flex items-start gap-4 p-2 hover:bg-accent rounded-lg transition-colors", selectedIndex === index && "bg-accent")} data-index={index} onClick={handleProductClick}>
 											{/* Product Image */}
-											{product.images?.edges[0]?.node && (
-												<div className="relative w-16 h-16 flex-shrink-0">
-													<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">
-														<Image src={product.images.edges[0].node.url} alt={product.images.edges[0].node.altText || product.title} fill className="object-cover" sizes="64px" />
-													</div>
-												</div>
-											)}
+											<div className="relative w-16 h-16 flex-shrink-0">
+												<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">{getProductImageUrl(product) ? <Image src={getProductImageUrl(product)!} alt={getProductImageAlt(product)} fill className="object-cover" sizes="64px" /> : <ImagePlaceholder />}</div>
+											</div>
 
 											{/* Product Info */}
 											<div className="flex-1 min-w-0">
@@ -239,18 +260,14 @@ export function SearchDropdown() {
 									{displayedBlogs.map((post, index) => (
 										<Link key={post.id} href={`/blogs/${post.blogHandle}/${post.handle}`} className={cn("flex items-start gap-4 p-2 hover:bg-accent rounded-lg transition-colors", selectedIndex === index + displayedProducts.length && "bg-accent")} data-index={index + displayedProducts.length} onClick={handleProductClick}>
 											{/* Blog Post Image */}
-											{post.image && (
-												<div className="relative w-16 h-16 flex-shrink-0">
-													<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">
-														<Image src={post.image.url} alt={post.image.altText || post.title} fill className="object-cover" sizes="64px" />
-													</div>
-												</div>
-											)}
+											<div className="relative w-16 h-16 flex-shrink-0">
+												<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">{getBlogImageUrl(post) ? <Image src={getBlogImageUrl(post)!} alt={getBlogImageAlt(post)} fill className="object-cover" sizes="64px" /> : <ImagePlaceholder />}</div>
+											</div>
 
 											{/* Blog Post Info */}
 											<div className="flex-1 min-w-0">
 												<h4 className="text-sm font-medium line-clamp-1">{post.title}</h4>
-												<p className="text-sm text-muted-foreground line-clamp-1">{post.excerpt}</p>
+												{post.excerpt && <p className="text-sm text-muted-foreground line-clamp-1">{post.excerpt}</p>}
 												<div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
 													<span>{post.author.name}</span>
 													<span>•</span>

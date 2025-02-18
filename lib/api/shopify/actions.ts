@@ -4,7 +4,7 @@ import { unstable_cache } from "next/cache";
 import { shopifyFetch } from "./client";
 import type { ProductResponse, CollectionResponse } from "./types";
 import type { ShopifyProduct, ShopifyCollection, ShopifyCart, CartItem, ShopifyBlog, ShopifyBlogArticle } from "@/lib/types";
-import { PRODUCTS_FRAGMENT, COLLECTION_FRAGMENT, CART_FRAGMENT, BLOG_FRAGMENT } from "./fragments";
+import { PRODUCTS_FRAGMENT, COLLECTION_FRAGMENT, CART_FRAGMENT, BLOG_FRAGMENT, ARTICLE_FRAGMENT } from "./fragments";
 import { CACHE_TIMES, CACHE_TAGS } from "./cache-config";
 import { headerQuery, type HeaderQueryResponse, type HeaderData } from "./queries/header";
 import { SHOPIFY_STOREFRONT_ACCESS_TOKEN, SHOPIFY_STORE_DOMAIN } from "@/lib/constants";
@@ -54,23 +54,86 @@ export const getSiteSettings = unstable_cache(
 export const getProducts = unstable_cache(
 	async () => {
 		try {
-			const { data } = await shopifyFetch<{ products: { edges: { node: ShopifyProduct }[] } }>({
+			console.log("Fetching products from Shopify...");
+			const { data } = await shopifyFetch<{ products: { nodes: ShopifyProduct[] } }>({
 				query: `
 					query getProducts {
-						products(first: 100) {
-							edges {
-								node {
-									...ProductFragment
+						products(first: 100, sortKey: CREATED_AT, reverse: true) {
+							nodes {
+								id
+								title
+								handle
+								description
+								descriptionHtml
+								productType
+								vendor
+								tags
+								isGiftCard
+								availableForSale
+								options {
+									id
+									name
+									values
 								}
+								priceRange {
+									minVariantPrice {
+										amount
+										currencyCode
+									}
+									maxVariantPrice {
+										amount
+										currencyCode
+									}
+								}
+								variants(first: 1) {
+									nodes {
+										id
+										title
+										availableForSale
+										quantityAvailable
+										price {
+											amount
+											currencyCode
+										}
+										compareAtPrice {
+											amount
+											currencyCode
+										}
+										selectedOptions {
+											name
+											value
+										}
+									}
+								}
+								images(first: 1) {
+									nodes {
+										url
+										altText
+										width
+										height
+									}
+								}
+								metafields(identifiers: [
+									{namespace: "custom", key: "rating"},
+									{namespace: "custom", key: "rating_count"}
+								]) {
+									id
+									namespace
+									key
+									value
+									type
+								}
+								publishedAt
 							}
 						}
 					}
-					${PRODUCTS_FRAGMENT}
 				`,
 				tags: [CACHE_TAGS.PRODUCT],
 			});
 
-			return data?.products?.edges?.map((edge) => edge.node) || [];
+			const products = data?.products?.nodes || [];
+			console.log(`Successfully fetched ${products.length} products`);
+			return products;
 		} catch (error) {
 			console.error("Error fetching products:", error);
 			return [];
@@ -119,10 +182,86 @@ export const getCollection = unstable_cache(
 				query: `
 					query getCollection($handle: String!) {
 						collection(handle: $handle) {
-							...CollectionFragment
+							id
+							title
+							handle
+							description
+							image {
+								url
+								altText
+								width
+								height
+							}
+							products(first: 100) {
+								nodes {
+									id
+									title
+									handle
+									description
+									descriptionHtml
+									productType
+									vendor
+									tags
+									isGiftCard
+									availableForSale
+									options {
+										id
+										name
+										values
+									}
+									priceRange {
+										minVariantPrice {
+											amount
+											currencyCode
+										}
+										maxVariantPrice {
+											amount
+											currencyCode
+										}
+									}
+									variants(first: 1) {
+										nodes {
+											id
+											title
+											availableForSale
+											quantityAvailable
+											price {
+												amount
+												currencyCode
+											}
+											compareAtPrice {
+												amount
+												currencyCode
+											}
+											selectedOptions {
+												name
+												value
+											}
+										}
+									}
+									images(first: 1) {
+										nodes {
+											url
+											altText
+											width
+											height
+										}
+									}
+									metafields(identifiers: [
+										{namespace: "custom", key: "rating"},
+										{namespace: "custom", key: "rating_count"}
+									]) {
+										id
+										namespace
+										key
+										value
+										type
+									}
+									publishedAt
+								}
+							}
 						}
 					}
-					${COLLECTION_FRAGMENT}
 				`,
 				variables: { handle },
 				tags: [`${CACHE_TAGS.COLLECTION}-${handle}`],
@@ -135,6 +274,59 @@ export const getCollection = unstable_cache(
 		}
 	},
 	["collection"],
+	{
+		revalidate: CACHE_TIMES.COLLECTIONS,
+		tags: [CACHE_TAGS.COLLECTION],
+	}
+);
+
+export const getAllCollections = unstable_cache(
+	async () => {
+		try {
+			const { data } = await shopifyFetch({
+				query: `
+					query getAllCollections {
+						collections(first: 250, sortKey: TITLE) {
+							nodes {
+								id
+								title
+								handle
+								description
+								image {
+									url
+									altText
+									width
+									height
+								}
+								products(first: 1) {
+									nodes {
+										id
+									}
+								}
+								metafields(identifiers: [
+									{namespace: "custom", key: "category"},
+									{namespace: "custom", key: "featured"},
+									{namespace: "custom", key: "menu_order"}
+								]) {
+									id
+									namespace
+									key
+									value
+								}
+							}
+						}
+					}
+				`,
+				tags: [CACHE_TAGS.COLLECTION],
+			});
+
+			return data?.collections?.nodes ?? [];
+		} catch (error) {
+			console.error("Error fetching all collections:", error);
+			return [];
+		}
+	},
+	["all-collections"],
 	{
 		revalidate: CACHE_TIMES.COLLECTIONS,
 		tags: [CACHE_TAGS.COLLECTION],
@@ -380,13 +572,13 @@ export const getAllBlogPosts = unstable_cache(
 								articles(first: 100) {
 									edges {
 										node {
-											...BlogFragment
+											...ArticleFragment
 										}
 									}
 								}
 							}
 						}
-						${BLOG_FRAGMENT}
+						${ARTICLE_FRAGMENT}
 					`,
 					variables: { handle: blog.handle },
 					tags: [`${CACHE_TAGS.BLOG}-${blog.handle}`],
@@ -510,12 +702,6 @@ export async function getProductPageData(handle: string) {
 							query getProduct($handle: String!) {
 								product(handle: $handle) {
 									...ProductFragment
-									id
-									handle
-									title
-									description
-									productType
-									tags
 								}
 							}
 							${PRODUCTS_FRAGMENT}
@@ -524,15 +710,11 @@ export async function getProductPageData(handle: string) {
 						tags: [`${CACHE_TAGS.PRODUCT}-${handle}`],
 					}),
 					shopifyFetch<{
-						products: { edges: { node: ShopifyProduct }[] };
+						products: { nodes: ShopifyProduct[] };
 						blogs: {
-							edges: Array<{
-								node: {
-									articles: {
-										edges: Array<{
-											node: ShopifyBlogArticle;
-										}>;
-									};
+							nodes: Array<{
+								articles: {
+									nodes: Array<ShopifyBlogArticle>;
 								};
 							}>;
 						};
@@ -540,42 +722,30 @@ export async function getProductPageData(handle: string) {
 						query: `
 							query getRelatedData {
 								products(first: 12) {
-									edges {
-										node {
-											...ProductFragment
-											id
-											handle
-											title
-											description
-											productType
-											tags
-										}
+									nodes {
+										...ProductFragment
 									}
 								}
 								blogs(first: 1) {
-									edges {
-										node {
-											articles(first: 3, sortKey: PUBLISHED_AT, reverse: true) {
-												edges {
-													node {
-														id
-														handle
-														title
-														content
-														contentHtml
-														excerpt
-														excerptHtml
-														publishedAt
-														image {
-															url
-															altText
-															width
-															height
-														}
-														author {
-															name
-														}
-													}
+									nodes {
+										articles(first: 3, sortKey: PUBLISHED_AT, reverse: true) {
+											nodes {
+												id
+												handle
+												title
+												content
+												contentHtml
+												excerpt
+												excerptHtml
+												publishedAt
+												image {
+													url
+													altText
+													width
+													height
+												}
+												author {
+													name
 												}
 											}
 										}
@@ -601,7 +771,7 @@ export async function getProductPageData(handle: string) {
 				}
 
 				// Get related products based on product type and tags
-				const allProducts = products.edges.map((edge) => edge.node);
+				const allProducts = products.nodes;
 				const relatedProducts = allProducts
 					.filter((p) => {
 						const isSameProduct = p.id === product.id;
@@ -612,8 +782,8 @@ export async function getProductPageData(handle: string) {
 					.slice(0, 4);
 
 				// Get recent blog posts
-				const recentPosts = blogs.edges
-					.flatMap((edge) => edge.node.articles.edges.map((article) => article.node))
+				const recentPosts = blogs.nodes
+					.flatMap((node) => node.articles.nodes)
 					.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
 					.slice(0, 3);
 
@@ -640,40 +810,29 @@ export async function getProductPageData(handle: string) {
 }
 
 export async function getHeaderData() {
+	"use cache";
+
 	const cacheKey = "header-data";
-	const cacheTime = CACHE_TIMES.HEADER;
 
 	try {
-		const response = await fetch(`https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_ACCESS_TOKEN,
-			},
-			body: JSON.stringify({
-				query: headerQuery,
-			}),
+		const response = await shopifyFetch<HeaderQueryResponse>({
+			query: headerQuery,
+			cache: "force-cache",
 			next: {
-				revalidate: cacheTime,
+				revalidate: CACHE_TIMES.HEADER,
 				tags: [CACHE_TAGS.MENU],
 			},
 		});
 
-		if (!response.ok) {
-			throw new Error(`Failed to fetch header data: ${response.statusText}`);
-		}
-
-		const { data } = await response.json();
-
-		if (!data) {
+		if (!response.data) {
 			throw new Error("No data returned from header query");
 		}
 
 		return {
-			shop: data.shop,
-			menuItems: data.menu.items,
-			blogs: data.blogs.edges.map((edge: any) => edge.node),
-			products: data.products.edges.map((edge: any) => edge.node),
+			shop: response.data.shop,
+			menuItems: response.data.menu?.items || [],
+			blogs: response.data.blogs?.edges?.map((edge: any) => edge.node) || [],
+			products: response.data.products?.edges?.map((edge: any) => edge.node) || [],
 		};
 	} catch (error) {
 		console.error("Error fetching header data:", error);

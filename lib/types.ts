@@ -62,41 +62,68 @@ export interface ShopifyMetafield {
 	type: string;
 }
 
-export interface ShopifyProduct {
+export interface ShopifyMediaBase {
 	id: string;
-	handle: string;
-	title: string;
-	description: string;
-	priceRange: {
-		minVariantPrice: ShopifyMoney;
-		maxVariantPrice: ShopifyMoney;
+	mediaContentType: string;
+	alt: string | null;
+	previewImage: {
+		url: string;
+		altText: string | null;
+		height: number;
+		width: number;
 	};
-	images: {
-		edges: Array<{
-			node: ShopifyImage;
-		}>;
-	};
-	variants: {
-		edges: Array<{
-			node: ShopifyProductVariant;
-		}>;
-	};
-	options: ShopifyProductOption[];
-	tags: string[];
-	vendor: string;
-	metafields?: {
-		edges: Array<{
-			node: ShopifyMetafield;
-		}>;
+	presentation?: {
+		asJson: string;
 	};
 }
+
+export interface ShopifyMediaImage extends ShopifyMediaBase {
+	mediaContentType: "IMAGE";
+	image: {
+		url: string;
+		altText: string | null;
+		height: number;
+		width: number;
+		originalSrc: string;
+	};
+}
+
+export interface ShopifyMediaVideo extends ShopifyMediaBase {
+	mediaContentType: "VIDEO";
+	sources: Array<{
+		format: string;
+		height: number;
+		mimeType: string;
+		url: string;
+		width: number;
+	}>;
+}
+
+export interface ShopifyExternalVideo extends ShopifyMediaBase {
+	mediaContentType: "EXTERNAL_VIDEO";
+	embedUrl: string;
+	host: string;
+	originUrl: string;
+}
+
+export interface ShopifyModel3d extends ShopifyMediaBase {
+	mediaContentType: "MODEL_3D";
+	sources: Array<{
+		format: string;
+		mimeType: string;
+		url: string;
+		filesize: number;
+	}>;
+}
+
+export type ShopifyMedia = ShopifyMediaImage | ShopifyMediaVideo | ShopifyExternalVideo | ShopifyModel3d;
 
 export interface ShopifyProduct {
 	id: string;
 	title: string;
+	handle: string;
 	description: string;
 	descriptionHtml: string;
-	handle: string;
 	productType: string;
 	vendor: string;
 	tags: string[];
@@ -104,99 +131,30 @@ export interface ShopifyProduct {
 	availableForSale: boolean;
 	options: ShopifyProductOption[];
 	priceRange: {
-		minVariantPrice: {
-			amount: string;
-			currencyCode: string;
-		};
-		maxVariantPrice: {
-			amount: string;
-			currencyCode: string;
-		};
+		minVariantPrice: ShopifyMoney;
+		maxVariantPrice: ShopifyMoney;
 	};
 	variants: {
-		edges: Array<{
-			node: ShopifyProductVariant;
-		}>;
+		nodes: ShopifyProductVariant[];
+	};
+	media: {
+		nodes: ShopifyMedia[];
 	};
 	images: {
-		edges: Array<{
-			node: ShopifyImage;
-		}>;
+		nodes: ShopifyImage[];
 	};
-	media?: {
-		edges: Array<{
-			node: ShopifyMediaImage | ShopifyMediaVideo | ShopifyExternalVideo;
-		}>;
-	};
-	youtubeVideos?: {
-		id: string;
-		value: string;
-		type: string;
-		references?: {
-			edges: Array<{
-				node: {
-					type: string;
-					fields: Array<{
-						key: string;
-						value: string;
-						type: string;
-					}>;
-				};
-			}>;
+	metafields?: ShopifyMetafield[];
+	publishedAt: string;
+	complementaryProducts?: {
+		references: {
+			nodes: ShopifyProduct[];
 		};
 	};
 	recommendations?: {
-		id: string;
-		value: string;
-		type: string;
-		references?: {
-			edges: Array<{
-				node: ShopifyProduct;
-			}>;
-		};
+		nodes: ShopifyProduct[];
 	};
-	complementaryProducts?: {
-		id: string;
-		value: string;
-		type: string;
-		references?: {
-			edges: Array<{
-				node: ShopifyProduct;
-			}>;
-		};
-	};
-	relatedProducts?: {
-		id: string;
-		value: string;
-		type: string;
-		references?: {
-			edges: Array<{
-				node: ShopifyProduct;
-			}>;
-		};
-	};
-	frequentlyBoughtTogether?: {
-		id: string;
-		value: string;
-		type: string;
-		references?: {
-			edges: Array<{
-				node: ShopifyProduct;
-			}>;
-		};
-	};
-	metafields?: {
-		edges: Array<{
-			node: {
-				id: string;
-				namespace: string;
-				key: string;
-				value: string;
-				type: string;
-			};
-		}>;
-	};
-	publishedAt: string;
+	rating?: number;
+	reviewsCount?: number;
 }
 
 export interface ShopifyCollection {
@@ -206,19 +164,15 @@ export interface ShopifyCollection {
 	description: string;
 	image?: ShopifyImage;
 	products: {
-		edges: Array<{
-			node: ShopifyProduct;
-		}>;
+		nodes: ShopifyProduct[];
 	};
 	metafields?: {
-		edges: Array<{
-			node: {
-				id: string;
-				namespace: string;
-				key: string;
-				value: string;
-				type: string;
-			};
+		nodes: Array<{
+			id: string;
+			namespace: string;
+			key: string;
+			value: string;
+			type: string;
 		}>;
 	};
 }
@@ -410,31 +364,4 @@ export interface YouTubeVideo {
 		url: string;
 		altText: string | null;
 	};
-}
-
-export interface ShopifyMediaImage {
-	id: string;
-	mediaContentType: "IMAGE";
-	image: ShopifyImage;
-}
-
-export interface ShopifyMediaVideo {
-	id: string;
-	mediaContentType: "VIDEO";
-	sources: Array<{
-		url: string;
-		mimeType: string;
-		format: string;
-		height?: number;
-		width?: number;
-	}>;
-	previewImage: ShopifyImage;
-}
-
-export interface ShopifyExternalVideo {
-	id: string;
-	mediaContentType: "EXTERNAL_VIDEO";
-	embedUrl: string;
-	host: "YOUTUBE" | "VIMEO";
-	previewImage: ShopifyImage;
 }

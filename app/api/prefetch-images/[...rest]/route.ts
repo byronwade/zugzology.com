@@ -1,96 +1,133 @@
-import { NextRequest, NextResponse } from "next/server";
-import { parseHTML } from "linkedom";
+import { NextResponse } from "next/server";
+import { getProducts, getCollection } from "@/lib/actions/shopify";
+import { ShopifyProduct, ShopifyImage } from "@/lib/types";
 
 export const dynamic = "force-static";
 export const revalidate = 3600; // Cache for 1 hour
 
-function getHostname() {
-	if (process.env.NODE_ENV === "development") {
-		return "localhost:3001";
+// Constants
+const CACHE_DURATION = 3600 * 1000; // 1 hour in milliseconds
+const COALESCE_WINDOW = 50; // 50ms window to coalesce requests
+
+// Caches
+const cache = new Map<string, { data: any; timestamp: number }>();
+const pendingRequests = new Map<string, Promise<any>>();
+const coalescingRequests = new Map<
+	string,
+	{
+		promise: Promise<any>;
+		timestamp: number;
 	}
-	if (process.env.VERCEL_URL) {
-		return process.env.VERCEL_URL;
-	}
-	return "zugzology.com";
+>();
+
+// Helper to extract image URLs
+function extractImageUrls(products: ShopifyProduct[]): string[] {
+	return [
+		...new Set(
+			products.reduce((urls: string[], product) => {
+				product.images?.nodes?.forEach((image) => {
+					if (image?.url) urls.push(image.url);
+				});
+				return urls;
+			}, [])
+		),
+	];
 }
 
-export async function GET(request: NextRequest, { params }: { params: { rest: string[] } }) {
-	const nextjsParams = await params;
+export async function GET(request: Request, { params }: { params: { rest: string[] } }) {
 	try {
-		const schema = process.env.NODE_ENV === "development" ? "http" : "https";
-		const host = getHostname();
-		const href = nextjsParams.rest.join("/");
+		const nextParams = await params;
+		const [type, handle] = nextParams.rest;
+		const cacheKey = `prefetch:${type}:${handle || "all"}`;
+		const now = Date.now();
 
-		if (!href) {
-			return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
+		// Check memory cache first
+		const cached = cache.get(cacheKey);
+		if (cached && now - cached.timestamp < CACHE_DURATION) {
+			return NextResponse.json(cached.data);
 		}
 
-		const url = `${schema}://${host}/${href}`;
+		// Check for coalescing window
+		const coalescing = coalescingRequests.get(cacheKey);
+		if (coalescing && now - coalescing.timestamp < COALESCE_WINDOW) {
+			return NextResponse.json(await coalescing.promise);
+		}
 
-		// Skip known 404 pages
-		if (href.startsWith("pages/") && !["about", "contact", "terms", "privacy"].includes(href.split("/")[1])) {
-			return NextResponse.json(
-				{ images: [] },
-				{
-					headers: {
-						"Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
-					},
+		// Check for pending requests
+		if (pendingRequests.has(cacheKey)) {
+			return NextResponse.json(await pendingRequests.get(cacheKey));
+		}
+
+		// Create new request promise
+		const requestPromise = (async () => {
+			let products: ShopifyProduct[] = [];
+
+			try {
+				if (type === "products") {
+					products = await getProducts();
+				} else if (type === "collections" && handle) {
+					const collection = await getCollection(handle);
+					products = collection?.products?.nodes || [];
+				} else {
+					return { error: "Invalid request" };
 				}
-			);
-		}
 
-		const response = await fetch(url, {
-			headers: {
-				"User-Agent": "Zugzology Image Prefetcher",
-			},
-			next: { revalidate: 3600 }, // Cache for 1 hour
+				if (!products?.length) {
+					const emptyResult = { images: [] };
+					cache.set(cacheKey, { data: emptyResult, timestamp: now });
+					return emptyResult;
+				}
+
+				const imageUrls = extractImageUrls(products);
+				const result = { images: imageUrls };
+
+				// Cache successful results
+				cache.set(cacheKey, { data: result, timestamp: now });
+				return result;
+			} catch (error) {
+				console.error(`Error fetching ${type}/${handle}:`, error);
+				// Return cached data if available, even if expired
+				return cached?.data || { images: [] };
+			}
+		})();
+
+		// Set up coalescing
+		coalescingRequests.set(cacheKey, {
+			promise: requestPromise,
+			timestamp: now,
 		});
 
-		if (!response.ok) {
-			// Return empty array for 404s instead of error
-			if (response.status === 404) {
-				return NextResponse.json(
-					{ images: [] },
-					{
-						headers: {
-							"Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
-						},
-					}
-				);
-			}
-			return NextResponse.json({ error: "Failed to fetch", status: response.status }, { status: response.status });
-		}
+		// Store pending request
+		pendingRequests.set(cacheKey, requestPromise);
 
-		const body = await response.text();
-		const { document } = parseHTML(body);
+		// Cleanup
+		requestPromise.finally(() => {
+			pendingRequests.delete(cacheKey);
+			setTimeout(() => {
+				coalescingRequests.delete(cacheKey);
+			}, COALESCE_WINDOW);
+		});
 
-		const images = Array.from(document.querySelectorAll("main img, article img"))
-			.map((img) => ({
-				srcset: img.getAttribute("srcset") || img.getAttribute("srcSet"),
-				sizes: img.getAttribute("sizes"),
-				src: img.getAttribute("src"),
-				alt: img.getAttribute("alt"),
-				loading: img.getAttribute("loading"),
-			}))
-			.filter((img) => img.src);
-
-		return NextResponse.json(
-			{ images },
-			{
-				headers: {
-					"Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
-				},
-			}
-		);
+		return NextResponse.json(await requestPromise);
 	} catch (error) {
-		console.error("[Prefetch] Error:", error);
-		return NextResponse.json(
-			{ images: [] },
-			{
-				headers: {
-					"Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
-				},
-			}
-		);
+		console.error("Error in prefetch-images:", error);
+		return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+	}
+}
+
+// Cache revalidation endpoint
+export async function POST(request: Request) {
+	try {
+		const { type, handle } = await request.json();
+		const cacheKey = `prefetch:${type}:${handle || "all"}`;
+
+		// Clear all related caches
+		cache.delete(cacheKey);
+		pendingRequests.delete(cacheKey);
+		coalescingRequests.delete(cacheKey);
+
+		return NextResponse.json({ success: true });
+	} catch (error) {
+		return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 	}
 }

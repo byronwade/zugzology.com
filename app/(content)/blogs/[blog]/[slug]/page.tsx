@@ -19,57 +19,103 @@ import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { jsonLdScriptProps } from "react-schemaorg";
 import { BlogPosting, BreadcrumbList, WithContext } from "schema-dts";
+import type { ShopifyBlogArticle, ShopifyImage, ShopifyBlog } from "@/lib/types";
+
+interface BlogArticleAuthor {
+	name: string;
+	email?: string;
+}
+
+interface ExtendedShopifyBlogArticle extends Omit<ShopifyBlogArticle, "image" | "articles"> {
+	author: BlogArticleAuthor;
+	image?: ShopifyImage;
+	tags?: string[];
+	updatedAt?: string;
+	content: string;
+	excerpt?: string;
+	handle: string;
+}
 
 export async function generateMetadata({ params }: { params: { blog: string; slug: string } }): Promise<Metadata> {
 	const nextParams = await params;
 	const blog = await getBlogByHandle(nextParams.blog);
-	const article = await getArticleByHandle(nextParams.blog, nextParams.slug);
+	const article = (await getArticleByHandle(nextParams.blog, nextParams.slug)) as ExtendedShopifyBlogArticle;
 
 	if (!blog || !article) {
 		return {
 			title: "Article Not Found",
 			description: "The requested article could not be found.",
+			robots: { index: false, follow: true },
 		};
 	}
 
 	const title = article.title;
 	const description = article.excerpt || `Read about ${article.title} in our ${blog.title} blog. Expert insights and detailed information about mushroom cultivation.`;
+	const url = `https://zugzology.com/blogs/${blog.handle}/${article.handle}`;
+	const publishDate = new Date(article.publishedAt);
+	const modifyDate = article.updatedAt ? new Date(article.updatedAt) : publishDate;
 
 	return {
 		title,
 		description,
 		authors: [{ name: article.author.name }],
 		publisher: "Zugzology",
+		alternates: {
+			canonical: url,
+		},
 		openGraph: {
 			title,
 			description,
 			type: "article",
-			publishedTime: article.publishedAt,
+			url,
+			publishedTime: publishDate.toISOString(),
+			modifiedTime: modifyDate.toISOString(),
 			authors: [article.author.name],
+			tags: article.tags,
 			images: article.image
 				? [
 						{
 							url: article.image.url,
 							width: article.image.width,
 							height: article.image.height,
-							alt: article.image.altText || title,
+							alt: article.image.altText,
 						},
 				  ]
 				: undefined,
+			siteName: "Zugzology",
+			locale: "en_US",
 		},
 		twitter: {
 			card: "summary_large_image",
 			title,
 			description,
 			images: article.image ? [article.image.url] : undefined,
+			creator: "@zugzology",
+			site: "@zugzology",
+		},
+		other: {
+			"article:published_time": publishDate.toISOString(),
+			"article:modified_time": modifyDate.toISOString(),
+			"article:author": article.author.name,
+			"article:section": blog.title,
+			"article:tag": article.tags ? article.tags.join(",") : "",
 		},
 	};
 }
 
-// Helper function to get article by handle
-async function getArticleByHandle(blogHandle: string, articleHandle: string) {
+// Helper function to get article by handle with proper typing
+async function getArticleByHandle(blogHandle: string, articleHandle: string): Promise<ExtendedShopifyBlogArticle | undefined> {
 	const blog = await getBlogByHandle(blogHandle);
-	return blog?.articles.edges.find(({ node }) => node.handle === articleHandle)?.node;
+	if (!blog) return undefined;
+
+	// Transform the articles array into the expected structure
+	const articles = blog.articles.map((article) => ({
+		...article,
+		author: article.author || { name: "Anonymous" },
+		content: article.contentHtml || article.content || "",
+	})) as ExtendedShopifyBlogArticle[];
+
+	return articles.find((article) => article.handle === articleHandle);
 }
 
 export default async function BlogPostPage({ params }: { params: { blog: string; slug: string } }) {
@@ -103,13 +149,13 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 			: [];
 
 	// Calculate reading time (assuming average reading speed of 200 words per minute)
-	const wordCount = article.contentHtml.replace(/<[^>]*>/g, "").split(/\s+/).length;
+	const wordCount = article.content.split(/\s+/).length;
 	const readingTime = Math.ceil(wordCount / 200);
 
 	const duration = performance.now() - startTime;
 	console.log(`⚡ [Blog Post ${article.title}] ${duration.toFixed(2)}ms`, {
 		hasImage: !!article.image,
-		contentSize: (article.contentHtml.length / 1024).toFixed(2) + "KB",
+		contentSize: (article.content.length / 1024).toFixed(2) + "KB",
 		relatedPosts: relatedPosts?.length ?? 0,
 		featuredProducts: featuredProducts?.length ?? 0,
 	});
@@ -120,8 +166,10 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 		"@type": "BlogPosting",
 		headline: article.title,
 		description: article.excerpt,
-		datePublished: article.publishedAt,
-		dateModified: article.publishedAt,
+		articleBody: article.content,
+		wordCount: wordCount,
+		datePublished: new Date(article.publishedAt).toISOString(),
+		dateModified: article.updatedAt ? new Date(article.updatedAt).toISOString() : new Date(article.publishedAt).toISOString(),
 		author: {
 			"@type": "Person",
 			name: article.author.name,
@@ -139,9 +187,15 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 			"@id": `https://zugzology.com/blogs/${blog.handle}/${article.handle}`,
 		},
 		image: article.image ? article.image.url : undefined,
+		keywords: [blog.title, "mushroom cultivation", "mycology", "growing guide"].concat(article.tags || []),
+		inLanguage: "en-US",
+		isAccessibleForFree: true,
+		license: "https://creativecommons.org/licenses/by-nc/4.0/",
+		timeRequired: `PT${readingTime}M`,
+		articleSection: blog.title,
 	};
 
-	// Update the breadcrumb structured data type
+	// Update the breadcrumb structured data
 	const breadcrumbStructuredData: WithContext<BreadcrumbList> = {
 		"@context": "https://schema.org",
 		"@type": "BreadcrumbList",
@@ -167,7 +221,7 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 			{
 				"@type": "ListItem",
 				position: 4,
-				name: article.title as string,
+				name: article.title,
 				item: `https://zugzology.com/blogs/${blog.handle}/${article.handle}`,
 			},
 		],

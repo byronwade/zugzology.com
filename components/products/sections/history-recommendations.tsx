@@ -3,6 +3,10 @@ import { ShopifyProduct } from "@/lib/types";
 import { ProductSection } from "./recommendations/product-section";
 import { calculateTrendingScore } from "./recommendations/utils/tracking";
 import type { ProductWithSource, RecommendationSection } from "./recommendations/types";
+import { Button } from "@/components/ui/button";
+import { Package, ShoppingBag, ArrowRight } from "lucide-react";
+import { Link } from "@/components/ui/link";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface HistoryRecommendationsProps {
 	products: ShopifyProduct[]; // History products
@@ -13,8 +17,13 @@ interface HistoryRecommendationsProps {
 
 export function HistoryRecommendations({ products, recommendedProducts = [], randomProducts = [], currentProductId }: HistoryRecommendationsProps) {
 	// Filter out current product and create unique product sets
-	const filterCurrentProduct = (p: ShopifyProduct) => p.id !== currentProductId;
-	const isUnique = (product: ShopifyProduct, existingProducts: Set<string>) => {
+	const filterCurrentProduct = (p: ShopifyProduct | null | undefined) => {
+		if (!p || !p.id) return false;
+		return p.id !== currentProductId;
+	};
+
+	const isUnique = (product: ShopifyProduct | null | undefined, existingProducts: Set<string>) => {
+		if (!product || !product.id) return false;
 		if (existingProducts.has(product.id)) return false;
 		existingProducts.add(product.id);
 		return true;
@@ -22,127 +31,182 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 
 	const usedProductIds = new Set<string>();
 
+	// Helper function to validate product data
+	const isValidProduct = (p: ShopifyProduct | null | undefined): p is ShopifyProduct => {
+		if (!p) return false;
+		return Boolean(p.id && p.title && p.priceRange?.minVariantPrice?.amount && parseFloat(p.priceRange.minVariantPrice.amount) > 0 && p.variants?.nodes?.[0]);
+	};
+
+	// Filter out invalid products but keep basic validation
+	const validProducts = (products || []).filter(isValidProduct);
+	const validRecommended = (recommendedProducts || []).filter(isValidProduct);
+	const validRandom = (randomProducts || []).filter(isValidProduct);
+
+	// Combine all available products for sections
+	const allProducts = [...validRecommended, ...validRandom].filter(isValidProduct);
+
 	// Helper to ensure minimum products and respect mobile limits
-	const ensureMinimumProducts = (inputProducts: ShopifyProduct[], minCount: number = 6) => {
+	const ensureMinimumProducts = (inputProducts: ShopifyProduct[], minCount: number = 4) => {
 		// For mobile, we want to limit to 4 items per section
 		const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
 		const maxItems = isMobile ? 4 : 12;
 		const targetCount = isMobile ? Math.min(4, minCount) : minCount;
 
+		if (!Array.isArray(inputProducts)) return [];
 		if (inputProducts.length >= targetCount) return inputProducts.slice(0, maxItems);
 
 		const needed = targetCount - inputProducts.length;
-		const additionalProducts = randomProducts
+		const additionalProducts = validRandom
 			.filter(filterCurrentProduct)
-			.filter((p: ShopifyProduct) => !inputProducts.some((existing) => existing.id === p.id))
+			.filter((p) => !inputProducts.some((existing) => existing && p && existing.id === p.id))
 			.slice(0, needed);
 
 		return [...inputProducts, ...additionalProducts].slice(0, maxItems);
 	};
 
-	// Prepare different product sections with unique products, ordered by conversion potential
-	const sections: RecommendationSection[] = [
-		{
+	// Prepare different product sections with unique products
+	const sections: RecommendationSection[] = [];
+
+	// Add Recently Viewed section if we have history
+	if (validProducts.length > 0) {
+		sections.push({
+			id: "recently-viewed",
+			title: "Recently Viewed",
+			description: "Continue exploring products you've shown interest in",
+			priority: 1,
+			products: validProducts
+				.filter(filterCurrentProduct)
+				.filter((p) => isUnique(p, usedProductIds))
+				.map((p) => ({ product: p, source: "history" as const, sectionId: "recently-viewed" })),
+		});
+	}
+
+	// Add Best Sellers section
+	const bestSellers = allProducts.filter((p) => p.tags?.includes("best-seller") || p.tags?.includes("bestseller"));
+	if (bestSellers.length > 0) {
+		sections.push({
+			id: "best-sellers",
+			title: "Best Sellers",
+			description: "Our most popular products",
+			priority: 2,
+			products: bestSellers
+				.filter(filterCurrentProduct)
+				.filter((p) => isUnique(p, usedProductIds))
+				.map((p) => ({ product: p, source: "best-seller" as const, sectionId: "best-sellers" })),
+		});
+	}
+
+	// Add New Arrivals section
+	const twoWeeksAgo = new Date();
+	twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+	const newArrivals = allProducts.filter((p) => {
+		const publishedAt = p.publishedAt ? new Date(p.publishedAt) : null;
+		return publishedAt && publishedAt > twoWeeksAgo;
+	});
+
+	if (newArrivals.length > 0) {
+		sections.push({
+			id: "new-arrivals",
+			title: "New Arrivals",
+			description: "Latest additions to our collection",
+			priority: 3,
+			products: newArrivals
+				.filter(filterCurrentProduct)
+				.filter((p) => isUnique(p, usedProductIds))
+				.map((p) => ({ product: p, source: "new" as const, sectionId: "new-arrivals" })),
+		});
+	}
+
+	// Add Trending Now section
+	const trendingProducts = allProducts
+		.map((product) => ({
+			product,
+			score: calculateTrendingScore(product),
+		}))
+		.filter(({ score }) => score > 5)
+		.sort((a, b) => b.score - a.score)
+		.slice(0, 12);
+
+	if (trendingProducts.length > 0) {
+		sections.push({
 			id: "trending",
 			title: "Trending Now",
 			description: "Most popular products our customers love",
-			priority: 1,
-			products: [...recommendedProducts, ...randomProducts]
-				.filter(filterCurrentProduct)
-				.filter((p) => isUnique(p, usedProductIds))
-				.map((product) => ({
-					product,
-					score: calculateTrendingScore(product),
-				}))
-				.sort((a, b) => b.score - a.score)
-				.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
+			priority: 4,
+			products: trendingProducts
+				.filter(({ product }) => filterCurrentProduct(product))
+				.filter(({ product }) => isUnique(product, usedProductIds))
 				.map(({ product }) => ({
 					product,
 					source: "trending" as const,
 					sectionId: "trending",
 				})),
-		},
-		{
-			id: "recently-viewed",
-			title: "Recently Viewed",
-			description: "Continue exploring products you've shown interest in",
-			priority: 2,
-			products: products
-				.filter(filterCurrentProduct)
-				.filter((p) => isUnique(p, usedProductIds))
-				.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
-				.map((p) => ({ product: p, source: "history" as const, sectionId: "recently-viewed" })),
-		},
-		{
+		});
+	}
+
+	// Add Recommended section
+	if (validRecommended.length > 0) {
+		sections.push({
 			id: "recommended",
 			title: "Recommended For You",
 			description: "Personalized picks based on your shopping preferences",
-			priority: 3,
-			products: recommendedProducts
+			priority: 5,
+			products: validRecommended
 				.filter(filterCurrentProduct)
 				.filter((p) => isUnique(p, usedProductIds))
-				.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
 				.map((p) => ({ product: p, source: "recommended" as const, sectionId: "recommended" })),
-		},
-		{
+		});
+	}
+
+	// Add On Sale section
+	const onSaleProducts = allProducts.filter((p) => {
+		const variant = p.variants?.nodes?.[0];
+		return variant?.compareAtPrice && parseFloat(variant.compareAtPrice.amount) > parseFloat(variant.price.amount);
+	});
+
+	if (onSaleProducts.length > 0) {
+		sections.push({
+			id: "on-sale",
+			title: "On Sale",
+			description: "Limited time offers and special deals",
+			priority: 6,
+			products: onSaleProducts
+				.filter(filterCurrentProduct)
+				.filter((p) => isUnique(p, usedProductIds))
+				.map((p) => ({ product: p, source: "sale" as const, sectionId: "on-sale" })),
+		});
+	}
+
+	// Always add Related section with random products
+	if (validRandom.length > 0) {
+		sections.push({
 			id: "related",
 			title: "You May Also Like",
 			description: "Similar products you might be interested in",
-			priority: 4,
-			products: randomProducts
+			priority: 7,
+			products: validRandom
 				.filter(filterCurrentProduct)
 				.filter((p) => isUnique(p, usedProductIds))
-				.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
 				.map((p) => ({ product: p, source: "related" as const, sectionId: "related" })),
-		},
-	];
+		});
+	}
 
-	// Process sections to ensure minimum products and filter empty sections
+	// Process sections to ensure minimum products and remove empty ones
 	const processedSections = sections
-		.map((section) => ({
-			...section,
-			products:
-				section.products.length > 0
-					? section.products
-					: section.id === "related"
-					? randomProducts
-							.filter(filterCurrentProduct)
-							.filter((p) => isUnique(p, usedProductIds))
-							.slice(0, typeof window !== "undefined" && window.innerWidth < 640 ? 4 : 12)
-							.map((p) => ({ product: p, source: "related" as const, sectionId: "related" }))
-					: [],
-		}))
+		.filter((section) => section.products.length > 0)
 		.map((section) => ({
 			...section,
 			products: ensureMinimumProducts(section.products.map((p) => p.product)).map((p) => ({
 				product: p,
-				source: section.products[0]?.source || ("related" as const),
+				source: section.products[0].source,
 				sectionId: section.id,
 			})),
 		}))
-		.filter((section) => section.products.length >= (typeof window !== "undefined" && window.innerWidth < 640 ? 2 : 6))
-		.sort((a, b) => a.priority - b.priority);
+		.filter((section) => section.products.length > 0);
 
-	// Ensure we have at least one section with minimum products
 	if (processedSections.length === 0) {
-		const minProducts = typeof window !== "undefined" && window.innerWidth < 640 ? 2 : 6;
-		const fallbackProducts = ensureMinimumProducts(randomProducts.filter(filterCurrentProduct));
-		if (fallbackProducts.length >= minProducts) {
-			processedSections.push({
-				id: "discover",
-				title: "Discover More",
-				description: "Products you might be interested in",
-				priority: 999,
-				products: fallbackProducts.map((p) => ({
-					product: p,
-					source: "related" as const,
-					sectionId: "discover",
-				})),
-			});
-		}
+		return <EmptyState title="No Recommendations Available" description="We couldn't find any products to recommend at the moment. Check out our latest arrivals or browse all products." showCollectionCards={true} />;
 	}
-
-	if (processedSections.length === 0) return null;
 
 	return (
 		<section className="w-full space-y-16" itemScope itemType="https://schema.org/ItemList" aria-label="Product recommendations">
@@ -155,7 +219,17 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 					<meta itemProp="name" content={section.title} />
 					<meta itemProp="description" content={section.description} />
 					<meta itemProp="position" content={String(index + 1)} />
-					<ProductSection title={section.title} description={section.description} products={section.products} sectionId={section.id} currentProductId={currentProductId} />
+					<ProductSection
+						title={section.title}
+						description={section.description}
+						products={section.products}
+						sectionId={section.id}
+						currentProductId={currentProductId}
+						onAddToCart={() => {
+							// This is just a placeholder since the ProductCard component already handles the add to cart functionality
+							return;
+						}}
+					/>
 				</div>
 			))}
 		</section>

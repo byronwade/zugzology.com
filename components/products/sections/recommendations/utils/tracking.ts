@@ -1,13 +1,60 @@
-export const trackProductView = (productId: string) => {
-	const viewsData = JSON.parse(localStorage.getItem("productViews") || "{}");
-
-	viewsData[productId] = {
-		views: (viewsData[productId]?.views || 0) + 1,
-		lastViewed: new Date().toISOString(),
+// Debounce helper
+const debounce = <T extends (...args: any[]) => void>(func: T, wait: number): ((...args: Parameters<T>) => void) => {
+	let timeout: NodeJS.Timeout;
+	return (...args: Parameters<T>) => {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func(...args), wait);
 	};
-
-	localStorage.setItem("productViews", JSON.stringify(viewsData));
 };
+
+// Batch updates
+let viewsBatch: { [key: string]: { views: number; lastViewed: string } } = {};
+let isBatchScheduled = false;
+
+const flushBatch = () => {
+	if (Object.keys(viewsBatch).length === 0) return;
+
+	const existingData = JSON.parse(localStorage.getItem("productViews") || "{}");
+	const updatedData = { ...existingData };
+
+	// Update with batched views
+	Object.entries(viewsBatch).forEach(([productId, data]) => {
+		updatedData[productId] = {
+			views: (existingData[productId]?.views || 0) + data.views,
+			lastViewed: data.lastViewed,
+		};
+	});
+
+	localStorage.setItem("productViews", JSON.stringify(updatedData));
+	viewsBatch = {};
+	isBatchScheduled = false;
+};
+
+// Debounced flush function
+const debouncedFlush = debounce(flushBatch, 1000);
+
+export const trackProductView = (productId: string) => {
+	// Add to batch
+	if (!viewsBatch[productId]) {
+		viewsBatch[productId] = {
+			views: 0,
+			lastViewed: new Date().toISOString(),
+		};
+	}
+	viewsBatch[productId].views++;
+	viewsBatch[productId].lastViewed = new Date().toISOString();
+
+	// Schedule batch update if not already scheduled
+	if (!isBatchScheduled) {
+		isBatchScheduled = true;
+		debouncedFlush();
+	}
+};
+
+// Cleanup function to ensure data is saved before page unload
+if (typeof window !== "undefined") {
+	window.addEventListener("beforeunload", flushBatch);
+}
 
 export const calculateTrendingScore = (product: any): number => {
 	if (!product) return 0;

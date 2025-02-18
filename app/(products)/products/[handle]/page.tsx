@@ -1,27 +1,38 @@
+import type { Metadata } from "next";
 import { getProductPageData } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
 import { ProductContent } from "@/components/products/sections/product-content";
-import { cache } from "react";
-import type { ShopifyImage } from "@/lib/types";
+import type { ShopifyImage, ShopifyProduct } from "@/lib/types";
+import { WithContext, Product } from "schema-dts";
+import { jsonLdScriptProps } from "react-schemaorg";
+import { draftMode } from "next/headers";
 
 interface ProductPageProps {
-	params: {
+	params: Promise<{
 		handle: string;
-	};
+	}>;
 	searchParams?: {
 		variant?: string;
 	};
 }
 
-interface ImageNode {
-	node: ShopifyImage;
+// This tells Next.js to generate an empty array of static paths
+// forcing all product pages to be generated on-demand
+export function generateStaticParams() {
+	return [];
 }
 
-// Cache the product data at the page level
-const getPageData = cache(async (handle: string) => {
-	return getProductPageData(handle);
-});
+// Get product data
+async function getPageData(handle: string) {
+	// Check if we're in draft mode to force dynamic behavior
+	await draftMode();
+
+	const data = await getProductPageData(handle);
+	if (!data.product) {
+		notFound();
+	}
+	return data;
+}
 
 // Error fallback component
 const ProductError = () => (
@@ -38,36 +49,80 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 	const nextParams = await params;
 	const { product } = await getPageData(nextParams.handle);
 
-	if (!product) {
-		return {
-			title: "Product Not Found",
-			description: "The requested product could not be found.",
-		};
-	}
-
 	const title = `${product.title} | Zugzology`;
 	const description = product.description || `Buy ${product.title} from Zugzology. Premium mushroom cultivation supplies and equipment.`;
+	const url = `https://zugzology.com/products/${product.handle}`;
+
+	const productSchema: WithContext<Product> = {
+		"@context": "https://schema.org",
+		"@type": "Product",
+		name: product.title,
+		description: product.description,
+		image: product.images.nodes.map((node: ShopifyImage) => node.url) || [],
+		brand: {
+			"@type": "Brand",
+			name: "Zugzology",
+		},
+		offers: {
+			"@type": "AggregateOffer",
+			priceCurrency: "USD",
+			lowPrice: product.priceRange?.minVariantPrice?.amount,
+			highPrice: product.priceRange?.maxVariantPrice?.amount,
+			offerCount: product.variants.nodes.length || 1,
+			availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+			itemCondition: "https://schema.org/NewCondition",
+			seller: {
+				"@type": "Organization",
+				name: "Zugzology",
+			},
+		},
+		category: product.productType || "Mushroom Cultivation Supplies",
+		identifier: [
+			{
+				"@type": "PropertyValue",
+				propertyID: "id",
+				value: product.id,
+			},
+		],
+		url,
+		sameAs: [url],
+		additionalProperty: [
+			{
+				"@type": "PropertyValue",
+				name: "productType",
+				value: product.productType,
+			},
+		],
+	};
 
 	return {
 		title,
 		description,
+		alternates: {
+			canonical: url,
+		},
 		openGraph: {
 			title,
 			description,
 			type: "website",
-			images:
-				product.images?.edges?.map(({ node }: ImageNode) => ({
-					url: node.url,
-					width: node.width,
-					height: node.height,
-					alt: node.altText || product.title,
-				})) || [],
+			url,
+			images: product.images.nodes.map((node: ShopifyImage) => ({
+				url: node.url,
+				width: node.width,
+				height: node.height,
+				alt: node.altText || product.title,
+			})),
 		},
 		twitter: {
 			card: "summary_large_image",
 			title,
 			description,
-			images: product.images?.edges?.map(({ node }: ImageNode) => node.url) || [],
+			images: product.images.nodes.map((node: ShopifyImage) => node.url),
+		},
+		other: {
+			"product:price:amount": product.priceRange?.minVariantPrice?.amount,
+			"product:price:currency": "USD",
+			"product:availability": product.availableForSale ? "instock" : "outofstock",
 		},
 	};
 }
@@ -76,9 +131,51 @@ export default async function ProductPage({ params }: ProductPageProps) {
 	const nextParams = await params;
 	const { product } = await getPageData(nextParams.handle);
 
-	if (!product) {
-		return notFound();
-	}
+	const productSchema: WithContext<Product> = {
+		"@context": "https://schema.org",
+		"@type": "Product",
+		name: product.title,
+		description: product.description,
+		image: product.images.nodes.map((node: ShopifyImage) => node.url) || [],
+		brand: {
+			"@type": "Brand",
+			name: "Zugzology",
+		},
+		offers: {
+			"@type": "AggregateOffer",
+			priceCurrency: "USD",
+			lowPrice: product.priceRange?.minVariantPrice?.amount,
+			highPrice: product.priceRange?.maxVariantPrice?.amount,
+			offerCount: product.variants.nodes.length || 1,
+			availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+			itemCondition: "https://schema.org/NewCondition",
+			seller: {
+				"@type": "Organization",
+				name: "Zugzology",
+			},
+		},
+		category: product.productType || "Mushroom Cultivation Supplies",
+		identifier: [
+			{
+				"@type": "PropertyValue",
+				propertyID: "id",
+				value: product.id,
+			},
+		],
+		url: `https://zugzology.com/products/${product.handle}`,
+		additionalProperty: [
+			{
+				"@type": "PropertyValue",
+				name: "productType",
+				value: product.productType,
+			},
+		],
+	};
 
-	return <ProductContent product={product} />;
+	return (
+		<>
+			<script {...jsonLdScriptProps(productSchema)} />
+			<ProductContent product={product} />
+		</>
+	);
 }

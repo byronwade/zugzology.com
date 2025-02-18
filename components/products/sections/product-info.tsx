@@ -11,10 +11,10 @@ import Image from "next/image";
 
 interface ProductInfoProps {
 	product: ShopifyProduct;
-	selectedVariant: ShopifyProductVariant;
+	selectedVariant: ShopifyProductVariant | null;
 	selectedOptions: Record<string, string>;
-	onOptionChange: (optionName: string, value: string) => void;
-	complementaryProducts: ShopifyProduct[];
+	onOptionChange: (name: string, value: string) => void;
+	complementaryProducts?: ShopifyProduct[];
 }
 
 function FeatureCard({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
@@ -40,12 +40,46 @@ function FeatureCard({ icon: Icon, title, description }: { icon: any; title: str
 	);
 }
 
-export function ProductInfo({ product, selectedVariant, selectedOptions, onOptionChange, complementaryProducts }: ProductInfoProps) {
+export function ProductInfo({ product, selectedVariant, selectedOptions, onOptionChange, complementaryProducts = [] }: ProductInfoProps) {
+	const [showMore, setShowMore] = useState(false);
+
+	// Get all available variants
+	const variants = product.variants?.nodes || [];
+
+	// Get all options for the product
+	const options =
+		product.options?.map((option) => ({
+			name: option.name,
+			values: Array.from(new Set(variants.map((variant) => variant.selectedOptions?.find((opt) => opt.name === option.name)?.value).filter(Boolean))),
+		})) || [];
+
 	// Early return if required data is missing
 	if (!product || !selectedVariant) return null;
 
 	const isAvailable = selectedVariant.availableForSale;
-	const hasMultipleVariants = product.variants?.edges?.length > 1;
+	const hasMultipleVariants = (product.variants?.nodes?.length || 0) > 1;
+
+	// Get variant availability
+	const variantAvailability = variants.map((variant) => ({
+		...variant.selectedOptions?.reduce((acc, opt) => ({ ...acc, [opt.name]: opt.value }), {}),
+		available: variant.availableForSale,
+	}));
+
+	// Function to check if a variant with given options is available
+	const isOptionAvailable = (optionName: string, optionValue: string) => {
+		const currentOptions = {
+			...selectedOptions,
+			[optionName]: optionValue,
+		};
+
+		return variants.some((variant) => variant.selectedOptions?.every((option) => currentOptions[option.name] === option.value));
+	};
+
+	// Get complementary products data
+	const complementaryProductsData = complementaryProducts.map((product) => ({
+		...product,
+		firstVariant: product.variants?.nodes?.[0],
+	}));
 
 	return (
 		<>
@@ -77,7 +111,7 @@ export function ProductInfo({ product, selectedVariant, selectedOptions, onOptio
 						<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
 							<div className="flex items-center gap-3">
 								<div className="relative w-8 h-5 shrink-0">
-									<Image src="/usa.png" alt="USA Flag" width={32} height={20} className="object-cover rounded-sm" />
+									<Image src="/usa.png" alt="USA Flag" width={32} height={20} className="object-cover rounded-sm" style={{ width: "auto", height: "auto" }} />
 								</div>
 								<CardTitle className="text-lg">Made in California, USA</CardTitle>
 							</div>
@@ -146,9 +180,11 @@ export function ProductInfo({ product, selectedVariant, selectedOptions, onOptio
 			</div>
 
 			{/* Frequently Bought Together */}
-			<div className="mt-12 w-full">
-				<FrequentlyBoughtTogether product={product} complementaryProducts={complementaryProducts} />
-			</div>
+			{complementaryProducts.length > 0 && (
+				<div className="mt-8">
+					<FrequentlyBoughtTogether mainProduct={product} complementaryProducts={complementaryProducts} />
+				</div>
+			)}
 		</>
 	);
 }

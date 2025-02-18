@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import { getProducts, getCollections } from "@/lib/actions/shopify";
+import { getProducts, getCollection } from "@/lib/actions/shopify";
 import type { Metadata } from "next";
-import type { ProductsQueryOptions } from "@/lib/types";
+import type { ProductsQueryOptions, ShopifyProduct } from "@/lib/types";
 import { ProductsContentClient } from "@/components/products/products-content-client";
 import { HomeLoading } from "@/components/loading";
 import { CollectionsGrid } from "@/components/collections/collections-grid";
@@ -31,8 +31,13 @@ interface SiteSettings {
 	features: SiteFeature[];
 }
 
+interface OptimizedProduct extends ShopifyProduct {
+	rating: number;
+	reviewsCount: number;
+}
+
 // Add this function to fetch site settings from the server
-async function getSiteSettings(): Promise<SiteSettings> {
+async function getLocalSiteSettings(): Promise<SiteSettings> {
 	return {
 		title: "Zugzology",
 		description: "Your trusted source for premium mushroom cultivation supplies and equipment.",
@@ -47,18 +52,17 @@ async function getSiteSettings(): Promise<SiteSettings> {
 
 // Update getPageData to include collections
 async function getPageData() {
-	const topSellersOptions: ProductsQueryOptions = {
-		first: 6,
-		sortKey: "BEST_SELLING",
-	};
+	"use cache";
 
-	const [products, collections, siteSettings, topSellers] = await Promise.all([getProducts(), getCollections(), getSiteSettings(), getProducts(topSellersOptions)]);
+	const [products, siteSettings] = await Promise.all([getProducts(), getLocalSiteSettings()]);
+
+	const optimizedProducts = products ? products.slice(0, 8) : [];
+	const topSellers = products ? products.filter((p) => p.tags.includes("best-seller")).slice(0, 6) : [];
 
 	return {
-		products,
-		collections,
-		siteSettings,
+		products: optimizedProducts,
 		topSellers,
+		siteSettings,
 	};
 }
 
@@ -111,26 +115,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Optimize product data structure
-function optimizeProductData(products: any[]) {
+function optimizeProductData(products: ShopifyProduct[]): OptimizedProduct[] {
 	return products.map((product) => ({
-		id: product.id,
-		title: product.title,
-		handle: product.handle,
-		description: product.description,
-		descriptionHtml: product.descriptionHtml || product.description || "",
-		availableForSale: product.availableForSale,
-		productType: product.productType || "",
-		vendor: product.vendor || "",
-		tags: product.tags || [],
-		options: product.options || [],
-		publishedAt: product.publishedAt || new Date().toISOString(),
-		priceRange: product.priceRange,
-		images: {
-			edges: product.images.edges.slice(0, 1), // Only keep first image for initial render
-		},
-		variants: {
-			edges: [product.variants.edges[0]], // Only keep first variant for initial render
-		},
+		...product,
+		rating: 5, // Default rating
+		reviewsCount: 0, // Default review count
 	}));
 }
 
@@ -200,8 +189,8 @@ const sellerBenefits = [
 ];
 
 export default async function Home() {
-	const { products, collections, siteSettings, topSellers } = await getPageData();
-	const optimizedProducts = products ? optimizeProductData(products.slice(0, 8)) : [];
+	const { products, topSellers, siteSettings } = await getPageData();
+	const optimizedProducts = products ? optimizeProductData(products) : [];
 	const optimizedTopSellers = topSellers ? optimizeProductData(topSellers) : [];
 
 	const featuredCollection = {
@@ -210,9 +199,7 @@ export default async function Home() {
 		title: "Featured Products",
 		description: "Our selection of premium mushroom cultivation supplies and equipment.",
 		products: {
-			edges: optimizedProducts.map((product) => ({
-				node: product,
-			})),
+			nodes: optimizedProducts,
 		},
 	};
 
@@ -222,12 +209,12 @@ export default async function Home() {
 	// Get products on sale
 	const dailyDeals = products
 		.filter((p) => {
-			const variant = p.variants.edges[0]?.node;
+			const variant = p.variants.nodes[0];
 			return variant?.compareAtPrice && parseFloat(variant.compareAtPrice.amount) > parseFloat(variant.price.amount);
 		})
 		.slice(0, 3)
 		.map((p) => {
-			const variant = p.variants.edges[0]?.node;
+			const variant = p.variants.nodes[0];
 			const price = parseFloat(variant?.price.amount || "0");
 			const comparePrice = parseFloat(variant?.compareAtPrice?.amount || "0");
 			return {
@@ -236,7 +223,7 @@ export default async function Home() {
 				price: price,
 				originalPrice: comparePrice,
 				timeLeft: "Limited Time", // You can add actual countdown if needed
-				image: p.images.edges[0]?.node.url || "/placeholder.svg",
+				image: p.images.nodes[0]?.url || "/placeholder.svg",
 				discount: `${Math.round(((comparePrice - price) / comparePrice) * 100)}% OFF`,
 			};
 		});
@@ -246,7 +233,7 @@ export default async function Home() {
 		.filter((p) => p.tags.some((tag) => tag.toLowerCase().includes("featured")))
 		.slice(0, 4)
 		.map((p) => {
-			const variant = p.variants.edges[0]?.node;
+			const variant = p.variants.nodes[0];
 			return {
 				id: p.id,
 				handle: p.handle,
@@ -254,7 +241,7 @@ export default async function Home() {
 				price: parseFloat(variant?.price.amount || "0"),
 				rating: p.rating || 4.8,
 				reviews: p.reviewsCount || 156,
-				image: p.images.edges[0]?.node.url || "/placeholder.svg",
+				image: p.images.nodes[0]?.url || "/placeholder.svg",
 				badge: p.tags.find((tag) => ["Best Seller", "Popular", "New"].includes(tag)),
 			};
 		});
@@ -264,7 +251,7 @@ export default async function Home() {
 		.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
 		.slice(0, 4)
 		.map((p) => {
-			const variant = p.variants.edges[0]?.node;
+			const variant = p.variants.nodes[0];
 			return {
 				id: p.id,
 				handle: p.handle,
@@ -272,7 +259,7 @@ export default async function Home() {
 				price: parseFloat(variant?.price.amount || "0"),
 				rating: p.rating || 4.5,
 				reviews: p.reviewsCount || 12,
-				image: p.images.edges[0]?.node.url || "/placeholder.svg",
+				image: p.images.nodes[0]?.url || "/placeholder.svg",
 			};
 		});
 
@@ -281,7 +268,7 @@ export default async function Home() {
 		.filter((p) => p.tags.some((tag) => tag.toLowerCase().includes("best seller")))
 		.slice(0, 4)
 		.map((p) => {
-			const variant = p.variants.edges[0]?.node;
+			const variant = p.variants.nodes[0];
 			return {
 				id: p.id,
 				handle: p.handle,
@@ -290,7 +277,7 @@ export default async function Home() {
 				rating: p.rating || 4.9,
 				reviews: p.reviewsCount || 520,
 				sold: 1500,
-				image: p.images.edges[0]?.node.url || "/placeholder.svg",
+				image: p.images.nodes[0]?.url || "/placeholder.svg",
 			};
 		});
 
@@ -358,7 +345,7 @@ export default async function Home() {
 											</div>
 											<span className="text-sm text-zinc-500">(4.8 out of 5)</span>
 										</div>
-										<p className="text-xl font-bold">{formatPrice(parseFloat(featuredProduct.variants.edges[0]?.node.price.amount || "0"), featuredProduct.variants.edges[0]?.node.price.currencyCode)}</p>
+										<p className="text-xl font-bold">{formatPrice(parseFloat(featuredProduct.variants.nodes[0]?.price.amount || "0"), featuredProduct.variants.nodes[0]?.price.currencyCode)}</p>
 										<div className="mt-4 text-zinc-600 text-sm leading-relaxed line-clamp-4">{featuredProduct.description}</div>
 										{featuredProduct.description.length > 300 && (
 											<Link href={`/products/${featuredProduct.handle}`} className="text-sm text-primary hover:underline">
@@ -368,12 +355,12 @@ export default async function Home() {
 									</div>
 									<div className="inline-flex items-center gap-4">
 										<Button size="lg" asChild>
-											<Link href={`/checkout?variantId=${featuredProduct.variants.edges[0]?.node.id}`}>
+											<Link href={`/checkout?variantId=${featuredProduct.variants.nodes[0]?.id}`}>
 												<ArrowRight className="w-4 h-4 mr-2" />
 												Buy Now
 											</Link>
 										</Button>
-										<AddToCartButton variantId={featuredProduct.variants.edges[0]?.node.id} availableForSale={featuredProduct.availableForSale} quantity={1} className="bg-transparent hover:bg-transparent border-2 border-primary text-primary hover:bg-primary/10" />
+										<AddToCartButton variantId={featuredProduct.variants.nodes[0]?.id} availableForSale={featuredProduct.availableForSale} quantity={1} className="bg-transparent hover:bg-transparent border-2 border-primary text-primary hover:bg-primary/10" />
 									</div>
 									<div className="grid grid-cols-3 gap-4 pt-4">
 										<div className="flex items-center space-x-2">
@@ -391,7 +378,7 @@ export default async function Home() {
 									</div>
 								</div>
 								<div className="relative aspect-square">
-									<Image src={featuredProduct.images.edges[0]?.node.url || "/placeholder.svg"} alt={featuredProduct.title} fill className="object-cover rounded-lg" priority />
+									<Image src={featuredProduct.images.nodes[0]?.url || "/placeholder.svg"} alt={featuredProduct.title} fill className="object-cover rounded-lg" priority />
 								</div>
 							</div>
 						</div>

@@ -4,6 +4,7 @@ export {
 	getProduct,
 	getProducts,
 	getCollection,
+	getAllCollections,
 	getCollectionDiscounts,
 	getSiteSettings,
 	getProductPageData,

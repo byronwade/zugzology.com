@@ -7,9 +7,7 @@ import type { ShopifyCollection, ShopifyProduct } from "@/lib/types";
 interface CollectionWrapperProps {
 	collection: ShopifyCollection & {
 		products: {
-			edges: Array<{
-				node: ShopifyProduct;
-			}>;
+			nodes: ShopifyProduct[];
 		};
 	};
 }

@@ -49,20 +49,26 @@ const MAX_RESULTS = {
 };
 
 export function SearchProvider({ children }: { children: React.ReactNode }) {
-	const [searchQuery, setSearchQuery] = useState("");
-	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-	const [isSearching, setIsSearching] = useState(false);
+	const [searchState, setSearchState] = useState({
+		query: "",
+		results: [] as SearchResult[],
+		isSearching: false,
+		isDropdownOpen: false,
+		recentSearches: [] as string[],
+	});
+
+	const [data, setData] = useState({
+		products: [] as ShopifyProduct[],
+		blogPosts: [] as ShopifyBlogArticle[],
+	});
+	
 	const [mounted, setMounted] = useState(false);
-	const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
-	const [allBlogPosts, setAllBlogPosts] = useState<ShopifyBlogArticle[]>([]);
-	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-	const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
 	// Memoize total products count
-	const totalProducts = useMemo(() => allProducts.length, [allProducts]);
+	const totalProducts = useMemo(() => data.products.length, [data.products]);
 
 	// Debounce search query
-	const debouncedSearchQuery = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
+	const debouncedSearchQuery = useDebounce(searchState.query, SEARCH_DEBOUNCE_MS);
 
 	// Load recent searches from localStorage on mount
 	useEffect(() => {
@@ -70,7 +76,10 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 			const saved = localStorage.getItem("recentSearches");
 			if (saved) {
 				try {
-					setRecentSearches(JSON.parse(saved));
+					setSearchState((prev) => ({
+						...prev,
+						recentSearches: JSON.parse(saved),
+					}));
 				} catch (e) {
 					console.error("Failed to parse recent searches:", e);
 				}
@@ -82,10 +91,13 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 	const addRecentSearch = useCallback((query: string) => {
 		if (!query.trim()) return;
 
-		setRecentSearches((prev) => {
-			const newSearches = [query, ...prev.filter((s) => s !== query)].slice(0, MAX_RECENT_SEARCHES);
+		setSearchState((prev) => {
+			const newSearches = [query, ...prev.recentSearches.filter((s) => s !== query)].slice(0, MAX_RECENT_SEARCHES);
 			localStorage.setItem("recentSearches", JSON.stringify(newSearches));
-			return newSearches;
+			return {
+				...prev,
+				recentSearches: newSearches,
+			};
 		});
 	}, []);
 
@@ -93,16 +105,19 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 	const performSearch = useCallback(
 		(query: string) => {
 			if (!query.trim()) {
-				setSearchResults([]);
-				setIsSearching(false);
+				setSearchState((prev) => ({
+					...prev,
+					results: [],
+					isSearching: false,
+				}));
 				return;
 			}
 
-			setIsSearching(true);
+			setSearchState((prev) => ({ ...prev, isSearching: true }));
 			const searchTerms = query.toLowerCase().split(/\s+/);
 
-			// Search products first - using memoized function
-			const productResults = allProducts
+			// Search products first
+			const productResults = data.products
 				.filter((product) => {
 					const searchableText = [product.title, product.description, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
 					return searchTerms.every((term) => searchableText.includes(term));
@@ -110,8 +125,8 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 				.slice(0, MAX_RESULTS.PRODUCTS)
 				.map((product) => ({ type: "product" as const, item: product }));
 
-			// Then search blog posts - using memoized function
-			const blogResults = allBlogPosts
+			// Then search blog posts
+			const blogResults = data.blogPosts
 				.filter((post) => {
 					const searchableText = [post.title, post.excerpt, post.content, post.author.name, ...(post.tags || [])].filter(Boolean).join(" ").toLowerCase();
 					return searchTerms.every((term) => searchableText.includes(term));
@@ -119,13 +134,13 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 				.slice(0, MAX_RESULTS.BLOGS)
 				.map((post) => ({ type: "blog" as const, item: post }));
 
-			// Combine results with products first
-			const combinedResults = [...productResults, ...blogResults];
-
-			setSearchResults(combinedResults);
-			setIsSearching(false);
+			setSearchState((prev) => ({
+				...prev,
+				results: [...productResults, ...blogResults],
+				isSearching: false,
+			}));
 		},
-		[allProducts, allBlogPosts]
+		[data.products, data.blogPosts]
 	);
 
 	// Use debounced search query
@@ -133,54 +148,35 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 		if (debouncedSearchQuery) {
 			performSearch(debouncedSearchQuery);
 		} else {
-			setSearchResults([]);
+			setSearchState((prev) => ({
+				...prev,
+				results: [],
+			}));
 		}
 	}, [debouncedSearchQuery, performSearch]);
 
-	// Handle search query changes
-	const handleSearchQueryChange = useCallback((query: string) => {
-		setSearchQuery(query);
-		if (query.trim()) {
-			setIsDropdownOpen(true);
-		} else {
-			setSearchResults([]);
-			setIsDropdownOpen(false);
-			setIsSearching(false);
-		}
-	}, []);
-
-	// Auto-close dropdown when clicking outside
-	useEffect(() => {
-		if (typeof window === "undefined") return;
-
-		const handleClickOutside = (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			if (!target.closest("[data-search-container]")) {
-				setIsDropdownOpen(false);
-			}
-		};
-
-		document.addEventListener("click", handleClickOutside);
-		return () => document.removeEventListener("click", handleClickOutside);
-	}, []);
-
 	const contextValue = useMemo(
 		() => ({
-			searchQuery,
-			setSearchQuery: handleSearchQueryChange,
-			searchResults,
-			isSearching,
-			allProducts,
-			setAllProducts,
-			allBlogPosts,
-			setAllBlogPosts,
+			searchQuery: searchState.query,
+			setSearchQuery: (query: string) =>
+				setSearchState((prev) => ({
+					...prev,
+					query,
+					isDropdownOpen: !!query.trim(),
+				})),
+			searchResults: searchState.results,
+			isSearching: searchState.isSearching,
+			allProducts: data.products,
+			setAllProducts: (products: ShopifyProduct[]) => setData((prev) => ({ ...prev, products })),
+			allBlogPosts: data.blogPosts,
+			setAllBlogPosts: (blogPosts: ShopifyBlogArticle[]) => setData((prev) => ({ ...prev, blogPosts })),
 			totalProducts,
-			isDropdownOpen,
-			setIsDropdownOpen,
-			recentSearches,
+			isDropdownOpen: searchState.isDropdownOpen,
+			setIsDropdownOpen: (open: boolean) => setSearchState((prev) => ({ ...prev, isDropdownOpen: open })),
+			recentSearches: searchState.recentSearches,
 			addRecentSearch,
 		}),
-		[searchQuery, handleSearchQueryChange, searchResults, isSearching, allProducts, setAllProducts, allBlogPosts, setAllBlogPosts, totalProducts, isDropdownOpen, setIsDropdownOpen, recentSearches, addRecentSearch]
+		[searchState, data, totalProducts, addRecentSearch]
 	);
 
 	if (!mounted) {

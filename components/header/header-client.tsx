@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Link } from "@/components/ui/link";
-import { Search, Sun, Moon, Sprout, User, ShoppingCart, Menu, Sparkles, X, ChevronRight, Brain, TestTube, Leaf, BookOpen, ShoppingBag, Star, Tag, Package, HelpCircle } from "lucide-react";
+import { Search, Sun, Moon, Sprout, User, ShoppingCart, Menu, Sparkles, X, ChevronRight, Brain, TestTube, Leaf, BookOpen, ShoppingBag, Star, Tag, Package, HelpCircle, Clock, ArrowRight, Heart, LogIn, UserPlus, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "next-themes";
@@ -22,6 +22,9 @@ import { useSearch } from "@/lib/providers/search-provider";
 import Cookies from "js-cookie";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { debounce } from "@/lib/utils/debounce";
+import { usePromo } from "@/lib/providers/promo-provider";
+import { MenuSheet } from "./menu-sheet";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface MenuItem {
 	id: string;
@@ -128,6 +131,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	const { theme, setTheme } = useTheme();
 	const { openCart, cart, isInitialized } = useCart();
 	const { searchQuery, setSearchQuery, isSearching, setIsDropdownOpen, searchResults, allProducts, isDropdownOpen } = useSearch();
+	const { showPromo, setShowPromo } = usePromo();
 	const router = useRouter();
 
 	// 2. State hooks with stable initial values
@@ -135,6 +139,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	const [authState, setAuthState] = useState<boolean>(isAuthenticated);
 	const [inputValue, setInputValue] = useState<string>("");
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+	const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
 	// 3. Refs for performance optimization
 	const touchStartX = useRef<number>(0);
@@ -219,15 +224,137 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 		setAuthState(isAuthenticated);
 	}, [isAuthenticated]);
 
+	// Add keyboard shortcut handler
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Only handle if not in an input field
+			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+				return;
+			}
+
+			// Safely get the lowercase key
+			const key = e.key?.toLowerCase() || "";
+
+			// Navigation shortcuts
+			if (e.shiftKey) {
+				switch (key) {
+					case "h":
+						e.preventDefault();
+						router.push("/");
+						break;
+					case "s":
+						e.preventDefault();
+						router.push("/search");
+						break;
+					case "a":
+						e.preventDefault();
+						router.push("/account");
+						break;
+					case "b":
+						e.preventDefault();
+						router.push("/blogs");
+						break;
+					case "?": // Changed from '/' to '?' for help
+						e.preventDefault();
+						router.push("/help");
+						break;
+					case "k":
+						e.preventDefault();
+						const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+						searchInput?.focus();
+						break;
+					case "o":
+						e.preventDefault();
+						openCart();
+						break;
+				}
+			} else {
+				// Non-shift shortcuts
+				switch (key) {
+					case "/":
+						e.preventDefault();
+						const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+						searchInput?.focus();
+						break;
+					case "escape":
+						e.preventDefault();
+						if (isDropdownOpen) {
+							setIsDropdownOpen(false);
+							searchHandlers.clear();
+						}
+						break;
+					case "arrowup":
+						if (isDropdownOpen) {
+							e.preventDefault();
+							// Handle search result navigation
+						}
+						break;
+					case "arrowdown":
+						if (isDropdownOpen) {
+							e.preventDefault();
+							// Handle search result navigation
+						}
+						break;
+					case "enter":
+						if (isDropdownOpen) {
+							e.preventDefault();
+							// Handle search result selection
+						}
+						break;
+				}
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [router, openCart, isDropdownOpen, setIsDropdownOpen, searchHandlers]);
+
 	// Return null only for initial mount
 	if (!mounted) return null;
 
 	return (
-		<header className={cn("bg-background border-b sticky top-0 z-50 h-[var(--header-height)] flex flex-col")}>
+		<header className={cn("bg-background border-b sticky top-0 z-50 flex flex-col", showPromo ? "h-[calc(var(--header-height)+32px)]" : "h-[var(--header-height)]")}>
+			{/* Promo Banner */}
+			{showPromo && (
+				<div className="bg-purple-50 dark:bg-purple-950/20 border-b border-purple-100 dark:border-purple-900 h-8">
+					<div className="relative mx-auto px-4 h-full">
+						<div className="flex items-center justify-between gap-4 h-full">
+							<div className="flex flex-wrap items-center gap-2 text-xs text-purple-700 dark:text-purple-300">
+								<div className="flex items-center gap-2 min-w-fit">
+									<Sparkles className="h-3.5 w-3.5" />
+									<span className="font-medium whitespace-nowrap">Limited Time Offer</span>
+								</div>
+								<Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+									Save 20%
+								</Badge>
+								<span className="hidden xs:inline text-purple-400 dark:text-purple-600">|</span>
+								<span className="hidden xs:flex items-center gap-1 text-purple-500 dark:text-purple-400 whitespace-nowrap">
+									<Clock className="h-3.5 w-3.5" />
+									Ends in 2 days
+								</span>
+							</div>
+							<div className="flex items-center gap-3 min-w-fit">
+								<Button variant="link" size="sm" className="h-auto p-0 text-xs text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 hover:no-underline" asChild>
+									<a href="/sale" className="hidden xs:inline-flex items-center">
+										View Deals
+										<ArrowRight className="h-3 w-3 ml-1" />
+									</a>
+								</Button>
+								<button onClick={() => setShowPromo(false)} className="text-purple-400 hover:text-purple-900 dark:hover:text-purple-100">
+									<X className="h-3.5 w-3.5" />
+									<span className="sr-only">Dismiss</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{/* Top Bar */}
 			<div className="px-2 sm:px-4 h-[var(--header-top-height)] flex-shrink-0 flex items-center">
 				<div className="flex items-center justify-between w-full">
 					<Logo onClick={searchHandlers.clear} />
+
 					<SearchBar placeholder={searchPlaceholder} value={inputValue} onChange={searchHandlers.change} onFocus={searchHandlers.focus} onSubmit={searchHandlers.submit} onClear={searchHandlers.clear} />
 
 					{/* Action Buttons */}
@@ -284,6 +411,16 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 												Account
 											</Link>
 										</DropdownMenuItem>
+										<DropdownMenuItem asChild>
+											<Link href="/wishlist" className="w-full cursor-pointer">
+												<Heart className="h-4 w-4 mr-2" />
+												Wishlist
+											</Link>
+										</DropdownMenuItem>
+										<DropdownMenuItem onClick={() => setShowKeyboardShortcuts(true)} className="cursor-pointer hidden sm:flex">
+											<Keyboard className="h-4 w-4 mr-2" />
+											Keyboard Shortcuts
+										</DropdownMenuItem>
 										<DropdownMenuSeparator />
 										<DropdownMenuItem onClick={handleTheme} className="cursor-pointer">
 											{theme === "dark" ? (
@@ -303,12 +440,53 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 									</DropdownMenuContent>
 								</DropdownMenu>
 							) : (
-								<Link href="/login" passHref>
-									<Button variant="outline" size="icon" className="h-10 w-10 rounded-full">
-										<User className="h-4 w-4" />
-										<span className="sr-only">Login</span>
-									</Button>
-								</Link>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button variant="outline" size="icon" className="h-10 w-10 rounded-full">
+											<User className="h-4 w-4" />
+											<span className="sr-only">Account menu</span>
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end" className="w-[200px]">
+										<DropdownMenuItem asChild>
+											<Link href="/wishlist" className="w-full cursor-pointer">
+												<Heart className="h-4 w-4 mr-2" />
+												Wishlist
+											</Link>
+										</DropdownMenuItem>
+										<DropdownMenuItem onClick={() => setShowKeyboardShortcuts(true)} className="cursor-pointer hidden sm:flex">
+											<Keyboard className="h-4 w-4 mr-2" />
+											Keyboard Shortcuts
+										</DropdownMenuItem>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem onClick={handleTheme} className="cursor-pointer">
+											{theme === "dark" ? (
+												<>
+													<Sun className="h-4 w-4 mr-2" />
+													Light Mode
+												</>
+											) : (
+												<>
+													<Moon className="h-4 w-4 mr-2" />
+													Dark Mode
+												</>
+											)}
+										</DropdownMenuItem>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem asChild>
+											<Link href="/login" className="w-full cursor-pointer">
+												<LogIn className="h-4 w-4 mr-2" />
+												Login
+											</Link>
+										</DropdownMenuItem>
+										<DropdownMenuItem asChild>
+											<Link href="/register" className="w-full cursor-pointer">
+												<UserPlus className="h-4 w-4 mr-2" />
+												Register
+											</Link>
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
 							)}
 
 							{/* Cart Button */}
@@ -325,54 +503,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 			<nav className="border-t h-[var(--header-nav-height)] flex-shrink-0">
 				<div className="px-2 sm:px-4 h-full">
 					<div className="flex items-center h-full">
-						<Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-							<SheetTrigger asChild>
-								<Button variant="ghost" size="sm" className="flex items-center gap-2 shrink-0 mr-4">
-									<Menu className="h-4 w-4" />
-									<span className="font-medium">Menu</span>
-								</Button>
-							</SheetTrigger>
-							<SheetContent
-								side="left"
-								className="w-[320px] p-0"
-								onTouchStart={(e) => {
-									const touch = e.touches[0];
-									touchStartX.current = touch.clientX;
-								}}
-								onTouchMove={(e) => {
-									const touch = e.touches[0];
-									const deltaX = touch.clientX - touchStartX.current;
-									if (deltaX < 0) {
-										e.currentTarget.style.transform = `translateX(${deltaX}px)`;
-										e.currentTarget.style.transition = "none";
-									}
-								}}
-								onTouchEnd={(e) => {
-									const touch = e.changedTouches[0];
-									const deltaX = touch.clientX - touchStartX.current;
-									e.currentTarget.style.transition = "transform 0.2s ease-out";
-
-									if (deltaX < -50) {
-										setIsMenuOpen(false);
-									}
-									e.currentTarget.style.transform = "";
-								}}
-							>
-								<SheetHeader className="p-4 border-b">
-									<SheetTitle>Menu</SheetTitle>
-								</SheetHeader>
-								<ScrollArea className="h-[calc(100vh-var(--header-height)-2rem)] py-4">
-									<div className="grid gap-0.5 p-1">
-										{menuItems.all.map((item) => (
-											<Link key={item.id} href={item.url} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors duration-200" onClick={() => setIsMenuOpen(false)}>
-												<span>{item.title}</span>
-												<ChevronRight className="w-4 h-4 text-muted-foreground" />
-											</Link>
-										))}
-									</div>
-								</ScrollArea>
-							</SheetContent>
-						</Sheet>
+						<MenuSheet items={initialMenuItems} />
 
 						<ScrollArea className="w-full whitespace-nowrap">
 							<div className="flex items-center space-x-4">
@@ -387,6 +518,86 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 					</div>
 				</div>
 			</nav>
+
+			<Dialog open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts}>
+				<DialogContent className="sm:max-w-[600px]">
+					<DialogHeader>
+						<DialogTitle className="text-xl">Keyboard Shortcuts</DialogTitle>
+						<DialogDescription>Use these keyboard shortcuts to navigate quickly through the site.</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-6 py-6">
+						<div className="space-y-4">
+							<h3 className="font-medium text-sm text-muted-foreground mb-3">Navigation</h3>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Go to Home</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">shift + h</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Go to Search</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">shift + s</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Go to Account</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">shift + a</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Go to Blogs</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">shift + b</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Go to Help</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">shift + ?</kbd>
+								</div>
+							</div>
+						</div>
+
+						<div className="space-y-4">
+							<h3 className="font-medium text-sm text-muted-foreground mb-3">Actions</h3>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Focus Search</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">shift + k</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Focus Search (alt)</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">/</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Toggle Cart</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">shift + o</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Close/Clear</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">esc</kbd>
+								</div>
+							</div>
+						</div>
+
+						<div className="space-y-4">
+							<h3 className="font-medium text-sm text-muted-foreground mb-3">Search Results</h3>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Previous Result</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">↑</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Next Result</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">↓</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Select Result</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">enter</kbd>
+								</div>
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Close Search</span>
+									<kbd className="px-2 py-1 text-xs font-semibold bg-muted rounded-md">esc</kbd>
+								</div>
+							</div>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</header>
 	);
 }

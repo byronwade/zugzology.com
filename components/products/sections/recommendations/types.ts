@@ -1,12 +1,12 @@
 import { ShopifyProduct } from "@/lib/types";
 
-export type ProductSource = "history" | "recommended" | "complementary" | "trending" | "popular" | "related";
+export type ProductSource = "history" | "recommended" | "related" | "trending" | "best-seller" | "new" | "sale" | "complementary" | "popular";
 
-export type ProductWithSource = {
+export interface ProductWithSource {
 	product: ShopifyProduct;
 	source: ProductSource;
 	sectionId: string;
-};
+}
 
 export interface RecommendationSection {
 	id: string;

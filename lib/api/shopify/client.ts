@@ -7,45 +7,49 @@ import type { ShopifyFetchParams, ShopifyResponse } from "./types";
 const MUTATION_REGEX = /^\s*mutation/i;
 const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`;
 
-export async function shopifyFetch<T>({ query, variables = {}, tags = [] }: ShopifyFetchParams<T>): Promise<ShopifyResponse<T>> {
-	const isMutation = MUTATION_REGEX.test(query);
+interface ShopifyFetchParams<T> {
+	query: string;
+	variables?: Record<string, unknown>;
+	tags?: string[];
+	cache?: RequestCache;
+	next?: {
+		revalidate?: number;
+		tags?: string[];
+	};
+}
 
+export async function shopifyFetch<T>({ query, variables, tags, cache = "force-cache", next }: ShopifyFetchParams<T>): Promise<{ data: T }> {
 	try {
-		const result = await fetch(endpoint, {
+		const response = await fetch(`https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 				"X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_ACCESS_TOKEN,
 			},
-			body: JSON.stringify({ query, variables }),
-			next: isMutation
-				? undefined
-				: {
-						revalidate: CACHE_TIMES.PRODUCTS,
-						tags: tags.length ? tags : undefined,
-				  },
-			cache: isMutation ? "no-store" : "force-cache",
+			body: JSON.stringify({
+				query,
+				variables,
+			}),
+			cache,
+			next: {
+				...next,
+				tags: [...(next?.tags || []), ...(tags || [])],
+			},
 		});
 
-		if (!result.ok) {
-			console.error("Shopify API Error:", {
-				status: result.status,
-				statusText: result.statusText,
-				url: endpoint,
-			});
-			throw new Error(`Failed to fetch from Shopify: ${result.statusText}`);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch from Shopify: ${response.statusText}`);
 		}
 
-		const response = await result.json();
+		const json = await response.json();
 
-		if (response.errors) {
-			console.error("Shopify GraphQL Errors:", response.errors);
-			throw new Error(response.errors[0].message);
+		if (json.errors) {
+			throw new Error(`Shopify API Errors: ${json.errors.map((e: Error) => e.message).join(", ")}`);
 		}
 
-		return response;
+		return json;
 	} catch (error) {
-		console.error("Shopify Fetch Error:", error);
+		console.error("Error in shopifyFetch:", error);
 		throw error;
 	}
 }

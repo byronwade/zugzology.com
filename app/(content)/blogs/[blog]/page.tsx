@@ -4,14 +4,22 @@ import { Link } from "@/components/ui/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { getBlogByHandle } from "@/lib/actions/shopify";
-import type { ShopifyBlogArticle } from "@/lib/types";
+import type { ShopifyBlogArticle, ShopifyBlog } from "@/lib/types";
 import { BlogBreadcrumb } from "@/components/blog/blog-breadcrumb";
 import { jsonLdScriptProps } from "react-schemaorg";
+import type { WithContext } from "schema-dts";
 import { Blog, BreadcrumbList } from "schema-dts";
+import { unstable_noStore as noStore } from "next/cache";
+
+// Get blog data
+async function getBlogData(handle: string) {
+	noStore();
+	return getBlogByHandle(handle);
+}
 
 export async function generateMetadata({ params }: { params: { blog: string } }): Promise<Metadata> {
 	const nextParams = await params;
-	const blog = await getBlogByHandle(nextParams.blog);
+	const blog = await getBlogData(nextParams.blog);
 
 	if (!blog) {
 		return {
@@ -121,28 +129,28 @@ function getRandomFeaturedPosts(posts: ShopifyBlogArticle[], count: number = 3) 
 export default async function BlogCategoryPage({ params }: { params: { blog: string } }) {
 	const startTime = performance.now();
 	const nextParams = await params;
-	const blog = await getBlogByHandle(nextParams.blog);
+	const blog = await getBlogData(nextParams.blog);
 
 	if (!blog) {
-		console.log(`❌ [Blog Category] Not found: ${params.blog}`);
+		console.log(`❌ [Blog Category] Not found: ${nextParams.blog}`);
 		return notFound();
 	}
 
 	// Sort articles by date
-	const articles = blog.articles.edges.map(({ node }) => node).sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+	const articles = blog.articles.sort((a: ShopifyBlogArticle, b: ShopifyBlogArticle) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
 	// Get featured posts
 	const featuredPosts = getRandomFeaturedPosts(articles);
-	const remainingPosts = articles.filter((article) => !featuredPosts.find((fp) => fp.id === article.id));
+	const remainingPosts = articles.filter((article: ShopifyBlogArticle) => !featuredPosts.find((fp) => fp.id === article.id));
 
 	const duration = performance.now() - startTime;
 	console.log(`⚡ [Blog Category ${blog.title}] ${duration.toFixed(2)}ms`, {
 		articles: articles.length,
-		hasImages: articles.filter((a) => a.image).length,
+		hasImages: articles.filter((a: ShopifyBlogArticle) => a.image).length,
 	});
 
 	// Generate structured data
-	const blogStructuredData = {
+	const blogStructuredData: WithContext<Blog> = {
 		"@context": "https://schema.org",
 		"@type": "Blog",
 		name: `${blog.title} - Zugzology Blog`,
@@ -156,7 +164,7 @@ export default async function BlogCategoryPage({ params }: { params: { blog: str
 				url: "https://zugzology.com/logo.png",
 			},
 		},
-		blogPost: articles.map((article) => ({
+		blogPost: articles.map((article: ShopifyBlogArticle) => ({
 			"@type": "BlogPosting",
 			headline: article.title,
 			description: article.excerpt,
@@ -170,34 +178,43 @@ export default async function BlogCategoryPage({ params }: { params: { blog: str
 				image: {
 					"@type": "ImageObject",
 					url: article.image.url,
-					width: article.image.width,
-					height: article.image.height,
+					height: article.image.height.toString(),
+					width: article.image.width.toString(),
 				},
 			}),
 		})),
 	};
 
-	const breadcrumbStructuredData = {
+	const breadcrumbStructuredData: WithContext<BreadcrumbList> = {
 		"@context": "https://schema.org",
 		"@type": "BreadcrumbList",
 		itemListElement: [
 			{
 				"@type": "ListItem",
 				position: 1,
-				name: "Home",
-				item: "https://zugzology.com",
+				item: {
+					"@type": "Thing",
+					name: "Home",
+					"@id": "https://zugzology.com",
+				},
 			},
 			{
 				"@type": "ListItem",
 				position: 2,
-				name: "Blogs",
-				item: "https://zugzology.com/blogs",
+				item: {
+					"@type": "Thing",
+					name: "Blogs",
+					"@id": "https://zugzology.com/blogs",
+				},
 			},
 			{
 				"@type": "ListItem",
 				position: 3,
-				name: blog.title,
-				item: `https://zugzology.com/blogs/${blog.handle}`,
+				item: {
+					"@type": "Thing",
+					name: blog.title,
+					"@id": `https://zugzology.com/blogs/${blog.handle}`,
+				},
 			},
 		],
 	};

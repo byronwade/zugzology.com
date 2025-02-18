@@ -5,12 +5,12 @@ import { Providers } from "./providers";
 import { Footer } from "@/components/footer/footer";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
-import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import { cn } from "@/lib/utils";
 import { fontSans } from "@/lib/fonts";
 import { ThemeProvider } from "@/components/theme-provider";
-import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider";
 import { WishlistProvider } from "@/lib/providers/wishlist-provider";
+import { jsonLdScriptProps } from "react-schemaorg";
+import { WithContext, Organization } from "schema-dts";
 
 // Loading components
 function HeaderLoading() {
@@ -35,7 +35,19 @@ async function getGlobalSettings() {
 			facebook: "zugzology",
 			instagram: "zugzology",
 		},
-		googleVerificationId: "YOUR_GOOGLE_VERIFICATION_ID",
+		logo: "https://zugzology.com/logo.png",
+		address: {
+			streetAddress: "123 Mushroom Street",
+			addressLocality: "Mycology City",
+			addressRegion: "CA",
+			postalCode: "12345",
+			addressCountry: "US",
+		},
+		contactPoint: {
+			telephone: process.env.NEXT_PUBLIC_CONTACT_PHONE,
+			contactType: "customer service",
+			availableLanguage: "English",
+		},
 	};
 
 	return settings;
@@ -43,17 +55,19 @@ async function getGlobalSettings() {
 
 // Move metadata to a function to make it dynamic if needed
 export async function generateMetadata(): Promise<Metadata> {
+	const settings = await getGlobalSettings();
+
 	return {
 		metadataBase: new URL("https://zugzology.com"),
 		title: {
 			default: "Zugzology - Premium Mushroom Cultivation Supplies",
 			template: "%s | Zugzology",
 		},
-		description: "Premium mushroom cultivation supplies and equipment. Find high-quality mushroom growing supplies, cultivation tools, and expert guidance for successful mushroom cultivation.",
+		description: settings.siteDescription,
 		keywords: ["mushroom cultivation", "mushroom supplies", "growing equipment", "cultivation tools", "premium mushroom", "mycology supplies"],
-		authors: [{ name: "Zugzology" }],
-		creator: "Zugzology",
-		publisher: "Zugzology",
+		authors: [{ name: settings.siteName }],
+		creator: settings.siteName,
+		publisher: settings.siteName,
 		formatDetection: {
 			email: false,
 			address: false,
@@ -71,7 +85,7 @@ export async function generateMetadata(): Promise<Metadata> {
 			},
 		},
 		verification: {
-			google: "YOUR_GOOGLE_VERIFICATION_ID",
+			google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION_ID,
 		},
 		alternates: {
 			canonical: "https://zugzology.com",
@@ -80,9 +94,9 @@ export async function generateMetadata(): Promise<Metadata> {
 			type: "website",
 			locale: "en_US",
 			url: "https://zugzology.com",
-			siteName: "Zugzology",
+			siteName: settings.siteName,
 			title: "Zugzology - Premium Mushroom Cultivation Supplies",
-			description: "Premium mushroom cultivation supplies and equipment. Find high-quality mushroom growing supplies, cultivation tools, and expert guidance.",
+			description: settings.siteDescription,
 			images: [
 				{
 					url: "https://zugzology.com/og-image.jpg",
@@ -95,8 +109,8 @@ export async function generateMetadata(): Promise<Metadata> {
 		twitter: {
 			card: "summary_large_image",
 			title: "Zugzology - Premium Mushroom Cultivation Supplies",
-			description: "Premium mushroom cultivation supplies and equipment. Expert guidance for successful mushroom cultivation.",
-			creator: "@zugzology",
+			description: settings.siteDescription,
+			creator: settings.socialLinks.twitter,
 			images: ["https://zugzology.com/twitter-image.jpg"],
 		},
 		icons: {
@@ -127,6 +141,10 @@ export async function generateMetadata(): Promise<Metadata> {
 		other: {
 			"msapplication-TileColor": "#603cba",
 			"theme-color": "#ffffff",
+			"google-site-verification": process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION_ID || "",
+			preconnect: ["https://cdn.shopify.com"],
+			"dns-prefetch": ["https://cdn.shopify.com"],
+			preload: ["https://zugzology.com/fonts/main-font.woff2"],
 		},
 	};
 }
@@ -134,28 +152,53 @@ export async function generateMetadata(): Promise<Metadata> {
 // Server Component for the app content
 async function AppContent({ children }: { children: React.ReactNode }) {
 	return (
-		<KeyboardShortcutsProvider>
-			<div className="flex min-h-screen flex-col">
-				<Suspense fallback={<HeaderLoading />}>
-					<Header />
-				</Suspense>
-				<Suspense fallback={<MainLoading />}>
-					<main className="flex-1">{children}</main>
-				</Suspense>
-				<Suspense fallback={<FooterLoading />}>
-					<Footer />
-				</Suspense>
-				<KeyboardShortcutsHelp />
-			</div>
-		</KeyboardShortcutsProvider>
+		<div className="flex min-h-screen flex-col">
+			<Suspense fallback={<HeaderLoading />}>
+				<Header />
+			</Suspense>
+			<Suspense fallback={<MainLoading />}>
+				<main className="flex-1">{children}</main>
+			</Suspense>
+			<Suspense fallback={<FooterLoading />}>
+				<Footer />
+			</Suspense>
+		</div>
 	);
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+	const settings = await getGlobalSettings();
+
+	// Organization Schema
+	const organizationSchema: WithContext<Organization> = {
+		"@context": "https://schema.org",
+		"@type": "Organization",
+		name: settings.siteName,
+		description: settings.siteDescription,
+		url: "https://zugzology.com",
+		logo: settings.logo,
+		sameAs: [`https://facebook.com/${settings.socialLinks.facebook}`, `https://twitter.com/${settings.socialLinks.twitter.replace("@", "")}`, `https://instagram.com/${settings.socialLinks.instagram}`],
+		address: {
+			"@type": "PostalAddress",
+			...settings.address,
+		},
+		contactPoint: [
+			{
+				"@type": "ContactPoint",
+				...settings.contactPoint,
+			},
+		],
+	};
+
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+				<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+				<meta name="format-detection" content="telephone=no" />
+				<meta name="theme-color" content="#ffffff" />
+				<link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
+				<link rel="dns-prefetch" href="https://cdn.shopify.com" />
+				<script {...jsonLdScriptProps(organizationSchema)} />
 			</head>
 			<body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

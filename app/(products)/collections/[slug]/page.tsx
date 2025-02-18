@@ -5,15 +5,18 @@ import { notFound } from "next/navigation";
 import { ProductsContentClient } from "@/components/products/products-content-client";
 import type { Metadata } from "next";
 import type { ShopifyProduct, ShopifyCollection } from "@/lib/types";
+import { EmptyState } from "@/components/ui/empty-state";
+import { unstable_noStore as noStore } from "next/cache";
 
 // Optimize collection data structure
-function optimizeCollectionData(collection: ShopifyCollection | null, discountInfo: { discountAmount: number; discountType: "percentage" | "fixed_amount" } | null): ShopifyCollection | null {
+async function optimizeCollectionData(collection: ShopifyCollection | null, discountInfo: { discountAmount: number; discountType: "percentage" | "fixed_amount" } | null): Promise<ShopifyCollection | null> {
+	noStore();
 	if (!collection) return null;
 
 	return {
 		...collection,
 		products: {
-			edges: collection.products.edges.map(({ node }) => {
+			nodes: collection.products.nodes.map((node) => {
 				// Apply discount to product prices if available
 				let priceRange = node.priceRange;
 				let variants = node.variants;
@@ -43,25 +46,21 @@ function optimizeCollectionData(collection: ShopifyCollection | null, discountIn
 
 					// Update variant prices
 					variants = {
-						edges: node.variants.edges.map(({ node: variant }) => ({
-							node: {
-								...variant,
-								compareAtPrice: variant.price, // Store original price as compareAtPrice
-								price: {
-									...variant.price,
-									amount: applyDiscount(variant.price.amount),
-								},
+						nodes: node.variants.nodes.map((variant) => ({
+							...variant,
+							compareAtPrice: variant.price, // Store original price as compareAtPrice
+							price: {
+								...variant.price,
+								amount: applyDiscount(variant.price.amount),
 							},
 						})),
 					};
 				}
 
 				return {
-					node: {
-						...node,
-						priceRange,
-						variants,
-					},
+					...node,
+					priceRange,
+					variants,
 				};
 			}),
 		},
@@ -80,9 +79,9 @@ interface CollectionPageProps {
 	};
 }
 
-// Fetch collection data with caching
+// Fetch collection data
 async function getCollectionData(slug: string): Promise<ShopifyCollection | null> {
-	"use cache";
+	noStore();
 
 	if (!slug || typeof slug !== "string") {
 		console.error("Invalid collection handle:", slug);
@@ -93,14 +92,22 @@ async function getCollectionData(slug: string): Promise<ShopifyCollection | null
 	const startTime = performance.now();
 
 	try {
-		const [collection, discountInfo] = await Promise.all([getCollection(handle), getCollectionDiscounts(handle)]);
+		const [collection, discountData] = await Promise.all([getCollection(handle), getCollectionDiscounts(handle)]);
 
 		if (!collection) {
 			console.error(`Collection not found: ${handle}`);
 			return null;
 		}
 
-		const optimizedCollection = optimizeCollectionData(collection, discountInfo);
+		// Map discount data to the expected format
+		const discountInfo = discountData
+			? {
+					discountAmount: Number(discountData.amount),
+					discountType: discountData.type === "percentage" ? ("percentage" as const) : ("fixed_amount" as const),
+			  }
+			: null;
+
+		const optimizedCollection = await optimizeCollectionData(collection, discountInfo);
 		const duration = performance.now() - startTime;
 
 		if (duration > 100) {
@@ -123,6 +130,7 @@ async function getCollectionData(slug: string): Promise<ShopifyCollection | null
 }
 
 export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
+	noStore();
 	const nextParams = await params;
 	const collection = await getCollectionData(nextParams.slug);
 
@@ -164,6 +172,7 @@ export async function generateMetadata({ params }: CollectionPageProps): Promise
 }
 
 export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
+	noStore();
 	const nextjs15 = await params;
 	const nextjs15Search = await searchParams;
 
@@ -175,6 +184,11 @@ export default async function CollectionPage({ params, searchParams }: Collectio
 
 	if (!collection) {
 		return notFound();
+	}
+
+	// Check if collection has no products
+	if (!collection.products?.nodes?.length) {
+		return <EmptyState title={`No Products in ${collection.title}`} description={`This collection is currently empty. Check out our other collections or browse all products.`} showCollectionCards={true} />;
 	}
 
 	return <ProductsContentClient collection={collection} searchQuery={nextjs15Search?.sort} />;

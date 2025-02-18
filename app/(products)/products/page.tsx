@@ -96,24 +96,32 @@ const optimizeProductData = (products: any[]): ShopifyProduct[] => {
 		publishedAt: product.publishedAt || new Date().toISOString(),
 		priceRange: product.priceRange,
 		images: {
-			edges: product.images.edges.slice(0, 1), // Only keep first image for initial render
+			nodes: product.images?.nodes || [],
 		},
 		variants: {
-			edges: [product.variants.edges[0]], // Only keep first variant for initial render
+			nodes: product.variants?.nodes || [],
 		},
+		media: {
+			nodes: product.media?.nodes || [],
+		},
+		metafields: product.metafields || [],
 	}));
 };
 
 // Products content component
 const ProductsContent = async ({ searchParams }: ProductsPageProps) => {
 	const nextSearchParams = await searchParams;
+	console.log("Fetching products and site settings...");
 	const [products, siteSettings] = await Promise.all([getProducts(), getSiteSettings()]);
+	console.log("Products fetched:", products?.length || 0, "products");
 
 	if (!products) {
+		console.log("No products found, returning 404");
 		return notFound();
 	}
 
 	const optimizedProducts = optimizeProductData(products);
+	console.log("Optimized products:", optimizedProducts.length);
 	const storeName = siteSettings?.name || "Zugzology";
 
 	// Generate structured data for product list
@@ -127,7 +135,7 @@ const ProductsContent = async ({ searchParams }: ProductsPageProps) => {
 				"@type": "Product",
 				name: product.title,
 				description: product.description,
-				image: product.images.edges[0]?.node.url,
+				image: product.images.nodes[0]?.url,
 				url: `${siteSettings?.url || "https://zugzology.com"}/products/${product.handle}`,
 				brand: {
 					"@type": "Brand",
@@ -138,7 +146,7 @@ const ProductsContent = async ({ searchParams }: ProductsPageProps) => {
 					priceCurrency: "USD",
 					lowPrice: parseFloat(product.priceRange.minVariantPrice.amount),
 					highPrice: parseFloat(product.priceRange.maxVariantPrice.amount),
-					offerCount: product.variants.edges.length,
+					offerCount: product.variants.nodes.length,
 					availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
 				},
 			} as Thing,
@@ -171,9 +179,7 @@ const ProductsContent = async ({ searchParams }: ProductsPageProps) => {
 		title: siteSettings?.productsPageTitle || "All Products",
 		description: siteSettings?.productsPageDescription || "Browse our complete collection of premium mushroom growing supplies and equipment.",
 		products: {
-			edges: optimizedProducts.map((product) => ({
-				node: product,
-			})),
+			nodes: optimizedProducts,
 		},
 	};
 

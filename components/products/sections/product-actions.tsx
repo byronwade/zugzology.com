@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ProductActionsProps {
-	selectedVariant: ShopifyProductVariant;
+	selectedVariant: ShopifyProductVariant | null;
 	quantity: number;
 	onQuantityChange: (quantity: number) => void;
 	productHandle: string;
@@ -32,6 +32,19 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 	const [isWishlisted, setIsWishlisted] = useState(false);
 
 	console.log("Product Handle:", productHandle);
+
+	// If no variant is selected, show a message
+	if (!selectedVariant) {
+		return (
+			<Card className="rounded-lg border border-foreground/15 shadow-none w-full mx-auto">
+				<CardContent className="p-6">
+					<div className="text-center text-muted-foreground">
+						<p>Please select product options</p>
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	// Check if product is in wishlist on mount
 	useEffect(() => {
@@ -196,16 +209,6 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 									</>
 								)}
 							</div>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Badge variant="secondary" className="text-xs font-semibold cursor-help">
-										Best Seller
-									</Badge>
-								</TooltipTrigger>
-								<TooltipContent>
-									<p>This product is one of our top-selling items</p>
-								</TooltipContent>
-							</Tooltip>
 						</div>
 						{/* Stock and Shipping Info */}
 						<div className="space-y-2">
@@ -359,11 +362,9 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 								<div className="space-y-2.5">
 									<div className="flex items-center text-green-600">
 										<span className="font-medium">Free Shipping</span>
-										{selectedVariant.requiresShipping && (
-											<Badge variant="secondary" className="ml-2 text-xs">
-												Ships from USA
-											</Badge>
-										)}
+										<Badge variant="secondary" className="ml-2 text-xs">
+											Ships from USA
+										</Badge>
 									</div>
 									<div className="flex items-center text-muted-foreground">
 										<Package className="h-4 w-4 mr-2" />

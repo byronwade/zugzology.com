@@ -57,7 +57,45 @@ export interface ShopifyHeaderResponse {
 }
 
 export interface HeaderQueryResponse {
-	data: ShopifyHeaderResponse;
+	data: {
+		shop: {
+			name: string;
+			description: string;
+			primaryDomain: {
+				url: string;
+			};
+		};
+		menu: {
+			items: Array<{
+				id: string;
+				title: string;
+				url: string;
+				items?: Array<{
+					id: string;
+					title: string;
+					url: string;
+				}>;
+			}>;
+		};
+		blogs: {
+			edges: Array<{
+				node: {
+					id: string;
+					handle: string;
+					title: string;
+				};
+			}>;
+		};
+		products: {
+			edges: Array<{
+				node: {
+					id: string;
+					handle: string;
+					title: string;
+				};
+			}>;
+		};
+	};
 }
 
 export interface HeaderData {
