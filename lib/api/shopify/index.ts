@@ -1,5 +1,4 @@
 "use server";
-"use cache";
 
 import { shopifyFetch } from "./client";
 import { CACHE_TIMES } from "./cache-config";

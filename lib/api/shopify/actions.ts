@@ -809,38 +809,41 @@ export async function getProductPageData(handle: string) {
 	)();
 }
 
-export async function getHeaderData() {
-	"use cache";
+export const getHeaderData = unstable_cache(
+	async () => {
+		try {
+			const response = await shopifyFetch<HeaderQueryResponse>({
+				query: headerQuery,
+				cache: "force-cache",
+				next: {
+					revalidate: CACHE_TIMES.HEADER,
+					tags: [CACHE_TAGS.MENU],
+				},
+			});
 
-	const cacheKey = "header-data";
+			if (!response.data) {
+				throw new Error("No data returned from header query");
+			}
 
-	try {
-		const response = await shopifyFetch<HeaderQueryResponse>({
-			query: headerQuery,
-			cache: "force-cache",
-			next: {
-				revalidate: CACHE_TIMES.HEADER,
-				tags: [CACHE_TAGS.MENU],
-			},
-		});
-
-		if (!response.data) {
-			throw new Error("No data returned from header query");
+			return {
+				shop: response.data.shop,
+				menuItems: response.data.menu?.items || [],
+				blogs: response.data.blogs?.edges?.map((edge: any) => edge.node) || [],
+				products: response.data.products?.edges?.map((edge: any) => edge.node) || [],
+			};
+		} catch (error) {
+			console.error("Error fetching header data:", error);
+			return {
+				shop: null,
+				menuItems: [],
+				blogs: [],
+				products: [],
+			};
 		}
-
-		return {
-			shop: response.data.shop,
-			menuItems: response.data.menu?.items || [],
-			blogs: response.data.blogs?.edges?.map((edge: any) => edge.node) || [],
-			products: response.data.products?.edges?.map((edge: any) => edge.node) || [],
-		};
-	} catch (error) {
-		console.error("Error fetching header data:", error);
-		return {
-			shop: null,
-			menuItems: [],
-			blogs: [],
-			products: [],
-		};
+	},
+	["header-data"],
+	{
+		revalidate: CACHE_TIMES.HEADER,
+		tags: [CACHE_TAGS.MENU],
 	}
-}
+);

@@ -2,7 +2,7 @@
 
 import type { ShopifyProduct, ShopifyCollection, ShopifyBlog, ShopifyBlogArticle, ShopifyCart, CartItem } from "../types";
 import { SHOPIFY_STOREFRONT_ACCESS_TOKEN, SHOPIFY_STORE_DOMAIN } from "@/lib/constants";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 // Cache Configuration
 const CACHE_TIMES = {
@@ -118,20 +118,19 @@ if (typeof setInterval !== "undefined") {
 }
 
 // Exported Functions
-export async function getProduct(handle: string) {
-	"use cache";
+export const getProduct = unstable_cache(
+	async (handle: string) => {
+		const cacheKey = `product_${handle}`;
+		const now = Date.now();
+		const cached = MEMORY_CACHE.get(cacheKey);
 
-	const cacheKey = `product_${handle}`;
-	const now = Date.now();
-	const cached = MEMORY_CACHE.get(cacheKey);
+		if (cached && now - cached.timestamp < CACHE_TIMES.PRODUCTS * 1000) {
+			return cached.data;
+		}
 
-	if (cached && now - cached.timestamp < CACHE_TIMES.PRODUCTS * 1000) {
-		return cached.data;
-	}
-
-	try {
-		const { data } = await shopifyFetch<ProductResponse>({
-			query: `
+		try {
+			const { data } = await shopifyFetch<ProductResponse>({
+				query: `
         query getProduct($handle: String!) {
           product(handle: $handle) {
             id
@@ -167,40 +166,45 @@ export async function getProduct(handle: string) {
           }
         }
       `,
-			variables: { handle },
-			tags: [`product-${handle}`],
-		});
-
-		if (data?.product) {
-			const size = getObjectSize(data.product);
-			MEMORY_CACHE.set(cacheKey, {
-				data: data.product,
-				timestamp: now,
-				size,
+				variables: { handle },
+				tags: [`product-${handle}`],
 			});
+
+			if (data?.product) {
+				const size = getObjectSize(data.product);
+				MEMORY_CACHE.set(cacheKey, {
+					data: data.product,
+					timestamp: now,
+					size,
+				});
+			}
+
+			return data?.product ?? null;
+		} catch (error) {
+			console.error("Error fetching product:", error);
+			return cached?.data || null;
+		}
+	},
+	[`product`],
+	{
+		revalidate: CACHE_TIMES.PRODUCTS,
+		tags: [`product`],
+	}
+);
+
+export const getCollection = unstable_cache(
+	async (handle: string) => {
+		const cacheKey = `collection_${handle}`;
+		const now = Date.now();
+		const cached = MEMORY_CACHE.get(cacheKey);
+
+		if (cached && now - cached.timestamp < CACHE_TIMES.COLLECTIONS * 1000) {
+			return cached.data;
 		}
 
-		return data?.product ?? null;
-	} catch (error) {
-		console.error("Error fetching product:", error);
-		return cached?.data || null;
-	}
-}
-
-export async function getCollection(handle: string) {
-	"use cache";
-
-	const cacheKey = `collection_${handle}`;
-	const now = Date.now();
-	const cached = MEMORY_CACHE.get(cacheKey);
-
-	if (cached && now - cached.timestamp < CACHE_TIMES.COLLECTIONS * 1000) {
-		return cached.data;
-	}
-
-	try {
-		const { data } = await shopifyFetch<CollectionResponse>({
-			query: `
+		try {
+			const { data } = await shopifyFetch<CollectionResponse>({
+				query: `
         query getCollection($handle: String!) {
           collection(handle: $handle) {
             id
@@ -219,24 +223,30 @@ export async function getCollection(handle: string) {
           }
         }
       `,
-			variables: { handle },
-			tags: [`collection-${handle}`],
-		});
-
-		if (data?.collection) {
-			const size = getObjectSize(data.collection);
-			MEMORY_CACHE.set(cacheKey, {
-				data: data.collection,
-				timestamp: now,
-				size,
+				variables: { handle },
+				tags: [`collection-${handle}`],
 			});
-		}
 
-		return data?.collection ?? null;
-	} catch (error) {
-		console.error("Error fetching collection:", error);
-		return cached?.data || null;
+			if (data?.collection) {
+				const size = getObjectSize(data.collection);
+				MEMORY_CACHE.set(cacheKey, {
+					data: data.collection,
+					timestamp: now,
+					size,
+				});
+			}
+
+			return data?.collection ?? null;
+		} catch (error) {
+			console.error("Error fetching collection:", error);
+			return cached?.data || null;
+		}
+	},
+	[`collection`],
+	{
+		revalidate: CACHE_TIMES.COLLECTIONS,
+		tags: [`collection`],
 	}
-}
+);
 
 // Add other export functions here...

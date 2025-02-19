@@ -6,6 +6,7 @@ import { ProductsContentClient } from "@/components/products/products-content-cl
 import type { ShopifyCollection, ShopifyBlogArticle } from "@/lib/types";
 import { InitializeSearch } from "@/components/search/initialize-search";
 import { BlogSearchResults } from "@/components/blog/blog-search-results";
+import { unstable_cache } from "next/cache";
 
 interface SearchPageProps {
 	searchParams?: {
@@ -53,46 +54,51 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
 }
 
 // Fetch products data with caching
-async function getSearchData(query: string) {
-	"use cache";
-
-	if (!query || typeof query !== "string") {
-		console.error("Invalid search query:", query);
-		return [];
-	}
-
-	const startTime = performance.now();
-
-	try {
-		const products = await getProducts();
-
-		// Filter products based on search query
-		const searchTerms = query.toLowerCase().split(/\s+/);
-		const filteredProducts = products.filter((product) => {
-			const searchableText = [product.title, product.description, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
-
-			return searchTerms.every((term) => searchableText.includes(term));
-		});
-
-		const duration = performance.now() - startTime;
-		if (duration > 100) {
-			console.log(`⚡ [Search Data] ${duration.toFixed(2)}ms | Results: ${filteredProducts.length}`);
+const getSearchData = unstable_cache(
+	async (query: string) => {
+		if (!query || typeof query !== "string") {
+			console.error("Invalid search query:", query);
+			return [];
 		}
 
-		return filteredProducts;
-	} catch (error) {
-		console.error(
-			`Error searching products:`,
-			error instanceof Error
-				? {
-						message: error.message,
-						stack: error.stack?.split("\n").slice(0, 3),
-				  }
-				: "Unknown error"
-		);
-		return [];
+		const startTime = performance.now();
+
+		try {
+			const products = await getProducts();
+
+			// Filter products based on search query
+			const searchTerms = query.toLowerCase().split(/\s+/);
+			const filteredProducts = products.filter((product) => {
+				const searchableText = [product.title, product.description, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
+
+				return searchTerms.every((term) => searchableText.includes(term));
+			});
+
+			const duration = performance.now() - startTime;
+			if (duration > 100) {
+				console.log(`⚡ [Search Data] ${duration.toFixed(2)}ms | Results: ${filteredProducts.length}`);
+			}
+
+			return filteredProducts;
+		} catch (error) {
+			console.error(
+				`Error searching products:`,
+				error instanceof Error
+					? {
+							message: error.message,
+							stack: error.stack?.split("\n").slice(0, 3),
+					  }
+					: "Unknown error"
+			);
+			return [];
+		}
+	},
+	["search-data"],
+	{
+		revalidate: 60, // Revalidate every minute
+		tags: ["search"],
 	}
-}
+);
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
 	const nextjs15Search = await searchParams;

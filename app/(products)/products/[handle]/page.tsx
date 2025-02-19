@@ -5,27 +5,29 @@ import { ProductContent } from "@/components/products/sections/product-content";
 import type { ShopifyImage, ShopifyProduct } from "@/lib/types";
 import { WithContext, Product } from "schema-dts";
 import { jsonLdScriptProps } from "react-schemaorg";
-import { draftMode } from "next/headers";
+import { unstable_noStore as noStore } from "next/cache";
+
+// Tell Next.js this is a dynamic route that shouldn't be prerendered
+export async function generateStaticParams() {
+	return [];
+}
+
+// Tell Next.js to fetch fresh data on every request
+export const fetchCache = "force-no-store";
 
 interface ProductPageProps {
 	params: Promise<{
 		handle: string;
 	}>;
-	searchParams?: {
+	searchParams?: Promise<{
 		variant?: string;
-	};
-}
-
-// This tells Next.js to generate an empty array of static paths
-// forcing all product pages to be generated on-demand
-export function generateStaticParams() {
-	return [];
+	}>;
 }
 
 // Get product data
 async function getPageData(handle: string) {
-	// Check if we're in draft mode to force dynamic behavior
-	await draftMode();
+	// Explicitly opt out of caching
+	noStore();
 
 	const data = await getProductPageData(handle);
 	if (!data.product) {
@@ -46,8 +48,8 @@ const ProductError = () => (
 
 // Generate metadata for the product
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
-	const nextParams = await params;
-	const { product } = await getPageData(nextParams.handle);
+	const { handle } = await params;
+	const { product } = await getPageData(handle);
 
 	const title = `${product.title} | Zugzology`;
 	const description = product.description || `Buy ${product.title} from Zugzology. Premium mushroom cultivation supplies and equipment.`;
@@ -128,8 +130,8 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
-	const nextParams = await params;
-	const { product } = await getPageData(nextParams.handle);
+	const { handle } = await params;
+	const { product } = await getPageData(handle);
 
 	const productSchema: WithContext<Product> = {
 		"@context": "https://schema.org",

@@ -4,7 +4,6 @@ const nextConfig = {
 		ppr: true,
 		inlineCss: true,
 		reactCompiler: true,
-		dynamicIO: true,
 	},
 	typescript: {
 		ignoreBuildErrors: true,

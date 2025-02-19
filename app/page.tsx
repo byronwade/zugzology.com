@@ -19,6 +19,7 @@ import { formatPrice } from "@/lib/utils";
 import { AddToCartButton } from "@/components/products/add-to-cart-button";
 import { AdSenseScript } from "@/components/google/adsense-script";
 import { AdPlaceholder } from "@/components/ads/ad-placeholder";
+import { unstable_cache } from "next/cache";
 
 interface SiteFeature {
 	icon: string;
@@ -51,20 +52,25 @@ async function getLocalSiteSettings(): Promise<SiteSettings> {
 }
 
 // Update getPageData to include collections
-async function getPageData() {
-	"use cache";
+const getPageData = unstable_cache(
+	async () => {
+		const [products, siteSettings] = await Promise.all([getProducts(), getLocalSiteSettings()]);
 
-	const [products, siteSettings] = await Promise.all([getProducts(), getLocalSiteSettings()]);
+		const optimizedProducts = products ? products.slice(0, 8) : [];
+		const topSellers = products ? products.filter((p) => p.tags.includes("best-seller")).slice(0, 6) : [];
 
-	const optimizedProducts = products ? products.slice(0, 8) : [];
-	const topSellers = products ? products.filter((p) => p.tags.includes("best-seller")).slice(0, 6) : [];
-
-	return {
-		products: optimizedProducts,
-		topSellers,
-		siteSettings,
-	};
-}
+		return {
+			products: optimizedProducts,
+			topSellers,
+			siteSettings,
+		};
+	},
+	["home-page-data"],
+	{
+		revalidate: 60, // Revalidate every minute
+		tags: ["home-page"],
+	}
+);
 
 export async function generateMetadata(): Promise<Metadata> {
 	return {

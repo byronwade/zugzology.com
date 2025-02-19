@@ -24,8 +24,6 @@ function isPrerendering() {
 // Fetch data with dynamic behavior and caching
 const getHeaderData = unstable_cache(
 	async () => {
-		"use cache";
-
 		try {
 			const startTime = performance.now();
 			const [menuItems, blogs, products, blogPosts] = await Promise.all([getMenuItems(), getBlogs(), getProducts(), getAllBlogPosts()]);
@@ -75,8 +73,6 @@ async function getCustomerToken() {
 // Check authentication status with the token
 const checkAuth = unstable_cache(
 	async (customerAccessToken: string | null | undefined) => {
-		"use cache";
-
 		if (!customerAccessToken) {
 			return false;
 		}

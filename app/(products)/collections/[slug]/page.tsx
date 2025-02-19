@@ -8,9 +8,14 @@ import type { ShopifyProduct, ShopifyCollection } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { unstable_noStore as noStore } from "next/cache";
 
+// Tell Next.js this is a dynamic route that shouldn't be prerendered
+export async function generateStaticParams() {
+	noStore();
+	return [];
+}
+
 // Optimize collection data structure
 async function optimizeCollectionData(collection: ShopifyCollection | null, discountInfo: { discountAmount: number; discountType: "percentage" | "fixed_amount" } | null): Promise<ShopifyCollection | null> {
-	noStore();
 	if (!collection) return null;
 
 	return {
@@ -68,19 +73,20 @@ async function optimizeCollectionData(collection: ShopifyCollection | null, disc
 }
 
 interface CollectionPageProps {
-	params: {
+	params: Promise<{
 		slug: string;
-	};
-	searchParams?: {
+	}>;
+	searchParams?: Promise<{
 		sort?: string;
 		availability?: string;
 		price?: string;
 		category?: string;
-	};
+	}>;
 }
 
 // Fetch collection data
 async function getCollectionData(slug: string): Promise<ShopifyCollection | null> {
+	// Explicitly opt out of caching
 	noStore();
 
 	if (!slug || typeof slug !== "string") {
@@ -130,9 +136,8 @@ async function getCollectionData(slug: string): Promise<ShopifyCollection | null
 }
 
 export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
-	noStore();
-	const nextParams = await params;
-	const collection = await getCollectionData(nextParams.slug);
+	const { slug } = await params;
+	const collection = await getCollectionData(slug);
 
 	if (!collection) {
 		return {
@@ -172,15 +177,14 @@ export async function generateMetadata({ params }: CollectionPageProps): Promise
 }
 
 export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
-	noStore();
-	const nextjs15 = await params;
-	const nextjs15Search = await searchParams;
+	const { slug } = await params;
+	const search = await searchParams;
 
-	if (!nextjs15?.slug) {
+	if (!slug) {
 		return notFound();
 	}
 
-	const collection = await getCollectionData(nextjs15.slug);
+	const collection = await getCollectionData(slug);
 
 	if (!collection) {
 		return notFound();
@@ -191,5 +195,5 @@ export default async function CollectionPage({ params, searchParams }: Collectio
 		return <EmptyState title={`No Products in ${collection.title}`} description={`This collection is currently empty. Check out our other collections or browse all products.`} showCollectionCards={true} />;
 	}
 
-	return <ProductsContentClient collection={collection} searchQuery={nextjs15Search?.sort} />;
+	return <ProductsContentClient collection={collection} searchQuery={search?.sort} />;
 }
