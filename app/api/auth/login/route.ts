@@ -1,28 +1,19 @@
 import { cookies } from "next/headers";
+import { AUTH_CONFIG, logAuthEvent } from "@/lib/config/auth";
 
 export async function POST(request: Request) {
 	try {
-		console.log("🔐 [Login] Starting login process...");
-
-		// Validate required environment variables
-		if (!process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN) {
-			throw new Error("Missing NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN environment variable");
-		}
-		if (!process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
-			throw new Error("Missing NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN environment variable");
-		}
+		logAuthEvent("Login attempt started", { timestamp: new Date().toISOString() });
 
 		const { email, password } = await request.json();
-		console.log("📧 [Login] Email provided:", email);
 
 		if (!email || !password) {
-			console.error("❌ [Login] Missing email or password");
+			logAuthEvent("Login validation failed", { error: "Missing credentials" });
 			return Response.json({ message: "Email and password are required" }, { status: 400 });
 		}
 
-		// Create access token using Shopify's Storefront API
-		const shopDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
-		const response = await fetch(`https://${shopDomain}/api/2024-01/graphql`, {
+		// Get customer access token using Storefront API
+		const response = await fetch(`https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -53,40 +44,112 @@ export async function POST(request: Request) {
 			}),
 		});
 
-		const { data, errors } = await response.json();
+		const data = await response.json();
+		logAuthEvent("API response received", { data });
 
-		if (errors) {
-			console.error("❌ [Login] GraphQL errors:", errors);
-			return Response.json({ message: errors[0].message }, { status: 400 });
+		// Check for GraphQL errors
+		if (data.errors) {
+			logAuthEvent("GraphQL errors", { errors: data.errors });
+			return Response.json({ message: data.errors[0].message }, { status: 401 });
 		}
 
-		const { customerAccessTokenCreate } = data;
+		if (!data.data) {
+			logAuthEvent("Invalid API response", { data });
+			return Response.json({ message: "Invalid response from authentication service" }, { status: 500 });
+		}
+
+		const { customerAccessTokenCreate } = data.data;
 
 		if (customerAccessTokenCreate.customerUserErrors?.length > 0) {
 			const error = customerAccessTokenCreate.customerUserErrors[0];
-			console.error("❌ [Login] Customer errors:", error);
-			return Response.json({ message: error.message }, { status: 400 });
+			logAuthEvent("Login failed", {
+				error: error.message,
+				code: error.code,
+				field: error.field,
+			});
+
+			// If customer is unidentified, try to verify if they exist using a different query
+			if (error.code === "UNIDENTIFIED_CUSTOMER") {
+				// Try to get a temporary access token for verification
+				const verifyResponse = await fetch(`https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN as string,
+					},
+					body: JSON.stringify({
+						query: `
+							mutation {
+								customerAccessTokenCreate(input: { email: "${email}", password: "temp-password" }) {
+									customerUserErrors {
+										code
+										message
+									}
+								}
+							}
+						`,
+					}),
+				});
+
+				const verifyData = await verifyResponse.json();
+				logAuthEvent("Customer verification response", { verifyData });
+
+				// If we get UNIDENTIFIED_CUSTOMER again, the account doesn't exist
+				// If we get INVALID_CREDENTIALS, the account exists but password is wrong
+				const verifyError = verifyData.data?.customerAccessTokenCreate?.customerUserErrors[0];
+				if (verifyError?.code === "INVALID_CREDENTIALS") {
+					return Response.json({ message: "Account exists but password may be incorrect" }, { status: 401 });
+				}
+			}
+
+			return Response.json({ message: error.message }, { status: 401 });
 		}
 
-		// Store the access token in a cookie
+		if (!customerAccessTokenCreate.customerAccessToken) {
+			logAuthEvent("No access token in response", { data });
+			return Response.json({ message: "Failed to create access token" }, { status: 500 });
+		}
+
 		const { accessToken, expiresAt } = customerAccessTokenCreate.customerAccessToken;
 
-		console.log("✅ [Login] Login successful");
+		// Set the customer access token in cookies
+		const cookieStore = await cookies();
+		await cookieStore.set(AUTH_CONFIG.cookies.customerAccessToken.name, accessToken, {
+			...AUTH_CONFIG.cookies.customerAccessToken.options,
+			expires: new Date(expiresAt),
+		});
 
-		return new Response(
-			JSON.stringify({
-				success: true,
-				redirectTo: "/account", // Redirect to your custom admin panel
-			}),
-			{
-				headers: {
-					"Content-Type": "application/json",
-					"Set-Cookie": `customerAccessToken=${accessToken}; Path=/; HttpOnly; ${process.env.NODE_ENV === "production" ? "Secure; " : ""}Expires=${new Date(expiresAt).toUTCString()}; SameSite=Lax`,
-				},
-			}
-		);
+		logAuthEvent("Login successful", {
+			email,
+			expiresAt,
+		});
+
+		return Response.json({
+			success: true,
+			redirectUrl: "/account",
+		});
 	} catch (error) {
-		console.error("💥 [Login] Error:", error);
-		return Response.json({ message: error instanceof Error ? error.message : "Login failed" }, { status: 500 });
+		logAuthEvent("Login error", {
+			error: error instanceof Error ? error.message : "Unknown error",
+			stack: error instanceof Error ? error.stack : undefined,
+		});
+		return Response.json(
+			{
+				message: "An unexpected error occurred during login",
+			},
+			{ status: 500 }
+		);
 	}
+}
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS() {
+	return new Response(null, {
+		status: 204,
+		headers: {
+			"Access-Control-Allow-Origin": "*",
+			"Access-Control-Allow-Methods": "POST, OPTIONS",
+			"Access-Control-Allow-Headers": "Content-Type, Authorization",
+		},
+	});
 }

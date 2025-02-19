@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { AUTH_CONFIG, logAuthEvent } from "@/lib/config/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,52 +12,74 @@ export async function GET(request: Request) {
 		const error = url.searchParams.get("error");
 		const errorDescription = url.searchParams.get("error_description");
 
+		logAuthEvent("Callback received", {
+			code: code ? "present" : "missing",
+			state: state ? "present" : "missing",
+			error,
+			errorDescription,
+		});
+
 		const cookieStore = await cookies();
 		const storedState = await cookieStore.get("auth_state");
 		const codeVerifier = await cookieStore.get("pkce_verifier");
 		const tempCredentials = await cookieStore.get("temp_credentials");
 
 		// Clear sensitive cookies
-		await cookieStore.delete("auth_state");
-		await cookieStore.delete("pkce_verifier");
-		await cookieStore.delete("temp_credentials");
+		await cookieStore.delete({
+			name: "auth_state",
+			path: "/",
+		});
+		await cookieStore.delete({
+			name: "pkce_verifier",
+			path: "/",
+		});
+		await cookieStore.delete({
+			name: "temp_credentials",
+			path: "/",
+		});
 
 		if (error) {
-			console.error("❌ [Auth] OAuth error:", error, errorDescription);
+			logAuthEvent("OAuth error", { error, errorDescription });
 			return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=${encodeURIComponent(errorDescription || "Authentication failed")}`);
 		}
 
 		if (!code || !state) {
-			console.error("❌ [Auth] Missing code or state");
+			logAuthEvent("Missing parameters", { code: !!code, state: !!state });
 			return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=Invalid response`);
 		}
 
 		if (!storedState || state !== storedState.value) {
-			console.error("❌ [Auth] State mismatch");
+			logAuthEvent("State mismatch", {
+				receivedState: state,
+				storedStateExists: !!storedState,
+			});
 			return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=Invalid state`);
 		}
 
 		if (!codeVerifier) {
-			console.error("❌ [Auth] Missing code verifier");
+			logAuthEvent("Missing code verifier", { timestamp: new Date().toISOString() });
 			return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=Invalid request`);
 		}
 
 		if (!tempCredentials) {
-			console.error("❌ [Auth] Missing temporary credentials");
+			logAuthEvent("Missing temporary credentials", { timestamp: new Date().toISOString() });
 			return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=Session expired`);
 		}
 
 		// Exchange code for tokens using form data
 		const formData = new URLSearchParams();
 		formData.append("grant_type", "authorization_code");
-		formData.append("client_id", process.env.SHOPIFY_CLIENT_ID as string);
+		formData.append("client_id", AUTH_CONFIG.oauth.clientId);
 		formData.append("code_verifier", codeVerifier.value);
 		formData.append("code", code);
-		formData.append("redirect_uri", `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`);
+		formData.append("redirect_uri", AUTH_CONFIG.oauth.redirectUri);
 
-		console.log("🔄 [Auth] Token request data:", Object.fromEntries(formData));
+		logAuthEvent("Token exchange started", {
+			grantType: "authorization_code",
+			redirectUri: AUTH_CONFIG.oauth.redirectUri,
+		});
 
-		const tokenResponse = await fetch(`https://shopify.com/authentication/${process.env.SHOPIFY_SHOP_ID}/oauth/token`, {
+		const tokenResponse = await fetch(AUTH_CONFIG.endpoints.token, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/x-www-form-urlencoded",
@@ -66,30 +89,32 @@ export async function GET(request: Request) {
 
 		if (!tokenResponse.ok) {
 			const errorText = await tokenResponse.text();
-			console.error("❌ [Auth] Token exchange failed:", errorText);
+			logAuthEvent("Token exchange failed", {
+				status: tokenResponse.status,
+				error: errorText,
+			});
 			return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=Authentication failed: ${encodeURIComponent(errorText)}`);
 		}
 
 		const tokens = await tokenResponse.json();
 		const { access_token, id_token } = tokens;
 
-		// Store the tokens in cookies
-		await cookieStore.set({
-			name: "access_token",
-			value: access_token,
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "lax",
-			path: "/",
+		logAuthEvent("Tokens received", {
+			hasAccessToken: !!access_token,
+			hasIdToken: !!id_token,
 		});
 
-		await cookieStore.set({
-			name: "id_token",
-			value: id_token,
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "lax",
-			path: "/",
+		// Store the tokens in cookies
+		await cookieStore.set(AUTH_CONFIG.cookies.accessToken.name, access_token, {
+			...AUTH_CONFIG.cookies.accessToken.options,
+			// Set expiry based on token expiry or default to 1 hour
+			maxAge: tokens.expires_in || 3600,
+		});
+
+		await cookieStore.set(AUTH_CONFIG.cookies.idToken.name, id_token, {
+			...AUTH_CONFIG.cookies.idToken.options,
+			// ID tokens typically have longer expiry
+			maxAge: 24 * 60 * 60, // 24 hours
 		});
 
 		// Now use the credentials to get a customer access token
@@ -132,27 +157,32 @@ export async function GET(request: Request) {
 		const { customerAccessTokenCreate } = customerData.data;
 
 		if (customerAccessTokenCreate.customerUserErrors?.length > 0) {
-			console.error("❌ [Auth] Customer errors:", customerAccessTokenCreate.customerUserErrors);
-			return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=${encodeURIComponent(customerAccessTokenCreate.customerUserErrors[0].message)}`);
+			const error = customerAccessTokenCreate.customerUserErrors[0];
+			logAuthEvent("Customer token creation failed", {
+				error: error.message,
+				code: error.code,
+			});
+			return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=${encodeURIComponent(error.message)}`);
 		}
 
 		const { accessToken, expiresAt } = customerAccessTokenCreate.customerAccessToken;
 
 		// Set the customer access token in cookies
-		await cookieStore.set({
-			name: "customerAccessToken",
-			value: accessToken,
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "lax",
+		await cookieStore.set(AUTH_CONFIG.cookies.customerAccessToken.name, accessToken, {
+			...AUTH_CONFIG.cookies.customerAccessToken.options,
 			expires: new Date(expiresAt),
-			path: "/",
 		});
 
-		console.log("✅ [Auth] Authentication successful!");
+		logAuthEvent("Authentication successful", {
+			email,
+			expiresAt,
+		});
+
 		return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/account`);
 	} catch (error) {
-		console.error("❌ [Auth] Callback error:", error);
+		logAuthEvent("Callback error", {
+			error: error instanceof Error ? error.message : "Unknown error",
+		});
 		return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/login?error=${encodeURIComponent(error instanceof Error ? error.message : "Authentication failed")}`);
 	}
 }

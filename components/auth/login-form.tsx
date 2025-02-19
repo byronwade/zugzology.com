@@ -32,25 +32,74 @@ export function LoginForm({ error: initialError, registered, callbackUrl, storeN
 			password: formData.get("password") as string,
 		};
 
+		console.log("🔐 [Client] Login attempt started", {
+			email: data.email,
+			timestamp: new Date().toISOString(),
+		});
+
 		try {
+			console.log("🔐 [Client] Sending login request...");
 			const response = await fetch("/api/auth/login", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify(data),
-				credentials: "include", // Important for cookies
+				credentials: "include",
 			});
 
-			const result = await response.json();
+			console.log("🔐 [Client] Login response received", {
+				status: response.status,
+				statusText: response.statusText,
+				headers: Object.fromEntries(response.headers.entries()),
+			});
 
+			// Get the response text first
+			const text = await response.text();
+			console.log("🔐 [Client] Response text:", text);
+
+			// Try to parse as JSON if there's content
+			let result;
+			try {
+				result = text ? JSON.parse(text) : {};
+				console.log("🔐 [Client] Parsed JSON response:", result);
+			} catch (e) {
+				console.error("🔐 [Client] Failed to parse response as JSON:", {
+					text,
+					error: e instanceof Error ? e.message : "Unknown error",
+				});
+				throw new Error("Invalid response from server");
+			}
+
+			// Handle error responses
 			if (!response.ok) {
+				console.error("🔐 [Client] Login request failed", {
+					status: response.status,
+					error: result.message,
+				});
 				throw new Error(result.message || "Login failed");
 			}
 
-			// If login was successful, redirect to callback URL or account page
-			router.push(callbackUrl || "/account");
+			// If we got a redirect URL, use window.location.href
+			if (result.redirectUrl) {
+				console.log("🔐 [Client] Redirecting to auth URL:", result.redirectUrl);
+				window.location.href = result.redirectUrl;
+				return;
+			}
+
+			// Handle successful non-redirect response
+			if (result.success) {
+				console.log("🔐 [Client] Login successful, redirecting to:", callbackUrl || "/account");
+				router.push(callbackUrl || "/account");
+			} else {
+				console.error("🔐 [Client] Login response missing success flag");
+				throw new Error("Login failed");
+			}
 		} catch (err) {
+			console.error("🔐 [Client] Login error:", {
+				error: err instanceof Error ? err.message : "Unknown error",
+				timestamp: new Date().toISOString(),
+			});
 			setError(err instanceof Error ? err.message : "Login failed");
 			setLoading(false);
 		}

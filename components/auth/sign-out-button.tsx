@@ -3,7 +3,6 @@
 import { LogOut } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
 
 interface SignOutButtonProps {
 	onSignOut?: () => void;
@@ -12,15 +11,28 @@ interface SignOutButtonProps {
 export function SignOutButton({ onSignOut }: SignOutButtonProps) {
 	const router = useRouter();
 
-	const handleSignOut = () => {
-		// Remove the access token
-		Cookies.remove("customerAccessToken");
+	const handleSignOut = async () => {
+		try {
+			const response = await fetch("/api/auth/logout", {
+				method: "POST",
+				credentials: "include",
+			});
 
-		// Call the onSignOut callback if provided
-		onSignOut?.();
+			if (!response.ok) {
+				throw new Error("Logout failed");
+			}
 
-		// Refresh the page to clear any cached state
-		router.refresh();
+			// Call the onSignOut callback if provided
+			onSignOut?.();
+
+			// Refresh the page to clear any cached state
+			router.refresh();
+			router.push("/login");
+		} catch (error) {
+			console.error("Logout error:", error);
+			// Still try to redirect to login even if the API call fails
+			router.push("/login");
+		}
 	};
 
 	return (

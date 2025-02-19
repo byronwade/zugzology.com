@@ -31,25 +31,91 @@ export function RegisterForm({ storeName }: RegisterFormProps) {
 			password: formData.get("password") as string,
 		};
 
+		console.log("🔐 [Client] Registration attempt started", {
+			email: data.email,
+			firstName: data.firstName,
+			lastName: data.lastName,
+			timestamp: new Date().toISOString(),
+		});
+
 		try {
+			console.log("🔐 [Client] Sending registration request...");
 			const response = await fetch("/api/auth/register", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify(data),
-				credentials: "include", // Important for cookies
+				credentials: "include",
 			});
 
-			const result = await response.json();
+			console.log("🔐 [Client] Registration response received", {
+				status: response.status,
+				statusText: response.statusText,
+				headers: Object.fromEntries(response.headers.entries()),
+			});
 
+			// Get the response text first
+			const text = await response.text();
+			console.log("🔐 [Client] Response text:", text);
+
+			// If it's a redirect (302), get the Location header and redirect
+			if (response.status === 302) {
+				const redirectUrl = response.headers.get("Location");
+				console.log("🔐 [Client] Received redirect response", { redirectUrl });
+
+				if (redirectUrl) {
+					console.log("🔐 [Client] Redirecting to Shopify auth...", { redirectUrl });
+					window.location.href = redirectUrl;
+					return;
+				} else {
+					console.error("🔐 [Client] Redirect URL missing from 302 response");
+					throw new Error("Invalid redirect response");
+				}
+			}
+
+			// Try to parse as JSON if there's content
+			let result;
+			try {
+				result = text ? JSON.parse(text) : {};
+				console.log("🔐 [Client] Parsed JSON response:", result);
+			} catch (e) {
+				console.error("🔐 [Client] Failed to parse response as JSON:", {
+					text,
+					error: e instanceof Error ? e.message : "Unknown error",
+				});
+				throw new Error("Invalid response from server");
+			}
+
+			// Handle error responses
 			if (!response.ok) {
+				console.error("🔐 [Client] Registration request failed", {
+					status: response.status,
+					error: result.message,
+				});
 				throw new Error(result.message || "Registration failed");
 			}
 
-			// If registration was successful, redirect to account page
-			router.push("/account");
+			// If registration was successful and we got an auth URL, redirect to it
+			if (result.authUrl) {
+				console.log("🔐 [Client] Registration successful, redirecting to auth URL:", result.authUrl);
+				window.location.href = result.authUrl;
+				return;
+			}
+
+			// If we have a success response but no auth URL, redirect to account
+			if (result.success) {
+				console.log("🔐 [Client] Registration successful, redirecting to account");
+				router.push("/account");
+			} else {
+				console.error("🔐 [Client] Registration response missing success flag and auth URL");
+				throw new Error("Registration failed");
+			}
 		} catch (err) {
+			console.error("🔐 [Client] Registration error:", {
+				error: err instanceof Error ? err.message : "Unknown error",
+				timestamp: new Date().toISOString(),
+			});
 			setError(err instanceof Error ? err.message : "Registration failed");
 			setLoading(false);
 		}
