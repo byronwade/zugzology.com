@@ -182,14 +182,17 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 	const isAvailable = productDetails.isAvailable;
 
 	return (
-		<div className={cn("group relative h-full sm:border sm:border-foreground/10 sm:hover:border-foreground/20 transition-colors duration-200 sm:rounded-lg sm:my-0.5", view === "grid" ? "flex flex-col" : "flex flex-row gap-4 py-4")}>
-			<Button variant="ghost" size="icon" className="absolute right-2 top-2 z-[1]" onClick={handleWishlistToggle}>
-				<Heart className={cn("h-5 w-5 transition-colors duration-200", isWishlisted ? "fill-red-500 stroke-red-500" : "stroke-foreground/60 group-hover:stroke-foreground/80")} />
+		<div
+			className={cn("group relative h-full", view === "grid" ? "flex flex-col sm:border sm:border-foreground/10 sm:hover:border-foreground/20 transition-colors duration-200 sm:rounded-lg sm:my-0.5" : "flex flex-row gap-4 border-b border-foreground/10 last:border-b-0 py-4")}
+			data-view={view} // Add data attribute for debugging
+		>
+			<Button variant="ghost" size="icon" className={cn("absolute z-[1]", view === "grid" ? "right-2 top-2" : "right-0 top-0")} onClick={handleWishlistToggle}>
+				<Heart className={cn("h-5 w-5 transition-colors duration-200", isWishlisted ? "fill-red-500 stroke-red-500" : "fill-secondary stroke-foreground/60 group-hover:stroke-foreground/80")} />
 			</Button>
 
 			{/* Product Image */}
 			<Link href={productUrl} className={cn("block shrink-0", view === "grid" ? "w-full" : "w-24 sm:w-32")}>
-				<div className={cn("relative bg-neutral-100 dark:bg-neutral-800 overflow-hidden", view === "grid" ? "aspect-square w-full sm:rounded-t-lg" : "aspect-square w-24 h-24 sm:w-32 sm:h-32 rounded-lg")}>
+				<div className={cn("relative bg-neutral-100 dark:bg-neutral-800 overflow-hidden border border-foreground/10 hover:border-foreground/20 transition-colors sm:border-0", view === "grid" ? "aspect-square w-full sm:rounded-t-lg" : "aspect-square w-24 h-24 sm:w-32 sm:h-32 rounded-lg")}>
 					{productDetails.imageUrl ? (
 						<Image src={productDetails.imageUrl} alt={productDetails.imageAlt} fill priority={view === "grid"} className="object-cover hover:scale-105 transition-transform duration-300" sizes={view === "grid" ? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" : "96px"} />
 					) : (
@@ -201,7 +204,7 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 			</Link>
 
 			{/* Product Info */}
-			<div className={cn("flex flex-col p-2", view === "grid" ? "mt-3 flex-1" : "flex-1 min-w-0")}>
+			<div className={cn("flex flex-col", view === "grid" ? "mt-3 flex-1 p-2" : "flex-1 min-w-0 py-1")}>
 				<Link href={productUrl} className="flex-1">
 					{/* Vendor */}
 					<p className="text-sm text-muted-foreground mb-1">{product.vendor || "Zugzology"}</p>
@@ -258,9 +261,9 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 					{recentPurchases > 0 && <p className="mt-2 text-xs text-muted-foreground">{purchaseText}</p>}
 				</Link>
 
-				{/* Add to Cart and Wishlist Buttons */}
+				{/* Add to Cart Button */}
 				<div className="flex items-stretch gap-2 mt-2">
-					<Button variant="outline" className="flex-1 min-w-0 h-10" onClick={handleAddToCart} disabled={isAddingToCartState || !isAvailable || !variantId}>
+					<Button variant="secondary" className="w-full bg-secondary hover:bg-secondary/80 text-foreground border border-foreground/10 hover:border-foreground/20 shadow-none" onClick={handleAddToCart} disabled={isAddingToCartState || !isAvailable || !variantId}>
 						<div className="flex items-center justify-center w-full">
 							{isAddingToCartState ? (
 								<>

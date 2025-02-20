@@ -33,76 +33,23 @@ export interface ShopifyHeaderResponse {
 							id: string;
 							handle: string;
 							title: string;
+							publishedAt: string;
 						};
 					}>;
 				};
 			};
 		}>;
 	};
-	products: {
-		edges: Array<{
-			node: {
-				id: string;
-				handle: string;
-				title: string;
-				featuredImage: {
-					url: string;
-					altText: string;
-					width: number;
-					height: number;
-				} | null;
-			};
-		}>;
-	};
 }
 
 export interface HeaderQueryResponse {
-	data: {
-		shop: {
-			name: string;
-			description: string;
-			primaryDomain: {
-				url: string;
-			};
-		};
-		menu: {
-			items: Array<{
-				id: string;
-				title: string;
-				url: string;
-				items?: Array<{
-					id: string;
-					title: string;
-					url: string;
-				}>;
-			}>;
-		};
-		blogs: {
-			edges: Array<{
-				node: {
-					id: string;
-					handle: string;
-					title: string;
-				};
-			}>;
-		};
-		products: {
-			edges: Array<{
-				node: {
-					id: string;
-					handle: string;
-					title: string;
-				};
-			}>;
-		};
-	};
+	data: ShopifyHeaderResponse;
 }
 
 export interface HeaderData {
 	shop: ShopifyHeaderResponse["shop"] | null;
 	menuItems: ShopifyHeaderResponse["menu"]["items"];
 	blogs: Array<ShopifyHeaderResponse["blogs"]["edges"][number]["node"]>;
-	products: Array<ShopifyHeaderResponse["products"]["edges"][number]["node"]>;
 }
 
 export const headerQuery = `
@@ -138,23 +85,9 @@ export const headerQuery = `
 								id
 								handle
 								title
+								publishedAt
 							}
 						}
-					}
-				}
-			}
-		}
-		products(first: 4, sortKey: UPDATED_AT) {
-			edges {
-				node {
-					id
-					handle
-					title
-					featuredImage {
-						url
-						altText
-						width
-						height
 					}
 				}
 			}
@@ -174,10 +107,9 @@ export async function getHeaderData(): Promise<HeaderData> {
 		}
 
 		return {
-			shop: response.data.shop,
-			menuItems: response.data.menu.items,
-			blogs: response.data.blogs.edges.map((edge) => edge.node),
-			products: response.data.products.edges.map((edge) => edge.node),
+			shop: response.data.data.shop,
+			menuItems: response.data.data.menu.items,
+			blogs: response.data.data.blogs.edges.map((edge) => edge.node),
 		};
 	} catch (error) {
 		console.error("Error fetching header data:", error);
@@ -185,7 +117,6 @@ export async function getHeaderData(): Promise<HeaderData> {
 			shop: null,
 			menuItems: [],
 			blogs: [],
-			products: [],
 		};
 	}
 }

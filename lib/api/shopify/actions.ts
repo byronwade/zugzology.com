@@ -55,85 +55,103 @@ export const getProducts = unstable_cache(
 	async () => {
 		try {
 			console.log("Fetching products from Shopify...");
-			const { data } = await shopifyFetch<{ products: { nodes: ShopifyProduct[] } }>({
-				query: `
-					query getProducts {
-						products(first: 100, sortKey: CREATED_AT, reverse: true) {
-							nodes {
-								id
-								title
-								handle
-								description
-								descriptionHtml
-								productType
-								vendor
-								tags
-								isGiftCard
-								availableForSale
-								options {
+			let allProducts: ShopifyProduct[] = [];
+			let hasNextPage = true;
+			let cursor = null;
+
+			while (hasNextPage) {
+				const { data } = await shopifyFetch<{ products: { nodes: ShopifyProduct[]; pageInfo: { hasNextPage: boolean; endCursor: string } } }>({
+					query: `
+						query getProducts($cursor: String) {
+							products(first: 100, after: $cursor, sortKey: CREATED_AT, reverse: true) {
+								nodes {
 									id
-									name
-									values
-								}
-								priceRange {
-									minVariantPrice {
-										amount
-										currencyCode
-									}
-									maxVariantPrice {
-										amount
-										currencyCode
-									}
-								}
-								variants(first: 1) {
-									nodes {
+									title
+									handle
+									description
+									descriptionHtml
+									productType
+									vendor
+									tags
+									isGiftCard
+									availableForSale
+									options {
 										id
-										title
-										availableForSale
-										quantityAvailable
-										price {
+										name
+										values
+									}
+									priceRange {
+										minVariantPrice {
 											amount
 											currencyCode
 										}
-										compareAtPrice {
+										maxVariantPrice {
 											amount
 											currencyCode
 										}
-										selectedOptions {
-											name
-											value
+									}
+									variants(first: 1) {
+										nodes {
+											id
+											title
+											availableForSale
+											quantityAvailable
+											price {
+												amount
+												currencyCode
+											}
+											compareAtPrice {
+												amount
+												currencyCode
+											}
+											selectedOptions {
+												name
+												value
+											}
 										}
 									}
-								}
-								images(first: 1) {
-									nodes {
-										url
-										altText
-										width
-										height
+									images(first: 1) {
+										nodes {
+											url
+											altText
+											width
+											height
+										}
 									}
+									metafields(identifiers: [
+										{namespace: "custom", key: "rating"},
+										{namespace: "custom", key: "rating_count"}
+									]) {
+										id
+										namespace
+										key
+										value
+										type
+									}
+									publishedAt
 								}
-								metafields(identifiers: [
-									{namespace: "custom", key: "rating"},
-									{namespace: "custom", key: "rating_count"}
-								]) {
-									id
-									namespace
-									key
-									value
-									type
+								pageInfo {
+									hasNextPage
+									endCursor
 								}
-								publishedAt
 							}
 						}
-					}
-				`,
-				tags: [CACHE_TAGS.PRODUCT],
-			});
+					`,
+					variables: { cursor },
+					tags: [CACHE_TAGS.PRODUCT],
+				});
 
-			const products = data?.products?.nodes || [];
-			console.log(`Successfully fetched ${products.length} products`);
-			return products;
+				const products = data?.products?.nodes || [];
+				allProducts = [...allProducts, ...products];
+
+				hasNextPage = data?.products?.pageInfo?.hasNextPage || false;
+				cursor = data?.products?.pageInfo?.endCursor || null;
+
+				console.log(`Fetched ${products.length} products. Total: ${allProducts.length}. Has next page: ${hasNextPage}`);
+			}
+
+			console.log(`Successfully fetched all ${allProducts.length} products`);
+			return allProducts;
 		} catch (error) {
 			console.error("Error fetching products:", error);
 			return [];

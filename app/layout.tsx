@@ -2,7 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Header from "@/components/header/header";
 import { Providers } from "./providers";
-import { Footer } from "@/components/footer/footer";
+import { Footer } from "@/components/layout/footer";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";

@@ -171,21 +171,21 @@ export function SearchDropdown() {
 	};
 
 	return (
-		<div className="fixed md:absolute left-0 right-0 md:top-full mt-2 bg-white dark:bg-neutral-950 border-t border-b md:border md:rounded-lg shadow-lg overflow-hidden md:mx-0 -mx-4 z-[100]" ref={dropdownRef}>
-			<ScrollArea className="max-h-[60vh] md:max-h-[80vh]">
-				<div className="p-4">
+		<div className={cn("fixed md:absolute left-0 right-0 md:top-full bg-background border-t md:border-t-0 md:border md:rounded-lg shadow-lg overflow-hidden z-[100]", "md:mt-2 md:mx-0", "top-[var(--header-height)] h-[calc(100vh-var(--header-height))] md:h-auto")} ref={dropdownRef}>
+			<ScrollArea className="h-full md:max-h-[80vh]">
+				<div className="p-4 space-y-6">
 					{/* Recent Searches */}
 					{recentSearches.length > 0 && !searchQuery && (
-						<div className="mb-6">
-							<h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+						<div>
+							<h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
 								<Clock className="w-4 h-4 mr-2" />
 								Recent Searches
 							</h3>
-							<div className="space-y-2">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
 								{recentSearches.map((query) => (
-									<Link key={query} href={`/search?q=${encodeURIComponent(query)}`} className="flex items-center space-x-2 text-sm hover:bg-accent p-2 rounded-md" onClick={() => handleSearchClick(query)}>
+									<Link key={query} href={`/search?q=${encodeURIComponent(query)}`} className="flex items-center gap-2 p-3 hover:bg-accent rounded-lg text-sm transition-colors" onClick={() => handleSearchClick(query)}>
 										<Search className="w-4 h-4 text-muted-foreground" />
-										<span>{query}</span>
+										<span className="line-clamp-1">{query}</span>
 									</Link>
 								))}
 							</div>
@@ -194,14 +194,14 @@ export function SearchDropdown() {
 
 					{/* Loading State */}
 					{isSearching && (
-						<div className="flex items-center justify-center py-8">
+						<div className="flex items-center justify-center py-12">
 							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
 						</div>
 					)}
 
 					{/* No Results */}
 					{!isSearching && searchQuery && searchResults.length === 0 && (
-						<div className="text-center py-8">
+						<div className="text-center py-12">
 							<p className="text-muted-foreground">No results found for "{searchQuery}"</p>
 						</div>
 					)}
@@ -211,82 +211,78 @@ export function SearchDropdown() {
 						<div className="space-y-6">
 							{/* Product Results */}
 							{displayedProducts.length > 0 && (
-								<div className="space-y-4">
-									<h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+								<div>
+									<h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
 										<Tag className="w-4 h-4 mr-2" />
 										Products
 									</h3>
-									{displayedProducts.map((product, index) => (
-										<Link key={product.id} href={`/products/${product.handle}`} className={cn("flex items-start gap-4 p-2 hover:bg-accent rounded-lg transition-colors", selectedIndex === index && "bg-accent")} data-index={index} onClick={handleProductClick}>
-											{/* Product Image */}
-											<div className="relative w-16 h-16 flex-shrink-0">
-												<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">{getProductImageUrl(product) ? <Image src={getProductImageUrl(product)!} alt={getProductImageAlt(product)} fill className="object-cover" sizes="64px" /> : <ImagePlaceholder />}</div>
-											</div>
-
-											{/* Product Info */}
-											<div className="flex-1 min-w-0">
-												<h4 className="text-sm font-medium line-clamp-1">{product.title}</h4>
-												<p className="text-sm text-muted-foreground line-clamp-1">{product.description}</p>
-												<div className="flex items-center gap-2 mt-1">
-													<span className="text-sm font-medium">{formatPrice(parseFloat(product.priceRange.minVariantPrice.amount))}</span>
-													{product.tags?.includes("trending") && (
-														<Badge variant="secondary" className="text-[10px] px-1 py-0">
-															<TrendingUp className="w-3 h-3 mr-1" />
-															Trending
-														</Badge>
-													)}
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+										{displayedProducts.map((product, index) => (
+											<Link key={product.id} href={`/products/${product.handle}`} className={cn("flex items-start gap-4 p-3 hover:bg-accent rounded-lg transition-colors", selectedIndex === index && "bg-accent")} data-index={index} onClick={handleProductClick}>
+												{/* Product Image */}
+												<div className="relative w-20 h-20 flex-shrink-0">
+													<div className="relative bg-muted rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">{getProductImageUrl(product) ? <Image src={getProductImageUrl(product)!} alt={getProductImageAlt(product)} fill className="object-cover" sizes="80px" /> : <ImagePlaceholder />}</div>
 												</div>
-											</div>
 
-											{/* Product Type */}
-											{product.productType && (
-												<div className="text-xs text-muted-foreground flex items-center">
-													<Tag className="w-3 h-3 mr-1" />
-													{product.productType}
+												{/* Product Info */}
+												<div className="flex-1 min-w-0">
+													<h4 className="text-sm font-medium line-clamp-1">{product.title}</h4>
+													<p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{product.description}</p>
+													<div className="flex items-center gap-2 mt-2">
+														<span className="text-sm font-medium">{formatPrice(parseFloat(product.priceRange.minVariantPrice.amount))}</span>
+														{product.tags?.includes("trending") && (
+															<Badge variant="secondary" className="text-[10px] px-1 py-0">
+																<TrendingUp className="w-3 h-3 mr-1" />
+																Trending
+															</Badge>
+														)}
+													</div>
 												</div>
-											)}
-										</Link>
-									))}
+											</Link>
+										))}
+									</div>
 								</div>
 							)}
 
 							{/* Blog Results */}
 							{displayedBlogs.length > 0 && (
-								<div className="space-y-4">
-									<h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+								<div>
+									<h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
 										<Clock className="w-4 h-4 mr-2" />
 										Blog Posts
 									</h3>
-									{displayedBlogs.map((post, index) => (
-										<Link key={post.id} href={`/blogs/${post.blogHandle}/${post.handle}`} className={cn("flex items-start gap-4 p-2 hover:bg-accent rounded-lg transition-colors", selectedIndex === index + displayedProducts.length && "bg-accent")} data-index={index + displayedProducts.length} onClick={handleProductClick}>
-											{/* Blog Post Image */}
-											<div className="relative w-16 h-16 flex-shrink-0">
-												<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">{getBlogImageUrl(post) ? <Image src={getBlogImageUrl(post)!} alt={getBlogImageAlt(post)} fill className="object-cover" sizes="64px" /> : <ImagePlaceholder />}</div>
-											</div>
-
-											{/* Blog Post Info */}
-											<div className="flex-1 min-w-0">
-												<h4 className="text-sm font-medium line-clamp-1">{post.title}</h4>
-												{post.excerpt && <p className="text-sm text-muted-foreground line-clamp-1">{post.excerpt}</p>}
-												<div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-													<span>{post.author.name}</span>
-													<span>•</span>
-													<time dateTime={post.publishedAt}>
-														{new Date(post.publishedAt).toLocaleDateString("en-US", {
-															year: "numeric",
-															month: "long",
-															day: "numeric",
-														})}
-													</time>
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+										{displayedBlogs.map((post, index) => (
+											<Link key={post.id} href={`/blogs/${post.blogHandle}/${post.handle}`} className={cn("flex items-start gap-4 p-3 hover:bg-accent rounded-lg transition-colors", selectedIndex === index + displayedProducts.length && "bg-accent")} data-index={index + displayedProducts.length} onClick={handleProductClick}>
+												{/* Blog Post Image */}
+												<div className="relative w-20 h-20 flex-shrink-0">
+													<div className="relative bg-muted rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">{getBlogImageUrl(post) ? <Image src={getBlogImageUrl(post)!} alt={getBlogImageAlt(post)} fill className="object-cover" sizes="80px" /> : <ImagePlaceholder />}</div>
 												</div>
-											</div>
-										</Link>
-									))}
+
+												{/* Blog Post Info */}
+												<div className="flex-1 min-w-0">
+													<h4 className="text-sm font-medium line-clamp-1">{post.title}</h4>
+													{post.excerpt && <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{post.excerpt}</p>}
+													<div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+														<span>{post.author.name}</span>
+														<span>•</span>
+														<time dateTime={post.publishedAt}>
+															{new Date(post.publishedAt).toLocaleDateString("en-US", {
+																year: "numeric",
+																month: "long",
+																day: "numeric",
+															})}
+														</time>
+													</div>
+												</div>
+											</Link>
+										))}
+									</div>
 								</div>
 							)}
 
 							{/* View All Results */}
-							<button onClick={() => handleSearchClick(searchQuery)} className="block w-full text-center text-sm text-primary hover:text-primary/80 py-2 border-t">
+							<button onClick={() => handleSearchClick(searchQuery)} className="w-full text-center text-sm text-primary hover:text-primary/80 py-3 border-t transition-colors">
 								View all {searchResults.length} results
 							</button>
 						</div>

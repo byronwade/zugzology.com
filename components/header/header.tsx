@@ -26,22 +26,20 @@ const getHeaderData = unstable_cache(
 	async () => {
 		try {
 			const startTime = performance.now();
-			const [menuItems, blogs, products, blogPosts] = await Promise.all([getMenuItems(), getBlogs(), getProducts(), getAllBlogPosts()]);
+			const [menuItems, blogs] = await Promise.all([getMenuItems(), getBlogs()]);
 
 			const duration = performance.now() - startTime;
 			if (duration > 100) {
 				console.log(`⚡ [Header Data] ${duration.toFixed(2)}ms`, {
 					menuItems: menuItems.length,
 					blogs: blogs.length,
-					products: products.length,
-					blogPosts: blogPosts.length,
 				});
 			}
 
-			return { menuItems, blogs, products, blogPosts };
+			return { menuItems, blogs };
 		} catch (error) {
 			console.error("❌ [Header Data] Error:", error);
-			return { menuItems: [], blogs: [], products: [], blogPosts: [] };
+			return { menuItems: [], blogs: [] };
 		}
 	},
 	["header-data"],
@@ -105,7 +103,6 @@ async function HeaderContent() {
 
 	return (
 		<>
-			<InitializeSearch products={headerData.products} blogPosts={headerData.blogPosts} />
 			<HeaderClient initialMenuItems={headerData.menuItems} blogs={headerData.blogs} isAuthenticated={isAuthenticated} />
 		</>
 	);

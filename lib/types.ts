@@ -134,6 +134,10 @@ export interface ShopifyProduct {
 		minVariantPrice: ShopifyMoney;
 		maxVariantPrice: ShopifyMoney;
 	};
+	compareAtPriceRange?: {
+		minVariantPrice: ShopifyMoney;
+		maxVariantPrice: ShopifyMoney;
+	};
 	variants: {
 		nodes: ShopifyProductVariant[];
 	};
@@ -165,6 +169,7 @@ export interface ShopifyCollection {
 	image?: ShopifyImage;
 	products: {
 		nodes: ShopifyProduct[];
+		totalCount: number;
 	};
 	metafields?: {
 		nodes: Array<{

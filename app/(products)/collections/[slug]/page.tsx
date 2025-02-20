@@ -2,11 +2,20 @@
 
 import { getCollection, getCollectionDiscounts } from "@/lib/actions/shopify";
 import { notFound } from "next/navigation";
-import { ProductsContentClient } from "@/components/products/products-content-client";
+import { ProductList } from "@/components/products/product-list";
+import { ProductsHeaderWrapper } from "@/components/products/products-header-wrapper";
 import type { Metadata } from "next";
 import type { ShopifyProduct, ShopifyCollection } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { unstable_noStore as noStore } from "next/cache";
+
+// Add a custom error class for better error handling
+class CollectionError extends Error {
+	constructor(message: string, public code: string) {
+		super(message);
+		this.name = "CollectionError";
+	}
+}
 
 // Tell Next.js this is a dynamic route that shouldn't be prerendered
 export async function generateStaticParams() {
@@ -84,14 +93,12 @@ interface CollectionPageProps {
 	}>;
 }
 
-// Fetch collection data
+// Fetch collection data with improved error handling
 async function getCollectionData(slug: string): Promise<ShopifyCollection | null> {
-	// Explicitly opt out of caching
 	noStore();
 
 	if (!slug || typeof slug !== "string") {
-		console.error("Invalid collection handle:", slug);
-		return null;
+		throw new CollectionError("Invalid collection handle provided", "INVALID_HANDLE");
 	}
 
 	const handle = slug.toLowerCase().trim();
@@ -101,11 +108,9 @@ async function getCollectionData(slug: string): Promise<ShopifyCollection | null
 		const [collection, discountData] = await Promise.all([getCollection(handle), getCollectionDiscounts(handle)]);
 
 		if (!collection) {
-			console.error(`Collection not found: ${handle}`);
-			return null;
+			throw new CollectionError(`Collection not found: ${handle}`, "NOT_FOUND");
 		}
 
-		// Map discount data to the expected format
 		const discountInfo = discountData
 			? {
 					discountAmount: Number(discountData.amount),
@@ -122,16 +127,26 @@ async function getCollectionData(slug: string): Promise<ShopifyCollection | null
 
 		return optimizedCollection;
 	} catch (error) {
+		if (error instanceof CollectionError) {
+			if (error.code === "NOT_FOUND") {
+				console.log(`Collection not found: ${handle}`);
+				return null;
+			}
+			throw error;
+		}
+
 		console.error(
 			`Error fetching collection ${handle}:`,
 			error instanceof Error
 				? {
 						message: error.message,
 						stack: error.stack?.split("\n").slice(0, 3),
+						name: error.name,
 				  }
 				: "Unknown error"
 		);
-		return null;
+
+		throw new CollectionError(`Failed to fetch collection: ${error instanceof Error ? error.message : "Unknown error"}`, "FETCH_ERROR");
 	}
 }
 
@@ -177,23 +192,34 @@ export async function generateMetadata({ params }: CollectionPageProps): Promise
 }
 
 export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
-	const { slug } = await params;
-	const search = await searchParams;
+	try {
+		const { slug } = await params;
+		const search = await searchParams;
 
-	if (!slug) {
-		return notFound();
+		if (!slug) {
+			return <EmptyState title="Collection Not Found" description="The requested collection could not be found. Please check the URL and try again." showCollectionCards={true} />;
+		}
+
+		const collection = await getCollectionData(slug);
+
+		if (!collection) {
+			return <EmptyState title={`Collection Not Found: ${slug}`} description="We couldn't find the collection you're looking for. Browse our other collections or check out all products." showCollectionCards={true} />;
+		}
+
+		// Check if collection has no products
+		if (!collection.products?.nodes?.length) {
+			return <EmptyState title={`No Products in ${collection.title}`} description="This collection is currently empty. Check out our other collections or browse all products." showCollectionCards={true} />;
+		}
+
+		return (
+			<div className="w-full">
+				<ProductsHeaderWrapper title={collection.title} description={collection.description || `Browse our ${collection.title} collection`} count={collection.products.nodes.length} image={collection.image} />
+				<ProductList products={collection.products.nodes} />
+			</div>
+		);
+	} catch (error) {
+		console.error("Collection page error:", error);
+
+		return <EmptyState title="Something went wrong" description="We encountered an error while loading this collection. Please try again later or browse our other collections." showCollectionCards={true} />;
 	}
-
-	const collection = await getCollectionData(slug);
-
-	if (!collection) {
-		return notFound();
-	}
-
-	// Check if collection has no products
-	if (!collection.products?.nodes?.length) {
-		return <EmptyState title={`No Products in ${collection.title}`} description={`This collection is currently empty. Check out our other collections or browse all products.`} showCollectionCards={true} />;
-	}
-
-	return <ProductsContentClient collection={collection} searchQuery={search?.sort} />;
 }

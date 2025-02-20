@@ -130,7 +130,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	// 1. Context hooks first
 	const { theme, setTheme } = useTheme();
 	const { openCart, cart, isInitialized } = useCart();
-	const { searchQuery, setSearchQuery, isSearching, setIsDropdownOpen, searchResults, allProducts, isDropdownOpen } = useSearch();
+	const { setSearchQuery, isSearching, setIsDropdownOpen, isDropdownOpen } = useSearch();
 	const { showPromo, setShowPromo } = usePromo();
 	const router = useRouter();
 
@@ -360,134 +360,323 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 					{/* Action Buttons */}
 					<div className="flex items-center gap-3 flex-shrink-0">
 						{/* Learn & Grow Button */}
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="outline" size="sm" className="h-10 px-3">
-									<Sprout className="h-4 w-4 sm:mr-2" />
-									<span className="hidden sm:inline">Learn & Grow</span>
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-[300px]">
-								{blogs?.map((blog) => (
-									<DropdownMenuItem key={blog.id} asChild>
-										<Link href={`/blogs/${blog.handle}`} className="flex items-start gap-3 p-3 cursor-pointer">
-											<div className="flex-1 min-w-0">
-												<div className="flex items-center justify-between gap-2">
-													<h3 className="font-medium truncate">{blog.title}</h3>
-													<Badge variant="secondary" className="shrink-0">
-														{blog.articles?.edges?.length || 0}
-													</Badge>
+						{typeof window !== "undefined" && window.innerWidth < 640 ? (
+							<Sheet>
+								<SheetTrigger asChild>
+									<Button variant="outline" size="sm" className="h-10 px-3">
+										<Sprout className="h-4 w-4" />
+									</Button>
+								</SheetTrigger>
+								<SheetContent side="bottom" className="h-[80vh] p-0">
+									<ScrollArea className="h-full">
+										<div className="flex flex-col">
+											{/* Left Column - Featured Content */}
+											<div className="w-full bg-muted/50 p-4 border-b">
+												{/* Featured Blog */}
+												{blogs?.[0] && (
+													<div className="mb-4">
+														<h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+															<Sparkles className="h-4 w-4 text-purple-500" />
+															Featured
+														</h3>
+														<Link href={`/blogs/${blogs[0].handle}`} className="group block">
+															<div className="relative aspect-video rounded-lg overflow-hidden">
+																{blogs[0].articles?.edges?.[0]?.node?.image ? (
+																	<>
+																		<Image src={blogs[0].articles.edges[0].node.image.url} alt={blogs[0].articles.edges[0].node.image.altText || blogs[0].title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
+																		<div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+																		<div className="absolute inset-x-0 bottom-0 p-3">
+																			<Badge variant="secondary" className="bg-purple-500/90 text-white border-0 mb-1.5 text-[10px]">
+																				New Guide
+																			</Badge>
+																			<h4 className="text-sm font-medium text-white line-clamp-2">{blogs[0].articles?.edges?.[0]?.node?.title || blogs[0].title}</h4>
+																		</div>
+																	</>
+																) : (
+																	<div className="h-full bg-gradient-to-br from-purple-500/20 to-purple-700/20 flex items-center justify-center">
+																		<Sprout className="h-8 w-8 text-purple-500" />
+																	</div>
+																)}
+															</div>
+														</Link>
+													</div>
+												)}
+
+												{/* Quick Stats */}
+												<div className="grid grid-cols-2 gap-2">
+													<div className="rounded-lg border bg-background/50 p-2.5">
+														<div className="flex items-center gap-2 text-purple-500 mb-1">
+															<BookOpen className="h-4 w-4" />
+															<span className="text-xs font-medium">Total Guides</span>
+														</div>
+														<p className="text-xl font-semibold">{blogs?.reduce((acc, blog) => acc + (blog.articles?.edges?.length || 0), 0) || 0}</p>
+													</div>
+													<div className="rounded-lg border bg-background/50 p-2.5">
+														<div className="flex items-center gap-2 text-green-500 mb-1">
+															<Clock className="h-4 w-4" />
+															<span className="text-xs font-medium">Last Updated</span>
+														</div>
+														<p className="text-sm font-medium">2 days ago</p>
+													</div>
 												</div>
-												<p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{blog.articles?.edges?.[0]?.node?.excerpt || "Explore our articles"}</p>
 											</div>
+
+											{/* Categories Section */}
+											<div className="p-4 border-b">
+												<h3 className="text-sm font-medium mb-3">Learning Paths</h3>
+												<div className="grid grid-cols-2 gap-2">
+													{blogs?.slice(0, 4).map((blog) => {
+														const categoryStyles = {
+															guide: { icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
+															tutorial: { icon: TestTube, color: "text-green-500", bg: "bg-green-50 dark:bg-green-500/10" },
+															tip: { icon: Brain, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-500/10" },
+															default: { icon: Leaf, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-500/10" },
+														};
+
+														const style = blog.handle.includes("guide") ? categoryStyles.guide : blog.handle.includes("tutorial") ? categoryStyles.tutorial : blog.handle.includes("tip") ? categoryStyles.tip : categoryStyles.default;
+
+														const Icon = style.icon;
+
+														return (
+															<Link key={blog.id} href={`/blogs/${blog.handle}`} className={cn("group flex items-start gap-2 p-2.5 rounded-lg", style.bg, "transition-colors duration-200 hover:opacity-80")}>
+																<Icon className={cn("h-4 w-4 mt-0.5", style.color)} />
+																<div className="min-w-0">
+																	<h4 className="font-medium text-sm leading-tight line-clamp-1">{blog.title}</h4>
+																	<p className="text-xs text-muted-foreground mt-0.5">{blog.articles?.edges?.length || 0} articles</p>
+																</div>
+															</Link>
+														);
+													})}
+												</div>
+											</div>
+
+											{/* Recent Articles */}
+											<div className="p-4">
+												<div className="flex items-center justify-between mb-3">
+													<h3 className="text-sm font-medium">Latest Content</h3>
+													<Link href="/blogs" className="text-xs text-primary hover:text-primary/80 transition-colors">
+														View All →
+													</Link>
+												</div>
+												<div className="space-y-2">
+													{blogs
+														?.slice(0, 2)
+														.map((blog) =>
+															blog.articles?.edges?.slice(0, 2).map((article) => (
+																<Link key={article.node.id} href={`/blogs/${blog.handle}/${article.node.handle}`} className="group flex items-center gap-3 p-2 hover:bg-muted/50 rounded-lg transition-colors">
+																	<div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">{blog.handle.includes("guide") ? <BookOpen className="h-4 w-4 text-blue-500" /> : blog.handle.includes("tutorial") ? <TestTube className="h-4 w-4 text-green-500" /> : blog.handle.includes("tip") ? <Brain className="h-4 w-4 text-amber-500" /> : <Leaf className="h-4 w-4 text-purple-500" />}</div>
+																	<div className="flex-1 min-w-0">
+																		<h4 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{article.node.title}</h4>
+																		<p className="text-xs text-muted-foreground mt-0.5">{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+																	</div>
+																</Link>
+															))
+														)
+														.flat()}
+												</div>
+											</div>
+										</div>
+									</ScrollArea>
+								</SheetContent>
+							</Sheet>
+						) : (
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline" size="sm" className="h-10 px-3">
+										<Sprout className="h-4 w-4 sm:mr-2" />
+										<span className="hidden sm:inline">Learn & Grow</span>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-[480px] p-0 overflow-hidden">
+									<div className="flex flex-row">
+										{/* Left Column - Featured Content */}
+										<div className="w-1/2 bg-muted/50 p-4 border-r">
+											{/* Featured Blog */}
+											{blogs?.[0] && (
+												<div className="mb-4">
+													<h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+														<Sparkles className="h-4 w-4 text-purple-500" />
+														Featured
+													</h3>
+													<Link href={`/blogs/${blogs[0].handle}`} className="group block">
+														<div className="relative aspect-video sm:aspect-square rounded-lg overflow-hidden">
+															{blogs[0].articles?.edges?.[0]?.node?.image ? (
+																<>
+																	<Image src={blogs[0].articles.edges[0].node.image.url} alt={blogs[0].articles.edges[0].node.image.altText || blogs[0].title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
+																	<div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+																	<div className="absolute inset-x-0 bottom-0 p-3">
+																		<Badge variant="secondary" className="bg-purple-500/90 text-white border-0 mb-1.5 text-[10px]">
+																			New Guide
+																		</Badge>
+																		<h4 className="text-sm font-medium text-white line-clamp-2">{blogs[0].articles?.edges?.[0]?.node?.title || blogs[0].title}</h4>
+																	</div>
+																</>
+															) : (
+																<div className="h-full bg-gradient-to-br from-purple-500/20 to-purple-700/20 flex items-center justify-center">
+																	<Sprout className="h-8 w-8 text-purple-500" />
+																</div>
+															)}
+														</div>
+													</Link>
+												</div>
+											)}
+
+											{/* Quick Stats */}
+											<div className="grid grid-cols-2 sm:grid-cols-1 gap-2">
+												<div className="rounded-lg border bg-background/50 p-2.5">
+													<div className="flex items-center gap-2 text-purple-500 mb-1">
+														<BookOpen className="h-4 w-4" />
+														<span className="text-xs font-medium">Total Guides</span>
+													</div>
+													<p className="text-xl font-semibold">{blogs?.reduce((acc, blog) => acc + (blog.articles?.edges?.length || 0), 0) || 0}</p>
+												</div>
+												<div className="rounded-lg border bg-background/50 p-2.5">
+													<div className="flex items-center gap-2 text-green-500 mb-1">
+														<Clock className="h-4 w-4" />
+														<span className="text-xs font-medium">Last Updated</span>
+													</div>
+													<p className="text-sm font-medium">2 days ago</p>
+												</div>
+											</div>
+										</div>
+
+										{/* Right Column */}
+										<div className="w-1/2 flex flex-col">
+											{/* Categories Section */}
+											<div className="p-4 border-b">
+												<h3 className="text-sm font-medium mb-3">Learning Paths</h3>
+												<div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
+													{blogs?.slice(0, 4).map((blog) => {
+														const categoryStyles = {
+															guide: { icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
+															tutorial: { icon: TestTube, color: "text-green-500", bg: "bg-green-50 dark:bg-green-500/10" },
+															tip: { icon: Brain, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-500/10" },
+															default: { icon: Leaf, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-500/10" },
+														};
+
+														const style = blog.handle.includes("guide") ? categoryStyles.guide : blog.handle.includes("tutorial") ? categoryStyles.tutorial : blog.handle.includes("tip") ? categoryStyles.tip : categoryStyles.default;
+
+														const Icon = style.icon;
+
+														return (
+															<Link key={blog.id} href={`/blogs/${blog.handle}`} className={cn("group flex items-start gap-2 p-2.5 rounded-lg", style.bg, "transition-colors duration-200 hover:opacity-80")}>
+																<Icon className={cn("h-4 w-4 mt-0.5", style.color)} />
+																<div className="min-w-0">
+																	<h4 className="font-medium text-sm leading-tight line-clamp-1">{blog.title}</h4>
+																	<p className="text-xs text-muted-foreground mt-0.5">{blog.articles?.edges?.length || 0} articles</p>
+																</div>
+															</Link>
+														);
+													})}
+												</div>
+											</div>
+
+											{/* Recent Articles */}
+											<div className="p-4">
+												<div className="flex items-center justify-between mb-3">
+													<h3 className="text-sm font-medium">Latest Content</h3>
+													<Link href="/blogs" className="text-xs text-primary hover:text-primary/80 transition-colors">
+														View All →
+													</Link>
+												</div>
+												<div className="space-y-2">
+													{blogs
+														?.slice(0, 2)
+														.map((blog) =>
+															blog.articles?.edges?.slice(0, 2).map((article) => (
+																<Link key={article.node.id} href={`/blogs/${blog.handle}/${article.node.handle}`} className="group flex items-center gap-3 p-2 hover:bg-muted/50 rounded-lg transition-colors">
+																	<div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">{blog.handle.includes("guide") ? <BookOpen className="h-4 w-4 text-blue-500" /> : blog.handle.includes("tutorial") ? <TestTube className="h-4 w-4 text-green-500" /> : blog.handle.includes("tip") ? <Brain className="h-4 w-4 text-amber-500" /> : <Leaf className="h-4 w-4 text-purple-500" />}</div>
+																	<div className="flex-1 min-w-0">
+																		<h4 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{article.node.title}</h4>
+																		<p className="text-xs text-muted-foreground mt-0.5">{new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+																	</div>
+																</Link>
+															))
+														)
+														.flat()}
+												</div>
+											</div>
+										</div>
+									</div>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						)}
+
+						{/* Main Action Buttons */}
+						<div className="flex items-center gap-3">
+							{/* Account & Menu Button */}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline" size="icon" className="h-10 w-10 rounded-full">
+										<Menu className="h-4 w-4" />
+										<span className="sr-only">Menu</span>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-[200px]">
+									{/* Help Section */}
+									<DropdownMenuItem asChild>
+										<Link href="/help" className="w-full cursor-pointer">
+											<HelpCircle className="h-4 w-4 mr-2" />
+											Help Center
 										</Link>
 									</DropdownMenuItem>
-								))}
-							</DropdownMenuContent>
-						</DropdownMenu>
-
-						{/* Help Button */}
-						<Button variant="outline" size="sm" className="h-10 px-3" asChild>
-							<Link href="/help">
-								<HelpCircle className="h-4 w-4 sm:mr-2" />
-								<span className="hidden sm:inline">Help</span>
-							</Link>
-						</Button>
-
-						<div className="flex items-center gap-3 border-l pl-3">
-							{/* Account Button */}
-							{authState ? (
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button variant="outline" size="icon" className="h-10 w-10 rounded-full">
-											<User className="h-4 w-4" />
-											<span className="sr-only">Account menu</span>
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="end" className="w-[200px]">
-										<DropdownMenuItem asChild>
-											<Link href="/account" className="w-full cursor-pointer" prefetch={true}>
-												<User className="h-4 w-4 mr-2" />
-												Account
-											</Link>
-										</DropdownMenuItem>
-										<DropdownMenuItem asChild>
-											<Link href="/wishlist" className="w-full cursor-pointer">
-												<Heart className="h-4 w-4 mr-2" />
-												Wishlist
-											</Link>
-										</DropdownMenuItem>
-										<DropdownMenuItem onClick={() => setShowKeyboardShortcuts(true)} className="cursor-pointer hidden sm:flex">
-											<Keyboard className="h-4 w-4 mr-2" />
-											Keyboard Shortcuts
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem onClick={handleTheme} className="cursor-pointer">
-											{theme === "dark" ? (
-												<>
-													<Sun className="h-4 w-4 mr-2" />
-													Light Mode
-												</>
-											) : (
-												<>
-													<Moon className="h-4 w-4 mr-2" />
-													Dark Mode
-												</>
-											)}
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<SignOutButton onSignOut={() => setAuthState(false)} />
-									</DropdownMenuContent>
-								</DropdownMenu>
-							) : (
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button variant="outline" size="icon" className="h-10 w-10 rounded-full">
-											<User className="h-4 w-4" />
-											<span className="sr-only">Account menu</span>
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="end" className="w-[200px]">
-										<DropdownMenuItem asChild>
-											<Link href="/wishlist" className="w-full cursor-pointer">
-												<Heart className="h-4 w-4 mr-2" />
-												Wishlist
-											</Link>
-										</DropdownMenuItem>
-										<DropdownMenuItem onClick={() => setShowKeyboardShortcuts(true)} className="cursor-pointer hidden sm:flex">
-											<Keyboard className="h-4 w-4 mr-2" />
-											Keyboard Shortcuts
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem onClick={handleTheme} className="cursor-pointer">
-											{theme === "dark" ? (
-												<>
-													<Sun className="h-4 w-4 mr-2" />
-													Light Mode
-												</>
-											) : (
-												<>
-													<Moon className="h-4 w-4 mr-2" />
-													Dark Mode
-												</>
-											)}
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem asChild>
-											<Link href="/login" className="w-full cursor-pointer">
-												<LogIn className="h-4 w-4 mr-2" />
-												Login
-											</Link>
-										</DropdownMenuItem>
-										<DropdownMenuItem asChild>
-											<Link href="/register" className="w-full cursor-pointer">
-												<UserPlus className="h-4 w-4 mr-2" />
-												Register
-											</Link>
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							)}
+									<DropdownMenuItem asChild>
+										<Link href="/wishlist" className="w-full cursor-pointer">
+											<Heart className="h-4 w-4 mr-2" />
+											Wishlist
+										</Link>
+									</DropdownMenuItem>
+									{authState ? (
+										<>
+											<DropdownMenuItem asChild>
+												<Link href="/account" className="w-full cursor-pointer" prefetch={true}>
+													<User className="h-4 w-4 mr-2" />
+													Account
+												</Link>
+											</DropdownMenuItem>
+											<DropdownMenuItem onClick={() => setShowKeyboardShortcuts(true)} className="hidden sm:flex cursor-pointer">
+												<Keyboard className="h-4 w-4 mr-2" />
+												Keyboard Shortcuts
+											</DropdownMenuItem>
+										</>
+									) : (
+										<>
+											<DropdownMenuItem asChild>
+												<Link href="/login" className="w-full cursor-pointer">
+													<LogIn className="h-4 w-4 mr-2" />
+													Login
+												</Link>
+											</DropdownMenuItem>
+											<DropdownMenuItem asChild>
+												<Link href="/register" className="w-full cursor-pointer">
+													<UserPlus className="h-4 w-4 mr-2" />
+													Register
+												</Link>
+											</DropdownMenuItem>
+										</>
+									)}
+									<DropdownMenuSeparator />
+									<DropdownMenuItem onClick={handleTheme} className="cursor-pointer">
+										{theme === "dark" ? (
+											<>
+												<Sun className="h-4 w-4 mr-2" />
+												Light Mode
+											</>
+										) : (
+											<>
+												<Moon className="h-4 w-4 mr-2" />
+												Dark Mode
+											</>
+										)}
+									</DropdownMenuItem>
+									{authState && (
+										<>
+											<DropdownMenuSeparator />
+											<SignOutButton onSignOut={() => setAuthState(false)} />
+										</>
+									)}
+								</DropdownMenuContent>
+							</DropdownMenu>
 
 							{/* Cart Button */}
 							<Button variant="outline" size="icon" onClick={openCart} className="relative h-10 w-10 rounded-full">
@@ -520,12 +709,13 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 			</nav>
 
 			<Dialog open={showKeyboardShortcuts} onOpenChange={setShowKeyboardShortcuts}>
-				<DialogContent className="sm:max-w-[600px]">
+				<DialogContent className="sm:max-w-[600px]" onPointerDownOutside={(e) => e.preventDefault()} tabIndex={-1}>
 					<DialogHeader>
 						<DialogTitle className="text-xl">Keyboard Shortcuts</DialogTitle>
 						<DialogDescription>Use these keyboard shortcuts to navigate quickly through the site.</DialogDescription>
 					</DialogHeader>
-					<div className="grid gap-6 py-6">
+					{/* Only show keyboard shortcuts on desktop */}
+					<div className="hidden sm:grid gap-6 py-6">
 						<div className="space-y-4">
 							<h3 className="font-medium text-sm text-muted-foreground mb-3">Navigation</h3>
 							<div className="grid grid-cols-2 gap-4">

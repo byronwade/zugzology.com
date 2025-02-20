@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { ProductCard } from "@/components/products/product-card";
 import type { ProductWithSource } from "./types";
@@ -52,9 +54,9 @@ export function RelatedSection({ title, description, products, sectionId, curren
 				<h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{title}</h2>
 				<p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{description}</p>
 			</div>
-			<div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 sm:gap-4" role="list" aria-label={`${title} products`}>
+			<div className={cn("flex flex-col divide-y divide-neutral-200 dark:divide-neutral-800", "sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 sm:gap-4 sm:divide-y-0")} role="list" aria-label={`${title} products`}>
 				{products.slice(0, 12).map(({ product }, index) => (
-					<div key={`${sectionId}-${product.id}`} className={cn("group relative", isMobile && "p-4 first:pt-0 border-b border-neutral-200 dark:border-neutral-800 last:border-0")}>
+					<div key={`${sectionId}-${product.id}`} className="group relative">
 						<meta itemProp="position" content={String(index + 1)} />
 						<ProductCard product={product} view={isMobile ? "list" : "grid"} variantId={product.variants?.nodes?.[0]?.id} isAddingToCartProp={loadingStates[product.id]} onAddToCart={() => handleAddToCart(product.id)} />
 					</div>

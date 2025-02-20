@@ -2,11 +2,12 @@
 
 import { getProducts, getAllBlogPosts } from "@/lib/actions/shopify";
 import type { Metadata } from "next";
-import { ProductsContentClient } from "@/components/products/products-content-client";
-import type { ShopifyCollection, ShopifyBlogArticle } from "@/lib/types";
+import { ProductList } from "@/components/products/product-list";
+import type { ShopifyBlogArticle } from "@/lib/types";
 import { InitializeSearch } from "@/components/search/initialize-search";
 import { BlogSearchResults } from "@/components/blog/blog-search-results";
 import { unstable_cache } from "next/cache";
+import { ProductsHeaderWrapper } from "@/components/products/products-header-wrapper";
 
 interface SearchPageProps {
 	searchParams?: {
@@ -129,49 +130,20 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 		  })
 		: blogPosts;
 
-	// Create virtual collection for products
-	const searchResults: ShopifyCollection = {
-		id: "search-results",
-		handle: "search-results",
-		title: query ? `Search Results for "${query}"` : "All Products",
-		description: query ? `Found ${filteredProducts.length} items matching your search` : "Browse our complete catalog",
-		products: {
-			nodes: filteredProducts.map((product) => ({
-				id: product.id,
-				title: product.title,
-				handle: product.handle,
-				description: product.description,
-				descriptionHtml: product.descriptionHtml || product.description,
-				isGiftCard: product.isGiftCard || false,
-				availableForSale: product.availableForSale,
-				productType: product.productType || "",
-				vendor: product.vendor || "",
-				tags: product.tags || [],
-				options: product.options || [],
-				publishedAt: product.publishedAt || new Date().toISOString(),
-				priceRange: product.priceRange,
-				images: {
-					nodes: product.images.nodes.slice(0, 1), // Only keep first image for initial render
-				},
-				variants: {
-					nodes: product.variants.nodes.slice(0, 1), // Only keep first variant for initial render
-				},
-				media: {
-					nodes: product.media?.nodes || [],
-				},
-				metafields: product.metafields,
-			})),
-		},
-	};
-
 	return (
-		<div className="w-full">
+		<div className="w-full space-y-8">
 			<InitializeSearch products={products} blogPosts={blogPosts} />
+
 			{/* Products Section */}
-			<ProductsContentClient collection={searchResults} searchQuery={nextjs15Search?.sort} />
+			<div className="w-full">
+				<ProductsHeaderWrapper title={query ? `Search Results for "${query}"` : "All Products"} description={query ? `Found ${filteredProducts.length} items matching your search` : "Browse our complete catalog"} count={filteredProducts.length} />
+				<ProductList products={filteredProducts} />
+			</div>
 
 			{/* Blog Posts Section */}
-			<BlogSearchResults posts={filteredBlogPosts} searchQuery={query} />
+			<div className="w-full">
+				<BlogSearchResults posts={filteredBlogPosts} searchQuery={query} />
+			</div>
 		</div>
 	);
 }
