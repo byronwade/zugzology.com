@@ -149,16 +149,6 @@ export interface ShopifyProduct {
 	};
 	metafields?: ShopifyMetafield[];
 	publishedAt: string;
-	complementaryProducts?: {
-		references: {
-			nodes: ShopifyProduct[];
-		};
-	};
-	recommendations?: {
-		nodes: ShopifyProduct[];
-	};
-	rating?: number;
-	reviewsCount?: number;
 }
 
 export interface ShopifyCollection {
@@ -368,5 +358,54 @@ export interface YouTubeVideo {
 	thumbnail: {
 		url: string;
 		altText: string | null;
+	};
+}
+
+export interface HeaderQueryResponse {
+	shop: {
+		name: string;
+	};
+	menu: {
+		items: MenuItem[];
+	};
+	blogs: {
+		nodes: BlogType[];
+	};
+	products: {
+		nodes: ShopifyProduct[];
+	};
+	collections: {
+		nodes: ShopifyCollection[];
+	};
+}
+
+export interface MenuItem {
+	id: string;
+	title: string;
+	url: string;
+	items?: MenuItem[];
+}
+
+export interface BlogType {
+	id: string;
+	handle: string;
+	title: string;
+	articles: {
+		nodes: Article[];
+	};
+}
+
+export interface Article {
+	id: string;
+	handle: string;
+	title: string;
+	content: string;
+	contentHtml: string;
+	publishedAt: string;
+	image?: {
+		url: string;
+		altText?: string;
+		width: number;
+		height: number;
 	};
 }

@@ -125,7 +125,7 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 	const article = await getArticleByHandle(nextjs15Params.blog, nextjs15Params.slug);
 
 	if (!blog || !article) {
-		console.log(`❌ [Blog Post] Not found: ${params.blog}/${params.slug}`);
+		console.log(`❌ [Blog Post] Not found: ${nextjs15Params.blog}/${nextjs15Params.slug}`);
 		return notFound();
 	}
 

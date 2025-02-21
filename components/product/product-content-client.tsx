@@ -37,25 +37,19 @@ const findMatchingVariant = (variants: { node: ShopifyProductVariant }[], select
 
 // Memoized Breadcrumb component
 const Breadcrumb = memo(({ title }: { title: string }) => (
-	<nav aria-label="Breadcrumb" className="mb-4 hidden md:block">
-		<ol className="flex items-center space-x-2 text-sm">
-			<li>
-				<a href="/" className="text-neutral-500 hover:text-neutral-700">
-					Home
+	<div className="h-12 border-b bg-muted/40">
+		<div className="container h-full px-4">
+			<nav className="flex items-center h-full text-sm" aria-label="Breadcrumb">
+				<a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+					Collections
 				</a>
-			</li>
-			<li className="text-neutral-500">/</li>
-			<li>
-				<a href="/products" className="text-neutral-500 hover:text-neutral-700">
-					Products
-				</a>
-			</li>
-			<li className="text-neutral-500">/</li>
-			<li className="text-neutral-900" aria-current="page">
-				{title}
-			</li>
-		</ol>
-	</nav>
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 mx-2 text-muted-foreground/50">
+					<path d="m9 18 6-6-6-6"></path>
+				</svg>
+				<span className="text-foreground/80">{title}</span>
+			</nav>
+		</div>
+	</div>
 ));
 
 Breadcrumb.displayName = "Breadcrumb";
@@ -71,34 +65,37 @@ LoadingSpinner.displayName = "LoadingSpinner";
 
 export const ProductContentClient = ({ product }: ProductContentClientProps) => {
 	const [mounted, setMounted] = useState(false);
-	const [selectedVariant, setSelectedVariant] = useState<ShopifyProductVariant>(product.variants.edges[0].node);
+	const [selectedVariant, setSelectedVariant] = useState<ShopifyProductVariant>(() => product.variants.nodes[0]);
 	const [quantity, setQuantity] = useState(1);
 	const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-	const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>(() => getInitialSelectedOptions(product.variants.edges[0].node));
+	const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>(() => getInitialSelectedOptions(product.variants.nodes[0]));
 	const [complementaryProducts, setComplementaryProducts] = useState<ShopifyProduct[]>([]);
 
 	// Get complementary products from metafield
 	useEffect(() => {
-		if (product.complementaryProducts?.references?.edges) {
-			const complementary = product.complementaryProducts.references.edges.map((edge) => edge.node);
-			console.log("Shopify complementary products:", complementary);
-			setComplementaryProducts(complementary);
+		const complementaryRefs = product.metafields?.find((metafield) => metafield.namespace === "custom" && metafield.key === "complementary_products");
+		if (complementaryRefs?.value) {
+			try {
+				const complementary = JSON.parse(complementaryRefs.value);
+				setComplementaryProducts(complementary);
+			} catch (e) {
+				console.error("Error parsing complementary products:", e);
+			}
 		}
-	}, [product.complementaryProducts?.references?.edges]);
+	}, [product.metafields]);
 
 	// Memoize media array
 	const mediaItems = useMemo(() => {
 		const items: (ShopifyMediaImage | ShopifyMediaVideo)[] = [];
-		if (product.media?.edges) {
-			product.media.edges.forEach((edge) => {
-				const node = edge.node;
+		if (product.media?.nodes) {
+			product.media.nodes.forEach((node) => {
 				if (node.mediaContentType === "IMAGE" || node.mediaContentType === "VIDEO") {
 					items.push(node as ShopifyMediaImage | ShopifyMediaVideo);
 				}
 			});
 		}
 		return items;
-	}, [product.media?.edges]);
+	}, [product.media?.nodes]);
 
 	useEffect(() => {
 		setMounted(true);
@@ -108,19 +105,20 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 	useEffect(() => {
 		if (!mounted) return;
 
-		const matchingVariant = findMatchingVariant(product.variants.edges, selectedOptions);
+		const matchingVariant = product.variants.nodes.find((variant) => variant.selectedOptions?.every((option) => selectedOptions[option.name] === option.value));
+
 		if (matchingVariant) {
 			setSelectedVariant(matchingVariant);
 
 			// Find the matching image for this variant if it has one
 			if (matchingVariant.image) {
-				const variantImageIndex = product.images.edges.findIndex(({ node }) => node.url === matchingVariant.image?.url);
+				const variantImageIndex = product.images.nodes.findIndex((node) => node.url === matchingVariant.image?.url);
 				if (variantImageIndex >= 0) {
 					setSelectedImageIndex(variantImageIndex);
 				}
 			}
 		}
-	}, [selectedOptions, product.variants.edges, product.images.edges, mounted]);
+	}, [selectedOptions, product.variants.nodes, product.images.nodes, mounted]);
 
 	// Memoize handlers
 	const handleOptionChange = useCallback((optionName: string, value: string) => {
@@ -143,48 +141,49 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 	}
 
 	return (
-		<div className="max-w-[1800px] mx-auto px-4 py-8">
+		<>
 			<Breadcrumb title={product.title} />
-
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-				{/* Left Column - Gallery */}
-				<div className="sticky top-[126px]">
-					<ProductGallery media={mediaItems} title={product.title} selectedIndex={selectedImageIndex} onMediaSelect={handleImageSelect} product={product} />
-				</div>
-
-				{/* Right Column - Product Info & Actions */}
-				<div className="space-y-8">
-					<div>
-						<h1 className="text-3xl font-bold tracking-tight">{product.title}</h1>
-						<div className="flex flex-wrap gap-2 mt-4">
-							{product.vendor && (
-								<Badge variant="secondary" className="text-xs font-semibold">
-									{product.vendor}
-								</Badge>
-							)}
-							{product.productType && (
-								<Badge variant="secondary" className="text-xs font-semibold">
-									{product.productType}
-								</Badge>
-							)}
-						</div>
+			<div className="max-w-[1800px] mx-auto px-4 py-8">
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+					{/* Left Column - Gallery */}
+					<div className="sticky top-[126px]">
+						<ProductGallery media={mediaItems} title={product.title} selectedIndex={selectedImageIndex} onMediaSelect={handleImageSelect} product={product} />
 					</div>
 
-					<ProductActions selectedVariant={selectedVariant} quantity={quantity} onQuantityChange={handleQuantityChange} productHandle={product.handle} />
+					{/* Right Column - Product Info & Actions */}
+					<div className="space-y-8">
+						<div>
+							<h1 className="text-3xl font-bold tracking-tight">{product.title}</h1>
+							<div className="flex flex-wrap gap-2 mt-4">
+								{product.vendor && (
+									<Badge variant="secondary" className="text-xs font-semibold">
+										{product.vendor}
+									</Badge>
+								)}
+								{product.productType && (
+									<Badge variant="secondary" className="text-xs font-semibold">
+										{product.productType}
+									</Badge>
+								)}
+							</div>
+						</div>
 
-					<Separator />
+						<ProductActions selectedVariant={selectedVariant} quantity={quantity} onQuantityChange={handleQuantityChange} productHandle={product.handle} />
 
-					<ProductInfo product={product} selectedVariant={selectedVariant} selectedOptions={selectedOptions} onOptionChange={handleOptionChange} complementaryProducts={complementaryProducts} />
+						<Separator />
+
+						<ProductInfo product={product} selectedVariant={selectedVariant} selectedOptions={selectedOptions} onOptionChange={handleOptionChange} complementaryProducts={complementaryProducts} />
+					</div>
 				</div>
-			</div>
 
-			{/* Frequently Bought Together Section */}
-			{complementaryProducts.length > 0 && (
-				<section className="mt-16 mb-16">
-					<FrequentlyBoughtTogether mainProduct={product} complementaryProducts={complementaryProducts} />
-				</section>
-			)}
-		</div>
+				{/* Frequently Bought Together Section */}
+				{complementaryProducts.length > 0 && (
+					<section className="mt-16 mb-16">
+						<FrequentlyBoughtTogether mainProduct={product} complementaryProducts={complementaryProducts} />
+					</section>
+				)}
+			</div>
+		</>
 	);
 };
 

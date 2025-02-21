@@ -79,10 +79,12 @@ declare global {
 	}
 }
 
-interface ProductGalleryProps {
+export interface ProductGalleryProps {
+	media: (ShopifyMediaImage | ShopifyMediaVideo)[];
+	title: string;
+	selectedIndex: number;
+	onMediaSelect: (index: number) => void;
 	product: ShopifyProduct;
-	selectedIndex?: number;
-	onMediaSelect?: (index: number) => void;
 }
 
 type YouTubeMedia = {
@@ -174,7 +176,7 @@ function getYouTubeThumbnail(videoId: string, quality: "default" | "hqdefault" |
 	return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
 }
 
-export function ProductGallery({ product, selectedIndex, onMediaSelect }: ProductGalleryProps) {
+export function ProductGallery({ media, title, selectedIndex, onMediaSelect, product }: ProductGalleryProps) {
 	const [selectedMediaIndex, setSelectedMediaIndex] = useState(selectedIndex || 0);
 	const [mounted, setMounted] = useState(false);
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -242,7 +244,7 @@ export function ProductGallery({ product, selectedIndex, onMediaSelect }: Produc
 
 	// Get media items from product
 	const mediaItems = useMemo(() => {
-		const items: MediaType[] = product?.media?.nodes || [];
+		const items: MediaType[] = media || [];
 		console.log("Initial media items:", items);
 
 		// Process YouTube videos from metafields
@@ -275,11 +277,11 @@ export function ProductGallery({ product, selectedIndex, onMediaSelect }: Produc
 						const video: YouTubeMedia = {
 							id: `youtube-${videoId}`,
 							mediaContentType: "YOUTUBE",
-							alt: product.title,
+							alt: title,
 							embedUrl: `https://www.youtube.com/embed/${videoId}`,
 							previewImage: {
 								url: getYouTubeThumbnail(videoId),
-								altText: product.title,
+								altText: title,
 								height: 720,
 								width: 1280,
 							},
@@ -301,7 +303,7 @@ export function ProductGallery({ product, selectedIndex, onMediaSelect }: Produc
 
 		console.log("No YouTube videos to process");
 		return items;
-	}, [product?.media?.nodes, product?.metafields, product.title]);
+	}, [media, title, product?.metafields]);
 
 	console.log("Final combined mediaItems:", mediaItems);
 
@@ -340,14 +342,14 @@ export function ProductGallery({ product, selectedIndex, onMediaSelect }: Produc
 					<div className="hidden md:flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-200px)] p-1">
 						{validMedia.map((media, index) => {
 							let thumbnailUrl = "";
-							let altText = media.alt || product.title;
+							let altText = media.alt || title;
 
 							if (isMediaImage(media)) {
 								thumbnailUrl = media.image.url;
-								altText = media.image.altText ?? product.title;
+								altText = media.image.altText ?? title;
 							} else if (media.previewImage) {
 								thumbnailUrl = media.previewImage.url;
-								altText = media.previewImage.altText ?? product.title;
+								altText = media.previewImage.altText ?? title;
 							}
 
 							if (!thumbnailUrl) return null;
@@ -373,7 +375,7 @@ export function ProductGallery({ product, selectedIndex, onMediaSelect }: Produc
 					{/* Main Media Display */}
 					<div className="flex-1">
 						<div className="relative aspect-square group bg-neutral-100 dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
-							{isMediaImage(activeMedia) && <Image src={activeMedia.image.url} alt={activeMedia.image.altText ?? activeMedia.alt ?? product.title} fill priority={true} sizes="(min-width: 1024px) 66vw, 100vw" className="object-contain" />}
+							{isMediaImage(activeMedia) && <Image src={activeMedia.image.url} alt={activeMedia.image.altText ?? activeMedia.alt ?? title} fill priority={true} sizes="(min-width: 1024px) 66vw, 100vw" className="object-contain" />}
 							{isMediaVideo(activeMedia) && (
 								<div className="relative w-full h-full">
 									<video ref={videoRef} controls={isPlaying} playsInline className="w-full h-full object-contain" poster={activeMedia.previewImage?.url}>
@@ -421,21 +423,23 @@ export function ProductGallery({ product, selectedIndex, onMediaSelect }: Produc
 							)}
 						</div>
 					</div>
-				</div>
+				</div>;
 
-				{/* Mobile Thumbnails Row */}
+				{
+					/* Mobile Thumbnails Row */
+				}
 				<div className="md:hidden -mx-4">
 					<div className="flex gap-3 overflow-x-auto py-2 pl-4 scrollbar-hide">
 						{validMedia.map((media, index) => {
 							let thumbnailUrl = "";
-							let altText = media.alt || product.title;
+							let altText = media.alt || title;
 
 							if (isMediaImage(media)) {
 								thumbnailUrl = media.image.url;
-								altText = media.image.altText ?? product.title;
+								altText = media.image.altText ?? title;
 							} else if (media.previewImage) {
 								thumbnailUrl = media.previewImage.url;
-								altText = media.previewImage.altText ?? product.title;
+								altText = media.previewImage.altText ?? title;
 							}
 
 							if (!thumbnailUrl) return null;
@@ -458,7 +462,7 @@ export function ProductGallery({ product, selectedIndex, onMediaSelect }: Produc
 						})}
 						<div className="w-4 flex-shrink-0" aria-hidden="true" />
 					</div>
-				</div>
+				</div>;
 			</div>
 		</>
 	);

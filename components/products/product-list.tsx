@@ -12,8 +12,6 @@ interface ProductListProps {
 	onAddToWishlist?: (handle: string) => void;
 	title?: string;
 	description?: string;
-	hasNextPage?: boolean;
-	endCursor?: string;
 }
 
 // Memoize individual product card to prevent unnecessary re-renders
@@ -58,7 +56,7 @@ const ProductGrid = memo(function ProductGrid({ products, view, onRemoveFromWish
 	);
 });
 
-export function ProductList({ products, onRemoveFromWishlist, onAddToWishlist, title, description, hasNextPage, endCursor }: ProductListProps) {
+export function ProductList({ products, onRemoveFromWishlist, onAddToWishlist, title, description }: ProductListProps) {
 	const { isMobile } = useViewport();
 	const [visibleProducts, setVisibleProducts] = useState<ShopifyProduct[]>([]);
 	const [isLoading, setIsLoading] = useState(false);

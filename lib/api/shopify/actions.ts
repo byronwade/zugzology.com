@@ -51,113 +51,152 @@ export const getSiteSettings = unstable_cache(
 	}
 );
 
+let productsPromise: Promise<ShopifyProduct[]> | null = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 60000; // 1 minute
+const PRODUCTS_PER_PAGE = 50; // Increased batch size for better performance
+
 export const getProducts = unstable_cache(
 	async () => {
-		try {
-			console.log("Fetching products from Shopify...");
-			let allProducts: ShopifyProduct[] = [];
-			let hasNextPage = true;
-			let cursor = null;
+		const now = Date.now();
 
-			while (hasNextPage) {
-				const { data } = await shopifyFetch<{ products: { nodes: ShopifyProduct[]; pageInfo: { hasNextPage: boolean; endCursor: string } } }>({
-					query: `
-						query getProducts($cursor: String) {
-							products(first: 100, after: $cursor, sortKey: CREATED_AT, reverse: true) {
-								nodes {
-									id
-									title
-									handle
-									description
-									descriptionHtml
-									productType
-									vendor
-									tags
-									isGiftCard
-									availableForSale
-									options {
+		// If there's a valid cached promise and it's not expired, return it
+		if (productsPromise && now - lastFetchTime < CACHE_DURATION) {
+			return productsPromise;
+		}
+
+		// Start a new request
+		try {
+			console.log("Server", "⚡ [Products] Starting fetch from Shopify...");
+			lastFetchTime = now;
+			productsPromise = (async () => {
+				let allProducts: ShopifyProduct[] = [];
+				let hasNextPage = true;
+				let cursor = null;
+				let batchCount = 0;
+				const startTime = Date.now();
+
+				while (hasNextPage) {
+					batchCount++;
+					const batchStartTime = Date.now();
+
+					const { data }: { data: { products: { nodes: ShopifyProduct[]; pageInfo: { hasNextPage: boolean; endCursor: string } } } } = await shopifyFetch<{ products: { nodes: ShopifyProduct[]; pageInfo: { hasNextPage: boolean; endCursor: string } } }>({
+						query: `
+							query getProducts($cursor: String) {
+								products(first: ${PRODUCTS_PER_PAGE}, after: $cursor, sortKey: CREATED_AT, reverse: true) {
+									nodes {
 										id
-										name
-										values
-									}
-									priceRange {
-										minVariantPrice {
-											amount
-											currencyCode
-										}
-										maxVariantPrice {
-											amount
-											currencyCode
-										}
-									}
-									variants(first: 1) {
-										nodes {
-											id
-											title
-											availableForSale
-											quantityAvailable
-											price {
+										title
+										handle
+										description
+										productType
+										vendor
+										availableForSale
+										priceRange {
+											minVariantPrice {
 												amount
 												currencyCode
 											}
-											compareAtPrice {
+											maxVariantPrice {
 												amount
 												currencyCode
 											}
-											selectedOptions {
-												name
-												value
+										}
+										variants(first: 1) {
+											nodes {
+												id
+												title
+												availableForSale
+												price {
+													amount
+													currencyCode
+												}
+												compareAtPrice {
+													amount
+													currencyCode
+												}
 											}
 										}
-									}
-									images(first: 1) {
-										nodes {
-											url
-											altText
-											width
-											height
+										images(first: 1) {
+											nodes {
+												url
+												altText
+												width
+												height
+											}
 										}
+										publishedAt
 									}
-									metafields(identifiers: [
-										{namespace: "custom", key: "rating"},
-										{namespace: "custom", key: "rating_count"}
-									]) {
-										id
-										namespace
-										key
-										value
-										type
+									pageInfo {
+										hasNextPage
+										endCursor
 									}
-									publishedAt
-								}
-								pageInfo {
-									hasNextPage
-									endCursor
 								}
 							}
-						}
-					`,
-					variables: { cursor },
-					tags: [CACHE_TAGS.PRODUCT],
-				});
+						`,
+						variables: { cursor },
+						tags: [CACHE_TAGS.PRODUCT],
+						cache: "no-store", // Ensure fresh data on each request
+					});
 
-				const products = data?.products?.nodes || [];
-				allProducts = [...allProducts, ...products];
+					if (!data?.products?.nodes) {
+						console.log("Server", "⚡ [Products] No products found in batch", batchCount);
+						break;
+					}
 
-				hasNextPage = data?.products?.pageInfo?.hasNextPage || false;
-				cursor = data?.products?.pageInfo?.endCursor || null;
+					const products = data.products.nodes;
 
-				console.log(`Fetched ${products.length} products. Total: ${allProducts.length}. Has next page: ${hasNextPage}`);
-			}
+					// Cache each batch separately with a unique key that includes timestamp
+					const batchKey = `products-batch-${batchCount}-${Date.now()}`;
+					await unstable_cache(async () => products, [batchKey], {
+						revalidate: CACHE_TIMES.PRODUCTS,
+						tags: [CACHE_TAGS.PRODUCT],
+					})();
 
-			console.log(`Successfully fetched all ${allProducts.length} products`);
-			return allProducts;
+					allProducts = [...allProducts, ...products];
+
+					hasNextPage = data.products.pageInfo.hasNextPage;
+					cursor = data.products.pageInfo.endCursor;
+
+					const batchTime = Date.now() - batchStartTime;
+					const batchSize = (JSON.stringify(products).length / 1024).toFixed(2);
+					console.log(
+						"Server",
+						`⚡ [Products] Batch #${batchCount} | ${batchTime}ms | Size: ${batchSize}KB
+- Fetched: ${products.length}
+- Total so far: ${allProducts.length}
+- Has more: ${hasNextPage ? "Yes" : "No"}`
+					);
+
+					// Add a delay between batches to prevent rate limiting
+					if (hasNextPage) {
+						await new Promise((resolve) => setTimeout(resolve, 250));
+					}
+				}
+
+				const totalTime = Date.now() - startTime;
+				const totalSize = (JSON.stringify(allProducts).length / 1024).toFixed(2);
+
+				console.log(
+					"Server",
+					`⚡ [Products] Complete | ${totalTime}ms | Size: ${totalSize}KB
+- Batches: ${batchCount}
+- Total Products: ${allProducts.length}`
+				);
+
+				return allProducts;
+			})();
+
+			const result = await productsPromise;
+			return result;
 		} catch (error) {
-			console.error("Error fetching products:", error);
+			console.error("Server", "⚡ [Products] Error:", error);
+			productsPromise = null; // Clear the promise on error
+			lastFetchTime = 0; // Reset the fetch time on error
 			return [];
 		}
 	},
-	["products"],
+	["products-list"],
 	{
 		revalidate: CACHE_TIMES.PRODUCTS,
 		tags: [CACHE_TAGS.PRODUCT],
@@ -828,9 +867,9 @@ export async function getProductPageData(handle: string) {
 }
 
 export const getHeaderData = unstable_cache(
-	async () => {
+	async (): Promise<HeaderData> => {
 		try {
-			const response = await shopifyFetch<HeaderQueryResponse>({
+			const { data } = await shopifyFetch<{ data: HeaderQueryResponse }>({
 				query: headerQuery,
 				cache: "force-cache",
 				next: {
@@ -839,15 +878,16 @@ export const getHeaderData = unstable_cache(
 				},
 			});
 
-			if (!response.data) {
+			if (!data) {
 				throw new Error("No data returned from header query");
 			}
 
 			return {
-				shop: response.data.shop,
-				menuItems: response.data.menu?.items || [],
-				blogs: response.data.blogs?.edges?.map((edge: any) => edge.node) || [],
-				products: response.data.products?.edges?.map((edge: any) => edge.node) || [],
+				shop: data.shop,
+				menuItems: data.menu?.items || [],
+				blogs: data.blogs?.edges?.map((edge: { node: { title: string; handle: string } }) => edge.node) || [],
+				products: data.products?.edges?.map((edge: { node: ShopifyProduct }) => edge.node) || [],
+				collections: data.collections?.edges?.map((edge: { node: ShopifyCollection }) => edge.node) || [],
 			};
 		} catch (error) {
 			console.error("Error fetching header data:", error);
@@ -856,6 +896,7 @@ export const getHeaderData = unstable_cache(
 				menuItems: [],
 				blogs: [],
 				products: [],
+				collections: [],
 			};
 		}
 	},
