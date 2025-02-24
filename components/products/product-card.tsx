@@ -22,6 +22,7 @@ export interface ProductCardProps {
 	isAddingToCartProp?: boolean;
 	onRemoveFromWishlist?: (handle: string) => void;
 	onAddToWishlist?: (handle: string) => void;
+	isVisible?: boolean;
 }
 
 // Helper function to format recent purchases
@@ -93,7 +94,7 @@ const calculateDiscountPercentage = (compareAtPrice: string, price: string) => {
 };
 
 // Memoize the ProductCard component
-export const ProductCard = memo(function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0, onAddToCart, isAddingToCartProp, onRemoveFromWishlist, onAddToWishlist }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0, onAddToCart, isAddingToCartProp, onRemoveFromWishlist, onAddToWishlist, isVisible = true }: ProductCardProps) {
 	const { addItem } = useCart();
 	const [isAddingToCartLocal, setIsAddingToCartLocal] = useState(false);
 	const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -182,10 +183,7 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 	const isAvailable = productDetails.isAvailable;
 
 	return (
-		<div
-			className={cn("group relative h-full", view === "grid" ? "flex flex-col sm:border sm:border-foreground/10 sm:hover:border-foreground/20 transition-colors duration-200 sm:rounded-lg sm:my-0.5" : "flex flex-row gap-4 border-b border-foreground/10 last:border-b-0 py-4")}
-			data-view={view} // Add data attribute for debugging
-		>
+		<div className={cn("group relative h-full", view === "grid" ? "flex flex-col sm:border sm:border-foreground/10 sm:hover:border-foreground/20 transition-colors duration-200 sm:rounded-lg sm:my-0.5" : "flex flex-row gap-4 border-b border-foreground/10 last:border-b-0 py-4")} data-view={view}>
 			<Button variant="ghost" size="icon" className={cn("absolute z-[1]", view === "grid" ? "right-2 top-2" : "right-0 top-0")} onClick={handleWishlistToggle}>
 				<Heart className={cn("h-5 w-5 transition-colors duration-200", isWishlisted ? "fill-red-500 stroke-red-500" : "fill-secondary stroke-foreground/60 group-hover:stroke-foreground/80")} />
 			</Button>
@@ -194,7 +192,23 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 			<Link href={productUrl} className={cn("block shrink-0", view === "grid" ? "w-full" : "w-24 sm:w-32")}>
 				<div className={cn("relative bg-neutral-100 dark:bg-neutral-800 overflow-hidden border border-foreground/10 hover:border-foreground/20 transition-colors sm:border-0", view === "grid" ? "aspect-square w-full sm:rounded-t-lg" : "aspect-square w-24 h-24 sm:w-32 sm:h-32 rounded-lg")}>
 					{productDetails.imageUrl ? (
-						<Image src={productDetails.imageUrl} alt={productDetails.imageAlt} fill priority={view === "grid"} className="object-cover hover:scale-105 transition-transform duration-300" sizes={view === "grid" ? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" : "96px"} />
+						<Image
+							src={productDetails.imageUrl}
+							alt={productDetails.imageAlt}
+							fill
+							loading={isVisible ? "eager" : "lazy"}
+							className="object-cover hover:scale-105 transition-transform duration-300"
+							sizes={view === "grid" ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw" : "96px"}
+							onLoadingComplete={(img) => {
+								if (isVisible) {
+									// Once the image loads, prefetch the product page
+									const link = document.createElement("link");
+									link.rel = "prefetch";
+									link.href = productUrl;
+									document.head.appendChild(link);
+								}
+							}}
+						/>
 					) : (
 						<div className="absolute inset-0 flex items-center justify-center">
 							<Package className="h-8 w-8 text-neutral-400" />

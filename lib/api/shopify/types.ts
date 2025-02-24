@@ -1,4 +1,4 @@
-import type { ShopifyProduct, ShopifyCollection } from "../../types";
+import type { ShopifyProduct } from "@/lib/types";
 
 export interface ShopifyFetchParams<T> {
 	query: string;
@@ -17,8 +17,41 @@ export interface ProductResponse {
 	product: ShopifyProduct | null;
 }
 
+export interface ProductsPageInfo {
+	hasNextPage: boolean;
+	endCursor: string;
+}
+
+export interface CollectionProductsConnection {
+	edges: Array<{
+		cursor: string;
+		node: ShopifyProduct;
+	}>;
+	pageInfo: {
+		hasNextPage: boolean;
+		hasPreviousPage: boolean;
+		startCursor: string;
+		endCursor: string;
+	};
+	totalCount?: number;
+}
+
+export interface ShopifyCollectionWithPagination {
+	id: string;
+	handle: string;
+	title: string;
+	description: string | null;
+	image?: {
+		url: string;
+		altText: string | null;
+		width: number;
+		height: number;
+	} | null;
+	products: CollectionProductsConnection;
+}
+
 export interface CollectionResponse {
-	collection: ShopifyCollection | null;
+	collection: ShopifyCollectionWithPagination | null;
 }
 
 export interface HeaderQueryResponse {
@@ -47,7 +80,7 @@ export interface HeaderQueryResponse {
 	};
 	collections: {
 		edges: Array<{
-			node: ShopifyCollection;
+			node: ShopifyCollectionWithPagination;
 		}>;
 	};
 }
@@ -66,5 +99,5 @@ export interface HeaderData {
 		handle: string;
 	}>;
 	products: ShopifyProduct[];
-	collections: ShopifyCollection[];
+	collections: ShopifyCollectionWithPagination[];
 }

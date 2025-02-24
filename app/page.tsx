@@ -65,14 +65,14 @@ const getPageData = unstable_cache(
 		const [products, siteSettings] = await Promise.all([getProducts(), getLocalSiteSettings()]);
 
 		const optimizedProducts = products ? products.slice(0, 8) : [];
-		const topSellers = products ? products.filter((p) => p.tags.includes("best-seller")).slice(0, 6) : [];
+		const topSellers = products ? products.filter((p) => p.tags?.includes("best-seller")).slice(0, 6) : [];
 
 		// Improved sale product detection
 		const saleProducts = products
 			? products
 					.filter((p) => {
 						// Check for sale tag
-						const hasSaleTag = p.tags.includes("sale");
+						const hasSaleTag = p.tags?.includes("sale");
 
 						// Check for compare at price
 						const hasCompareAtPrice = p.variants.nodes.some((variant) => variant.compareAtPrice && parseFloat(variant.compareAtPrice.amount) > parseFloat(variant.price.amount));
@@ -190,12 +190,12 @@ export default async function Home() {
 	const optimizedTopSellers = topSellers ? optimizeProductData(topSellers) : [];
 	const optimizedSaleProducts = saleProducts ? optimizeProductData(saleProducts) : [];
 
-	const featuredProduct = products.find((p) => p.availableForSale && p.tags.some((tag) => tag.toLowerCase().includes("featured"))) || products.find((p) => p.availableForSale) || products[0];
+	const featuredProduct = products.find((p) => p.availableForSale && p.tags?.some((tag) => tag.toLowerCase().includes("featured"))) || products.find((p) => p.availableForSale) || products[0];
 
 	const latestProducts = [...products].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 12);
 
 	// Get related products for the growing guide showcase
-	const relatedProducts = products.filter((p) => p.tags.some((tag) => tag.toLowerCase().includes("beginner") || tag.toLowerCase().includes("kit") || tag.toLowerCase().includes("starter"))).slice(0, 4);
+	const relatedProducts = products.filter((p) => p.tags?.some((tag) => tag.toLowerCase().includes("beginner") || tag.toLowerCase().includes("kit") || tag.toLowerCase().includes("starter"))).slice(0, 4);
 
 	return (
 		<>

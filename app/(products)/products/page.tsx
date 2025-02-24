@@ -1,13 +1,14 @@
-import { getProducts, getSiteSettings } from "@/lib/actions/shopify";
-import { notFound } from "next/navigation";
-import { ProductList } from "@/components/products/product-list";
-import { ProductsHeaderWrapper } from "@/components/products/products-header-wrapper";
+import { getSiteSettings, getPaginatedProducts } from "@/lib/actions/shopify";
 import type { Metadata } from "next";
-import React from "react";
+import React, { Suspense } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { jsonLdScriptProps } from "react-schemaorg";
-import type { WithContext, ItemList, BreadcrumbList } from "schema-dts";
-import type { ShopifyProduct } from "@/lib/types";
+import { unstable_cache } from "next/cache";
+import { HomeLoading } from "@/components/loading";
+import { ProductsContent } from "@/components/products/products-content";
+
+// Prevent automatic scroll restoration
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 interface ProductsPageProps {
 	searchParams?: {
@@ -15,12 +16,24 @@ interface ProductsPageProps {
 		availability?: string;
 		price?: string;
 		category?: string;
+		page?: string;
 	};
 }
 
+// Cache the site settings for metadata
+const getCachedSiteSettings = unstable_cache(
+	async () => {
+		return getSiteSettings();
+	},
+	["site-settings"],
+	{
+		revalidate: 60,
+		tags: ["settings"],
+	}
+);
+
 export async function generateMetadata(): Promise<Metadata> {
-	// Get only essential site settings for metadata
-	const siteSettings = await getSiteSettings();
+	const siteSettings = await getCachedSiteSettings();
 	const storeName = siteSettings?.name || "Zugzology";
 	const storeDescription = siteSettings?.description || "";
 
@@ -60,84 +73,16 @@ export async function generateMetadata(): Promise<Metadata> {
 	};
 }
 
-// Products content component
-const ProductsContent = async ({ searchParams }: ProductsPageProps) => {
-	const nextSearchParams = await searchParams;
-	console.log("Fetching products and site settings...");
-	const [products, siteSettings] = await Promise.all([getProducts(), getSiteSettings()]);
-	console.log("Products fetched:", products?.length || 0, "products");
+// Products page content component
+const ProductsPageContent = async ({ searchParams }: ProductsPageProps) => {
+	const nextjs15Search = await searchParams;
+	const sort = nextjs15Search?.sort || "featured";
+	const page = nextjs15Search?.page ? parseInt(nextjs15Search.page) : 1;
 
-	if (!products?.length) {
-		console.log("No products found");
-		return (
-			<div className="w-full min-h-[50vh] flex items-center justify-center">
-				<div className="text-center">
-					<h2 className="text-xl font-semibold mb-2">No products found</h2>
-					<p className="text-muted-foreground">Please try adjusting your filters</p>
-				</div>
-			</div>
-		);
-	}
+	// Fetch products with pagination
+	const { products, totalCount } = await getPaginatedProducts(page, sort);
 
-	const storeName = siteSettings?.name || "Zugzology";
-
-	// Generate structured data for product list
-	const itemListStructuredData: WithContext<ItemList> = {
-		"@context": "https://schema.org",
-		"@type": "ItemList",
-		itemListElement: products.slice(0, 24).map((product, index) => ({
-			"@type": "ListItem",
-			position: index + 1,
-			item: {
-				"@type": "Product",
-				name: product.title,
-				description: product.description,
-				image: product.images.nodes[0]?.url,
-				url: `${siteSettings?.primaryDomain?.url || "https://zugzology.com"}/products/${product.handle}`,
-				brand: {
-					"@type": "Brand",
-					name: product.vendor || storeName,
-				},
-				offers: {
-					"@type": "AggregateOffer",
-					priceCurrency: "USD",
-					lowPrice: parseFloat(product.priceRange.minVariantPrice.amount),
-					highPrice: parseFloat(product.priceRange.maxVariantPrice.amount),
-					offerCount: product.variants.nodes.length,
-					availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-				},
-			},
-		})),
-	};
-
-	// Generate breadcrumb structured data
-	const breadcrumbStructuredData: WithContext<BreadcrumbList> = {
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "Home",
-				item: siteSettings?.primaryDomain?.url || "https://zugzology.com",
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "Products",
-				item: `${siteSettings?.primaryDomain?.url || "https://zugzology.com"}/products`,
-			},
-		],
-	};
-
-	return (
-		<>
-			<script {...jsonLdScriptProps(itemListStructuredData)} />
-			<script {...jsonLdScriptProps(breadcrumbStructuredData)} />
-			<ProductsHeaderWrapper title={siteSettings?.name || "All Products"} description={siteSettings?.description || "Browse our complete collection of premium mushroom growing supplies and equipment."} count={products.length} />
-			<ProductList products={products} />
-		</>
-	);
+	return <ProductsContent products={products} title="All Products" currentPage={page} defaultSort="featured" totalProducts={totalCount} />;
 };
 
 // Error fallback component
@@ -155,7 +100,9 @@ export default async function ProductsPage({ searchParams = {} }: ProductsPagePr
 		<ErrorBoundary fallback={<ProductsError />}>
 			<div className="product-catalog w-full">
 				<section aria-label="Products Catalog" className="products-section w-full" itemScope itemType="https://schema.org/CollectionPage">
-					<ProductsContent searchParams={searchParams} />
+					<Suspense fallback={<HomeLoading />}>
+						<ProductsPageContent searchParams={searchParams} />
+					</Suspense>
 				</section>
 			</div>
 		</ErrorBoundary>

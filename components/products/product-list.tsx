@@ -5,13 +5,22 @@ import { ProductCard } from "@/components/products/product-card";
 import type { ShopifyProduct } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useViewport } from "@/lib/hooks/use-viewport";
+import { useInView } from "react-intersection-observer";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useIntersectionObserver } from "../../lib/hooks/use-intersection-observer";
 
 interface ProductListProps {
 	products: ShopifyProduct[];
+	preloadedProducts?: ShopifyProduct[];
 	onRemoveFromWishlist?: (handle: string) => void;
 	onAddToWishlist?: (handle: string) => void;
 	title?: string;
 	description?: string;
+	totalProducts: number;
+	currentPage: number;
+	productsPerPage: number;
 }
 
 // Memoize individual product card to prevent unnecessary re-renders
@@ -41,14 +50,38 @@ const useStockInfo = (product: ShopifyProduct) => {
 
 // Memoized product grid component
 const ProductGrid = memo(function ProductGrid({ products, view, onRemoveFromWishlist, onAddToWishlist, onAddToCart, isLoading }: { products: ShopifyProduct[]; view: "grid" | "list"; onRemoveFromWishlist?: (handle: string) => void; onAddToWishlist?: (handle: string) => void; onAddToCart: (id: string) => void; isLoading: boolean }) {
+	const [visibleProducts, setVisibleProducts] = useState<string[]>([]);
+	const gridRef = useRef<HTMLDivElement>(null);
+
+	// Set up intersection observer for the grid
+	useIntersectionObserver(
+		gridRef,
+		(entries) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting) {
+					const productId = entry.target.getAttribute("data-product-id");
+					if (productId && !visibleProducts.includes(productId)) {
+						setVisibleProducts((prev) => [...prev, productId]);
+					}
+				}
+			});
+		},
+		{
+			threshold: 0.1,
+			rootMargin: "50px",
+		}
+	);
+
 	return (
-		<div className={cn("flex flex-col divide-y divide-neutral-200 dark:divide-neutral-800", view === "list" ? "divide-y divide-neutral-200 dark:divide-neutral-800" : "", "sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 sm:gap-4 sm:divide-y-0")} role="region" aria-label="Products List" data-view={view}>
+		<div ref={gridRef} className={cn("flex flex-col divide-y divide-neutral-200 dark:divide-neutral-800", view === "list" ? "divide-y divide-neutral-200 dark:divide-neutral-800" : "", "sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 sm:gap-4 sm:divide-y-0")} role="region" aria-label="Products List" data-view={view}>
 			{products.map((product, index) => {
 				const stockInfo = useStockInfo(product);
+				const isVisible = visibleProducts.includes(product.id);
+
 				return (
-					<div key={product.id} className="group relative" role="listitem" itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+					<div key={product.id} className="group relative" role="listitem" itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" data-product-id={product.id}>
 						<meta itemProp="position" content={String(index + 1)} />
-						<MemoizedProductCard product={product} view={view} variantId={stockInfo.variantId} quantity={stockInfo.quantity} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} isAddingToCartProp={isLoading} onAddToCart={() => onAddToCart(product.id)} />
+						<MemoizedProductCard product={product} view={view} variantId={stockInfo.variantId} quantity={stockInfo.quantity} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} isAddingToCartProp={isLoading} onAddToCart={() => onAddToCart(product.id)} isVisible={isVisible} />
 					</div>
 				);
 			})}
@@ -56,60 +89,29 @@ const ProductGrid = memo(function ProductGrid({ products, view, onRemoveFromWish
 	);
 });
 
-export function ProductList({ products, onRemoveFromWishlist, onAddToWishlist, title, description }: ProductListProps) {
+export function ProductList({ products, onRemoveFromWishlist, onAddToWishlist, title, description, totalProducts, currentPage = 1, productsPerPage = 50 }: ProductListProps) {
 	const { isMobile } = useViewport();
-	const [visibleProducts, setVisibleProducts] = useState<ShopifyProduct[]>([]);
+	const router = useRouter();
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
 	const [isLoading, setIsLoading] = useState(false);
-	const [isPreloading, setIsPreloading] = useState(false);
-	const [isPending, startTransition] = useTransition();
-	const loadMoreRef = useRef<HTMLDivElement>(null);
-	const preloadRef = useRef<HTMLDivElement>(null);
-	const batchQueue = useRef<ShopifyProduct[][]>([]);
-	const initialLoadCount = 24;
-	const loadMoreCount = 24;
-	const preloadThreshold = 0.5;
 
-	// Initialize with first batch of products
-	useEffect(() => {
-		const initialBatch = products.slice(0, initialLoadCount);
-		setVisibleProducts(initialBatch);
+	// Calculate total pages
+	const totalPages = Math.ceil(totalProducts / productsPerPage);
 
-		// Pre-calculate next batches
-		const remainingProducts = products.slice(initialLoadCount);
-		batchQueue.current = Array.from({ length: Math.ceil(remainingProducts.length / loadMoreCount) }, (_, i) => remainingProducts.slice(i * loadMoreCount, (i + 1) * loadMoreCount));
-	}, [products, initialLoadCount, loadMoreCount]);
+	// Handle page change
+	const handlePageChange = useCallback(
+		(page: number) => {
+			const current = new URLSearchParams(Array.from(searchParams.entries()));
+			current.set("page", page.toString());
+			const search = current.toString();
+			const query = search ? `?${search}` : "";
 
-	// Preload next batch of products
-	const preloadNextBatch = useCallback(() => {
-		if (isPreloading || isLoading || visibleProducts.length >= products.length) return;
-
-		setIsPreloading(true);
-		const nextBatch = batchQueue.current[0];
-
-		if (nextBatch) {
-			startTransition(() => {
-				setVisibleProducts((prev) => [...prev, ...nextBatch]);
-				batchQueue.current = batchQueue.current.slice(1);
-				setIsPreloading(false);
-			});
-		}
-	}, [isPreloading, isLoading, products.length, visibleProducts.length]);
-
-	// Main load more handler
-	const handleLoadMore = useCallback(() => {
-		if (isLoading || visibleProducts.length >= products.length) return;
-
-		setIsLoading(true);
-		const nextBatch = batchQueue.current[0];
-
-		if (nextBatch) {
-			startTransition(() => {
-				setVisibleProducts((prev) => [...prev, ...nextBatch]);
-				batchQueue.current = batchQueue.current.slice(1);
-				setIsLoading(false);
-			});
-		}
-	}, [isLoading, products.length, visibleProducts.length]);
+			// Use replace to avoid adding to history stack
+			router.replace(`${pathname}${query}#products-top`, { scroll: false });
+		},
+		[searchParams, pathname, router]
+	);
 
 	// Optimized add to cart handler
 	const handleAddToCart = useCallback(async (productId: string) => {
@@ -121,73 +123,58 @@ export function ProductList({ products, onRemoveFromWishlist, onAddToWishlist, t
 		}
 	}, []);
 
-	// Set up Intersection Observers
-	useEffect(() => {
-		const loadMoreObserver = new IntersectionObserver(
-			(entries) => {
-				if (entries[0].isIntersecting && !isPending) {
-					handleLoadMore();
-				}
-			},
-			{ threshold: 0.1 }
+	if (!products?.length) {
+		return (
+			<div className="w-full min-h-[50vh] flex items-center justify-center">
+				<div className="text-center">
+					<h2 className="text-xl font-semibold mb-2">No products found</h2>
+					<p className="text-muted-foreground">Try adjusting your filters or check back later</p>
+				</div>
+			</div>
 		);
-
-		const preloadObserver = new IntersectionObserver(
-			(entries) => {
-				if (entries[0].isIntersecting && !isPending) {
-					preloadNextBatch();
-				}
-			},
-			{
-				rootMargin: "50% 0px",
-				threshold: preloadThreshold,
-			}
-		);
-
-		if (loadMoreRef.current) {
-			loadMoreObserver.observe(loadMoreRef.current);
-		}
-
-		if (preloadRef.current) {
-			preloadObserver.observe(preloadRef.current);
-		}
-
-		return () => {
-			loadMoreObserver.disconnect();
-			preloadObserver.disconnect();
-		};
-	}, [handleLoadMore, preloadNextBatch, isPending]);
-
-	if (!products?.length || !visibleProducts.length) return null;
+	}
 
 	const view = isMobile ? "list" : "grid";
 
 	return (
-		<div className="mb-16 last:mb-0 p-4">
-			{(title || description) && (
-				<div className="mb-8">
-					{title && <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">{title}</h2>}
-					{description && <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">{description}</p>}
-				</div>
-			)}
+		<div className="w-full space-y-8">
+			<ProductGrid products={products} view={view} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} onAddToCart={handleAddToCart} isLoading={isLoading} />
 
-			<ProductGrid products={visibleProducts} view={view} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} onAddToCart={handleAddToCart} isLoading={isLoading} />
+			{/* Pagination */}
+			{totalPages > 1 && (
+				<div className="flex justify-center items-center gap-2 py-8">
+					<Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1} className="h-8 w-8 p-0">
+						<ChevronLeft className="h-4 w-4" />
+						<span className="sr-only">Previous page</span>
+					</Button>
 
-			{/* Preload trigger */}
-			{visibleProducts.length < products.length && <div ref={preloadRef} className="w-full h-1 opacity-0 pointer-events-none" aria-hidden="true" />}
+					{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+						// Show first page, last page, current page, and pages around current
+						const shouldShow = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2;
 
-			{/* Load more trigger */}
-			{visibleProducts.length < products.length && (
-				<div ref={loadMoreRef} className="w-full h-16 flex items-center justify-center mt-8">
-					{isLoading || isPreloading || isPending ? (
-						<div className="animate-pulse flex items-center gap-2">
-							<div className="h-2 w-2 bg-purple-500 rounded-full" />
-							<div className="h-2 w-2 bg-purple-500 rounded-full animation-delay-200" />
-							<div className="h-2 w-2 bg-purple-500 rounded-full animation-delay-400" />
-						</div>
-					) : (
-						<div className="h-16" />
-					)}
+						if (!shouldShow) {
+							// Show ellipsis for skipped pages
+							if (page === 2 || page === totalPages - 1) {
+								return (
+									<span key={`ellipsis-${page}`} className="px-2">
+										...
+									</span>
+								);
+							}
+							return null;
+						}
+
+						return (
+							<Button key={page} variant={currentPage === page ? "default" : "outline"} size="sm" onClick={() => handlePageChange(page)} className="h-8 min-w-[2rem] px-3">
+								{page}
+							</Button>
+						);
+					})}
+
+					<Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages} className="h-8 w-8 p-0">
+						<ChevronRight className="h-4 w-4" />
+						<span className="sr-only">Next page</span>
+					</Button>
 				</div>
 			)}
 		</div>

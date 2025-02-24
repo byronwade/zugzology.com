@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { ShopifyProduct, ShopifyBlogArticle } from "@/lib/types";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 
@@ -23,6 +23,7 @@ interface SearchContextType {
 	setIsDropdownOpen: (open: boolean) => void;
 	recentSearches: string[];
 	addRecentSearch: (query: string) => void;
+	searchRef: React.RefObject<HTMLDivElement>;
 }
 
 const SearchContext = createContext<SearchContextType>({
@@ -39,14 +40,18 @@ const SearchContext = createContext<SearchContextType>({
 	setIsDropdownOpen: () => {},
 	recentSearches: [],
 	addRecentSearch: () => {},
+	searchRef: React.createRef<HTMLDivElement>(),
 });
 
 const MAX_RECENT_SEARCHES = 5;
-const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_DEBOUNCE_MS = 150;
 const MAX_RESULTS = {
 	PRODUCTS: 5,
 	BLOGS: 3,
 };
+
+// Create a search cache outside component to persist between renders
+const searchCache = new Map<string, SearchResult[]>();
 
 export function SearchProvider({ children }: { children: React.ReactNode }) {
 	const [searchState, setSearchState] = useState({
@@ -61,14 +66,34 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 		products: [] as ShopifyProduct[],
 		blogPosts: [] as ShopifyBlogArticle[],
 	});
-	
-	const [mounted, setMounted] = useState(false);
 
-	// Memoize total products count
-	const totalProducts = useMemo(() => data.products.length, [data.products]);
+	const searchRef = useRef<HTMLDivElement>(null);
+	const debouncedSearchQuery = useDebounce(searchState.query, 100);
 
-	// Debounce search query
-	const debouncedSearchQuery = useDebounce(searchState.query, SEARCH_DEBOUNCE_MS);
+	// Handle click outside with improved reliability
+	useEffect(() => {
+		if (!searchState.isDropdownOpen) return;
+
+		function handleClickOutside(event: MouseEvent | TouchEvent) {
+			if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+				setSearchState((prev) => ({
+					...prev,
+					query: "",
+					results: [],
+					isDropdownOpen: false,
+					isSearching: false,
+				}));
+			}
+		}
+
+		document.addEventListener("mousedown", handleClickOutside as EventListener);
+		document.addEventListener("touchstart", handleClickOutside as EventListener);
+
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside as EventListener);
+			document.removeEventListener("touchstart", handleClickOutside as EventListener);
+		};
+	}, [searchState.isDropdownOpen]);
 
 	// Load recent searches from localStorage on mount
 	useEffect(() => {
@@ -85,7 +110,6 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 				}
 			}
 		}
-		setMounted(true);
 	}, []);
 
 	const addRecentSearch = useCallback((query: string) => {
@@ -104,40 +128,74 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 	// Memoize search function
 	const performSearch = useCallback(
 		(query: string) => {
-			if (!query.trim()) {
+			const trimmedQuery = query?.trim() || "";
+
+			if (!trimmedQuery) {
 				setSearchState((prev) => ({
 					...prev,
 					results: [],
 					isSearching: false,
+					isDropdownOpen: false,
+				}));
+				return;
+			}
+
+			// Check cache first
+			const cacheKey = trimmedQuery.toLowerCase();
+			if (searchCache.has(cacheKey)) {
+				setSearchState((prev) => ({
+					...prev,
+					results: searchCache.get(cacheKey) || [],
+					isSearching: false,
+					isDropdownOpen: true,
 				}));
 				return;
 			}
 
 			setSearchState((prev) => ({ ...prev, isSearching: true }));
-			const searchTerms = query.toLowerCase().split(/\s+/);
 
-			// Search products first
+			const searchTerms = trimmedQuery.toLowerCase().split(/\s+/);
+
+			// Search products
 			const productResults = data.products
 				.filter((product) => {
-					const searchableText = [product.title, product.description, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
+					const searchableText = [product.title, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
 					return searchTerms.every((term) => searchableText.includes(term));
 				})
 				.slice(0, MAX_RESULTS.PRODUCTS)
-				.map((product) => ({ type: "product" as const, item: product }));
+				.map((product) => ({
+					type: "product" as const,
+					item: product,
+				}));
 
-			// Then search blog posts
+			// Search blog posts
 			const blogResults = data.blogPosts
 				.filter((post) => {
-					const searchableText = [post.title, post.excerpt, post.content, post.author.name, ...(post.tags || [])].filter(Boolean).join(" ").toLowerCase();
+					const searchableText = [post.title, post.excerpt, post.author.name].filter(Boolean).join(" ").toLowerCase();
 					return searchTerms.every((term) => searchableText.includes(term));
 				})
 				.slice(0, MAX_RESULTS.BLOGS)
-				.map((post) => ({ type: "blog" as const, item: post }));
+				.map((post) => ({
+					type: "blog" as const,
+					item: post,
+				}));
+
+			const results = [...productResults, ...blogResults];
+
+			// Cache the results
+			searchCache.set(cacheKey, results);
+
+			// Limit cache size
+			if (searchCache.size > 100) {
+				const firstKey = searchCache.keys().next().value;
+				if (firstKey) searchCache.delete(firstKey);
+			}
 
 			setSearchState((prev) => ({
 				...prev,
-				results: [...productResults, ...blogResults],
+				results,
 				isSearching: false,
+				isDropdownOpen: true,
 			}));
 		},
 		[data.products, data.blogPosts]
@@ -145,45 +203,57 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 
 	// Use debounced search query
 	useEffect(() => {
-		if (debouncedSearchQuery) {
+		if (debouncedSearchQuery !== undefined) {
 			performSearch(debouncedSearchQuery);
-		} else {
-			setSearchState((prev) => ({
-				...prev,
-				results: [],
-			}));
 		}
 	}, [debouncedSearchQuery, performSearch]);
 
 	const contextValue = useMemo(
 		() => ({
 			searchQuery: searchState.query,
-			setSearchQuery: (query: string) =>
+			setSearchQuery: (query: string) => {
+				const trimmedQuery = query?.trim() || "";
 				setSearchState((prev) => ({
 					...prev,
-					query,
-					isDropdownOpen: !!query.trim(),
-				})),
+					query: trimmedQuery,
+					isDropdownOpen: !!trimmedQuery,
+					isSearching: !!trimmedQuery,
+				}));
+			},
 			searchResults: searchState.results,
 			isSearching: searchState.isSearching,
 			allProducts: data.products,
-			setAllProducts: (products: ShopifyProduct[]) => setData((prev) => ({ ...prev, products })),
+			setAllProducts: (products: ShopifyProduct[]) => {
+				setData((prev) => ({ ...prev, products }));
+				searchCache.clear();
+			},
 			allBlogPosts: data.blogPosts,
 			setAllBlogPosts: (blogPosts: ShopifyBlogArticle[]) => setData((prev) => ({ ...prev, blogPosts })),
-			totalProducts,
+			totalProducts: data.products.length,
 			isDropdownOpen: searchState.isDropdownOpen,
-			setIsDropdownOpen: (open: boolean) => setSearchState((prev) => ({ ...prev, isDropdownOpen: open })),
+			setIsDropdownOpen: (open: boolean) => {
+				setSearchState((prev) => ({
+					...prev,
+					isDropdownOpen: open,
+					query: open ? prev.query : "",
+					results: open ? prev.results : [],
+					isSearching: open && !!prev.query,
+				}));
+			},
 			recentSearches: searchState.recentSearches,
 			addRecentSearch,
+			searchRef,
 		}),
-		[searchState, data, totalProducts, addRecentSearch]
+		[searchState, data, addRecentSearch]
 	);
 
-	if (!mounted) {
-		return <>{children}</>;
-	}
-
-	return <SearchContext.Provider value={contextValue}>{children}</SearchContext.Provider>;
+	return (
+		<SearchContext.Provider value={contextValue}>
+			<div ref={searchRef} className="w-full">
+				{children}
+			</div>
+		</SearchContext.Provider>
+	);
 }
 
 export const useSearch = () => {

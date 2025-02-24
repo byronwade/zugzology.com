@@ -154,28 +154,6 @@ export function MenuSheet({ items }: MenuSheetProps) {
 								</div>
 							) : (
 								<>
-									{/* Quick Actions */}
-									<div className="grid grid-cols-3 gap-2 p-4 border-b">
-										<Link href="/collections/sale" onClick={(e) => handleNavigate("/collections/sale", e)} className="flex flex-col items-center justify-center p-4 rounded-lg bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/30 transition-colors text-center group">
-											<div className="mb-2 p-2 rounded-full bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400">
-												<Percent className="w-4 h-4" />
-											</div>
-											<span className="text-sm font-medium text-red-600 dark:text-red-400">On Sale</span>
-										</Link>
-										<Link href="/collections/best-sellers" onClick={(e) => handleNavigate("/collections/best-sellers", e)} className="flex flex-col items-center justify-center p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors text-center group">
-											<div className="mb-2 p-2 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
-												<Star className="w-4 h-4" />
-											</div>
-											<span className="text-sm font-medium text-amber-600 dark:text-amber-400">Best Sellers</span>
-										</Link>
-										<Link href="/collections/new-arrivals" onClick={(e) => handleNavigate("/collections/new-arrivals", e)} className="flex flex-col items-center justify-center p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 hover:bg-purple-100 dark:hover:bg-purple-950/30 transition-colors text-center group">
-											<div className="mb-2 p-2 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400">
-												<Zap className="w-4 h-4" />
-											</div>
-											<span className="text-sm font-medium text-purple-600 dark:text-purple-400">New Arrivals</span>
-										</Link>
-									</div>
-
 									{/* Featured Collections */}
 									{organizedCollections.featured.length > 0 && (
 										<div className="py-4 border-b">
@@ -200,11 +178,6 @@ export function MenuSheet({ items }: MenuSheetProps) {
 														<div className="flex-1 min-w-0">
 															<div className="flex items-center gap-2">
 																<span className="text-sm font-medium truncate">{collection.title}</span>
-																{collection.products.nodes.length > 0 && (
-																	<Badge variant="secondary" className="shrink-0">
-																		{collection.products.nodes.length}
-																	</Badge>
-																)}
 															</div>
 															{collection.description && <p className="text-xs text-muted-foreground line-clamp-1">{collection.description}</p>}
 														</div>
@@ -214,7 +187,7 @@ export function MenuSheet({ items }: MenuSheetProps) {
 										</div>
 									)}
 
-									{/* Categorized Collections */}
+									{/* Categories */}
 									{Object.entries(organizedCollections.categories).map(([category, categoryCollections]) => (
 										<div key={category} className="py-4 border-b last:border-b-0">
 											<div className="px-4 mb-2">
@@ -235,11 +208,6 @@ export function MenuSheet({ items }: MenuSheetProps) {
 														<div className="flex-1 min-w-0">
 															<div className="flex items-center gap-2">
 																<span className="text-sm truncate">{collection.title}</span>
-																{collection.products.nodes.length > 0 && (
-																	<Badge variant="secondary" className="shrink-0">
-																		{collection.products.nodes.length}
-																	</Badge>
-																)}
 															</div>
 														</div>
 													</Link>

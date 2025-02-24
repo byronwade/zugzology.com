@@ -20,85 +20,109 @@ interface SearchResult {
 
 export function SearchBar() {
 	const router = useRouter();
-	const { searchQuery, setSearchQuery, searchResults, isSearching } = useSearch();
-	const [isOpen, setIsOpen] = useState(false);
+	const { searchQuery, setSearchQuery, searchResults, isSearching, searchRef, isDropdownOpen, setIsDropdownOpen } = useSearch();
 	const [inputValue, setInputValue] = useState("");
 	const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
 	const inputRef = useRef<HTMLInputElement>(null);
 
-	// Generate search suggestions based on input
-	const generateSuggestions = useCallback((query: string, results: ShopifyProduct[]) => {
-		if (!query) return [];
+	// Sync input value with search query
+	useEffect(() => {
+		setInputValue(searchQuery);
+	}, [searchQuery]);
 
-		const suggestions: SearchResult[] = [];
+	// Generate search suggestions based on input and search results
+	const generateSuggestions = useCallback(
+		(query: string) => {
+			if (!query) return [];
 
-		// Add product results
-		results.slice(0, 5).forEach((product) => {
-			suggestions.push({
-				type: "product",
-				item: product,
-			});
-		});
+			const suggestions: SearchResult[] = [];
 
-		// Add category suggestions based on product types
-		const productTypes = new Set(results.map((p) => p.productType).filter(Boolean));
-		[...productTypes].slice(0, 3).forEach((type) => {
-			suggestions.push({
-				type: "collection",
-				item: type,
-			});
-		});
+			// Add product results from searchResults
+			searchResults
+				.filter((result) => result.type === "product")
+				.slice(0, 5)
+				.forEach((result) => {
+					suggestions.push({
+						type: "product",
+						item: result.item as ShopifyProduct,
+					});
+				});
 
-		// Add search term suggestions
-		const terms = query.toLowerCase().split(" ").filter(Boolean);
-		if (terms.length > 0) {
-			const lastTerm = terms[terms.length - 1];
-			const commonWords = results
-				.flatMap((p) => p.title.toLowerCase().split(" "))
-				.filter((word) => word.startsWith(lastTerm) && word !== lastTerm)
-				.slice(0, 3);
+			// Add category suggestions based on product types
+			const productTypes = new Set(
+				searchResults
+					.filter((result) => result.type === "product")
+					.map((result) => (result.item as ShopifyProduct).productType)
+					.filter(Boolean)
+			);
 
-			commonWords.forEach((word) => {
+			[...productTypes].slice(0, 3).forEach((type) => {
 				suggestions.push({
-					type: "suggestion",
-					item: [...terms.slice(0, -1), word].join(" "),
+					type: "collection",
+					item: type,
 				});
 			});
-		}
 
-		return suggestions;
-	}, []);
+			// Add search term suggestions
+			const terms = query.toLowerCase().split(" ").filter(Boolean);
+			if (terms.length > 0) {
+				const lastTerm = terms[terms.length - 1];
+				const commonWords = searchResults
+					.filter((result) => result.type === "product")
+					.flatMap((result) => (result.item as ShopifyProduct).title.toLowerCase().split(" "))
+					.filter((word) => word.startsWith(lastTerm) && word !== lastTerm)
+					.slice(0, 3);
+
+				commonWords.forEach((word) => {
+					suggestions.push({
+						type: "suggestion",
+						item: [...terms.slice(0, -1), word].join(" "),
+					});
+				});
+			}
+
+			return suggestions;
+		},
+		[searchResults]
+	);
 
 	// Update suggestions when search results change
 	useEffect(() => {
-		const newSuggestions = generateSuggestions(inputValue, searchResults);
+		const newSuggestions = generateSuggestions(inputValue);
 		setSuggestions(newSuggestions);
-	}, [inputValue, searchResults, generateSuggestions]);
+	}, [inputValue, generateSuggestions]);
 
 	const handleInputChange = (value: string) => {
 		setInputValue(value);
 		setSearchQuery(value);
-		setIsOpen(true);
+		setIsDropdownOpen(!!value.trim());
 	};
 
 	const handleSelect = (result: SearchResult) => {
 		if (result.type === "product") {
 			const product = result.item as ShopifyProduct;
+			setInputValue("");
+			setSearchQuery("");
+			setIsDropdownOpen(false);
 			router.push(`/products/${product.handle}`);
 		} else if (result.type === "collection") {
+			setInputValue("");
+			setSearchQuery("");
+			setIsDropdownOpen(false);
 			router.push(`/collections/${(result.item as string).toLowerCase().replace(/\s+/g, "-")}`);
 		} else {
 			setInputValue(result.item as string);
 			setSearchQuery(result.item as string);
 		}
-		setIsOpen(false);
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (inputValue.trim()) {
+			setInputValue("");
+			setSearchQuery("");
+			setIsDropdownOpen(false);
 			router.push(`/search?q=${encodeURIComponent(inputValue.trim())}`);
-			setIsOpen(false);
 		}
 	};
 
@@ -118,17 +142,26 @@ export function SearchBar() {
 			</form>
 
 			{/* Autocomplete dropdown */}
-			{isOpen && suggestions.length > 0 && (
+			{isDropdownOpen && suggestions.length > 0 && (
 				<div className="absolute top-full left-0 right-0 z-50 mt-2 overflow-hidden rounded-xl border bg-background shadow-md animate-in fade-in-0 zoom-in-95">
 					<div className="max-h-96 overflow-y-auto overscroll-contain">
 						{suggestions.map((result, index) => {
 							if (result.type === "product") {
 								const product = result.item as ShopifyProduct;
 								return (
-									<Link key={product.id} href={`/products/${product.handle}`} className="flex items-start gap-4 p-4 hover:bg-accent" onClick={() => setIsOpen(false)}>
-										{product.images?.edges[0]?.node && (
+									<Link
+										key={product.id}
+										href={`/products/${product.handle}`}
+										className="flex items-start gap-4 p-4 hover:bg-accent"
+										onClick={() => {
+											setInputValue("");
+											setSearchQuery("");
+											setIsDropdownOpen(false);
+										}}
+									>
+										{product.images?.nodes[0] && (
 											<div className="relative h-16 w-16 overflow-hidden rounded-lg border">
-												<Image src={product.images.edges[0].node.url} alt={product.images.edges[0].node.altText || product.title} fill className="object-cover" sizes="64px" />
+												<Image src={product.images.nodes[0].url} alt={product.images.nodes[0].altText || product.title} fill className="object-cover" sizes="64px" />
 											</div>
 										)}
 										<div className="flex-1 space-y-1">
