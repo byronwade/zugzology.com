@@ -12,6 +12,7 @@ import { WishlistProvider } from "@/lib/providers/wishlist-provider";
 import { jsonLdScriptProps } from "react-schemaorg";
 import { WithContext, Organization } from "schema-dts";
 import { DebugToggle } from "@/components/debug-toggle";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 // Loading components
 function HeaderLoading() {
@@ -207,6 +208,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 						<Providers>
 							<AppContent>{children}</AppContent>
 							<DebugToggle />
+							<ScrollToTop />
 						</Providers>
 					</WishlistProvider>
 				</ThemeProvider>

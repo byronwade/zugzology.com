@@ -95,6 +95,27 @@ const calculateDiscountPercentage = (compareAtPrice: string, price: string) => {
 	return Math.round(((parseFloat(compareAtPrice) - parseFloat(price)) / parseFloat(compareAtPrice)) * 100);
 };
 
+// Add helper function to format quantity display, consistent with ProductActions
+const formatQuantityDisplay = (quantity: number) => {
+	if (quantity <= 0) {
+		return "Available (Backorder)";
+	} else if (quantity === 1) {
+		return "Last One!";
+	} else if (quantity <= 5) {
+		return `Only ${quantity} left!`;
+	} else if (quantity <= 10) {
+		return `${quantity} available`;
+	} else if (quantity <= 20) {
+		return "10+ available";
+	} else if (quantity <= 50) {
+		return "20+ available";
+	} else if (quantity <= 100) {
+		return "50+ available";
+	} else {
+		return "100+ available";
+	}
+};
+
 // Memoize the ProductCard component
 export const ProductCard = memo(function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0, onAddToCart, isAddingToCartProp, onRemoveFromWishlist, onAddToWishlist, isVisible = true }: ProductCardProps) {
 	const { addItem } = useCart();
@@ -220,22 +241,22 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 							src={productDetails.imageUrl}
 							alt={productDetails.imageAlt}
 							fill
-							priority={isVisible}
 							loading={isVisible ? "eager" : "lazy"}
 							className="object-cover hover:scale-105 transition-transform duration-300"
 							sizes={view === "grid" ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw" : "96px"}
-							fetchPriority={isVisible ? "high" : "low"}
-							onError={(e) => {
-								console.error(`Failed to load image: ${productDetails.imageUrl}`);
-								const target = e.target as HTMLImageElement;
-								target.src = "/placeholder-product.png"; // Fallback image
+							onLoadingComplete={(img) => {
+								if (isVisible) {
+									// Once the image loads, prefetch the product page
+									const link = document.createElement("link");
+									link.rel = "prefetch";
+									link.href = productUrl;
+									document.head.appendChild(link);
+								}
 							}}
 						/>
 					) : (
-						// Placeholder when no image is available
-						<div className="absolute inset-0 flex items-center justify-center bg-neutral-200 dark:bg-neutral-800">
-							<ShoppingBag className="h-12 w-12 text-neutral-400" />
-							<span className="sr-only">No product image available</span>
+						<div className="absolute inset-0 flex items-center justify-center">
+							<Package className="h-8 w-8 text-neutral-400" />
 						</div>
 					)}
 				</div>
@@ -285,12 +306,12 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 					{/* Stock and Shipping Info */}
 					<div className={cn("space-y-1.5", view === "grid" ? "mt-2" : "mt-1.5")}>
 						<div className="flex items-center justify-between">
-							<span className={cn("text-sm font-medium", isAvailable ? "text-green-600" : "text-red-600")}>{isAvailable ? "In Stock" : "Out of Stock"}</span>
-							{isAvailable && quantity > 0 && quantity <= 10 && <span className="text-xs text-muted-foreground">Only {quantity} left</span>}
+							<span className="text-sm font-medium text-green-600">Available</span>
+							<span className="text-xs text-muted-foreground">{formatQuantityDisplay(quantity)}</span>
 						</div>
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-primary">FREE Shipping</span>
-							<span className="text-xs text-muted-foreground">Delivery by {formatDeliveryDate()}</span>
+							<span className="text-xs text-muted-foreground">{quantity > 0 ? `Delivery by ${formatDeliveryDate()}` : "Ships within 1-2 weeks"}</span>
 						</div>
 					</div>
 

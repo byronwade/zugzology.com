@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 export const metadata: Metadata = {
 	title: {
@@ -21,5 +22,10 @@ export const metadata: Metadata = {
 };
 
 export default function ProductsLayout({ children }: { children: React.ReactNode; params?: { handle?: string } }) {
-	return <>{children}</>;
+	return (
+		<>
+			<ScrollToTop />
+			{children}
+		</>
+	);
 }

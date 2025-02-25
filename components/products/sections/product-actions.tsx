@@ -66,7 +66,6 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 			await addItem({
 				merchandiseId,
 				quantity,
-				isPreOrder: !selectedVariant.availableForSale,
 			});
 			toast.success("Added to cart");
 		} catch (error) {
@@ -113,8 +112,8 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 		setIsBuyingNow(false);
 	};
 
-	const handleQuantityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-		const value = event.target.value;
+	const handleQuantityChange = (event: React.ChangeEvent<HTMLInputElement> | string) => {
+		const value = typeof event === "string" ? event : event.target.value;
 
 		// Allow empty input for better UX while typing
 		if (value === "") {
@@ -192,6 +191,39 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 		}
 	};
 
+	// Add a helper function to format the quantity display
+	const formatQuantityAvailable = (variant: { quantityAvailable?: number; title?: string }) => {
+		if (!variant || typeof variant.quantityAvailable !== "number") {
+			return { display: "Available", showMax: false };
+		}
+
+		const quantity = variant.quantityAvailable;
+
+		// Handle digital products
+		if (variant.title?.toLowerCase().includes("digital")) {
+			return { display: "Digital Product - Unlimited", showMax: false };
+		}
+
+		// Format based on quantity ranges - never show as out of stock
+		if (quantity <= 0) {
+			return { display: "Available (Backorder)", showMax: false };
+		} else if (quantity === 1) {
+			return { display: "Last One!", showMax: true };
+		} else if (quantity <= 5) {
+			return { display: `Only ${quantity} left!`, showMax: true };
+		} else if (quantity <= 10) {
+			return { display: `${quantity} available`, showMax: true };
+		} else if (quantity <= 20) {
+			return { display: "10+ available", showMax: true };
+		} else if (quantity <= 50) {
+			return { display: "20+ available", showMax: false };
+		} else if (quantity <= 100) {
+			return { display: "50+ available", showMax: false };
+		} else {
+			return { display: "100+ available", showMax: false };
+		}
+	};
+
 	return (
 		<TooltipProvider>
 			<Card className="rounded-lg border border-foreground/15 shadow-none w-full mx-auto">
@@ -215,22 +247,36 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						<div className="space-y-2">
 							{/* Stock Status */}
 							<div className="flex items-center justify-between">
-								<div className={cn("flex items-center gap-1.5", selectedVariant.availableForSale ? "text-green-600" : "text-red-600")}>
-									<span className="text-sm font-medium">{selectedVariant.availableForSale ? "In Stock" : "Out of Stock"}</span>
+								<div className="text-green-600 flex items-center gap-1.5">
+									<span className="text-sm font-medium">Available</span>
+									{selectedVariant.quantityAvailable <= 0 && (
+										<Badge variant="outline" className="ml-1.5 text-xs">
+											Backorder
+										</Badge>
+									)}
 								</div>
-								{selectedVariant.availableForSale && selectedVariant.quantityAvailable > 0 && selectedVariant.quantityAvailable <= 10 && <span className="text-xs text-muted-foreground">{selectedVariant.quantityAvailable > 10 ? "10+" : selectedVariant.quantityAvailable} left</span>}
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<span className="text-xs text-muted-foreground cursor-help">{formatQuantityAvailable(selectedVariant).display}</span>
+										</TooltipTrigger>
+										<TooltipContent>
+											<p>{selectedVariant.title?.toLowerCase().includes("digital") ? "Digital products have unlimited inventory" : selectedVariant.quantityAvailable && selectedVariant.quantityAvailable > 0 ? `${selectedVariant.quantityAvailable} units currently in stock` : "This item can be backordered and will ship when inventory is replenished"}</p>
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
 							</div>
 
-							{/* Shipping Info */}
+							{/* Shipping Info - Adjusted for backordered items */}
 							<div className="flex items-center justify-between">
 								<div className="flex items-center gap-1.5 text-primary">
 									<span className="text-sm">FREE Shipping</span>
 								</div>
-								<span className="text-xs text-muted-foreground">Delivery by {formatDeliveryDate()}</span>
+								<span className="text-xs text-muted-foreground">{selectedVariant.quantityAvailable > 0 ? `Delivery by ${formatDeliveryDate()}` : `Ships within 1-2 weeks`}</span>
 							</div>
 
 							{/* Additional Info */}
-							<p className="text-xs text-muted-foreground">Orders placed before 2 PM EST ship same day</p>
+							<p className="text-xs text-muted-foreground">{selectedVariant.quantityAvailable > 0 ? "Orders placed before 2 PM EST ship same day" : "Backordered items are prioritized for restocking"}</p>
 						</div>
 					</div>
 
@@ -241,7 +287,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						</Label>
 						<div className="flex items-center space-x-2">
 							<Input id="quantity" type="number" min="1" max={selectedVariant.quantityAvailable || 9999} value={quantity} onChange={handleQuantityChange} className="w-24" />
-							{selectedVariant.quantityAvailable && <span className="text-sm text-muted-foreground">Max: {selectedVariant.quantityAvailable}</span>}
+							{formatQuantityAvailable(selectedVariant).showMax && selectedVariant.quantityAvailable > 0 && <span className="text-sm text-muted-foreground">Max: {selectedVariant.quantityAvailable}</span>}
 						</div>
 					</div>
 
