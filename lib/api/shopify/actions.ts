@@ -235,9 +235,6 @@ export const getProduct = unstable_cache(
 	}
 );
 
-// Create a module-level cache for collections to prevent duplicate requests
-const collectionsCache = new Map<string, ShopifyCollectionWithPagination | null>();
-
 /**
  * Get a collection by handle with pagination
  * Uses the new Next.js 15 caching approach

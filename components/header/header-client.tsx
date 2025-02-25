@@ -116,7 +116,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	// 1. Context hooks first
 	const { theme, setTheme } = useTheme();
 	const { openCart, cart, isInitialized } = useCart();
-	const { searchQuery, setSearchQuery, isDropdownOpen, setIsDropdownOpen, addRecentSearch } = useSearch();
+	const { setSearchQuery, isSearching, setIsDropdownOpen, isDropdownOpen } = useSearch();
 	const { showPromo, setShowPromo } = usePromo();
 	const router = useRouter();
 
@@ -156,32 +156,36 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 		[cart?.totalQuantity, mounted, isInitialized]
 	);
 
-	// Use setSearchQuery directly instead of throttling
-	const searchHandlers = useMemo<SearchHandlers>(() => {
+	// Throttle search to prevent excessive API calls
+	const throttledSearch = useCallback(
+		(value: string) => {
+			const now = Date.now();
+			if (now - lastSearchTime.current > 300) {
+				lastSearchTime.current = now;
+				setSearchQuery(value);
+				setIsDropdownOpen(!!value.trim());
+			}
+		},
+		[setSearchQuery, setIsDropdownOpen]
+	);
+
+	// Memoize the search handlers
+	const searchHandlers = useMemo(() => {
 		return {
-			change: (e) => {
+			change: (e: React.ChangeEvent<HTMLInputElement>) => {
 				const value = e.target.value;
 				setInputValue(value);
-				setSearchQuery(value);
-
-				// Ensure dropdown opens when typing
-				if (value.trim().length > 0) {
-					setIsDropdownOpen(true);
-				} else {
-					setIsDropdownOpen(false);
-				}
+				throttledSearch(value);
 			},
-			submit: (e) => {
+			submit: (e: React.FormEvent) => {
 				e.preventDefault();
 				if (inputValue.trim()) {
-					addRecentSearch(inputValue);
-					router.push(`/search?q=${encodeURIComponent(inputValue)}`);
+					router.push(`/search?q=${encodeURIComponent(inputValue.trim())}`);
 					setIsDropdownOpen(false);
 				}
 			},
 			focus: () => {
-				// Open dropdown on focus if there's a query
-				if (inputValue.trim().length > 0) {
+				if (inputValue.trim()) {
 					setIsDropdownOpen(true);
 				}
 			},
@@ -189,9 +193,12 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 				setInputValue("");
 				setSearchQuery("");
 				setIsDropdownOpen(false);
+				if (document.activeElement instanceof HTMLElement) {
+					document.activeElement.blur();
+				}
 			},
 		};
-	}, [inputValue, setSearchQuery, setIsDropdownOpen, addRecentSearch, router]);
+	}, [inputValue, router, setSearchQuery, setIsDropdownOpen, throttledSearch]);
 
 	const handleTheme = useCallback(() => {
 		setTheme(theme === "dark" ? "light" : "dark");

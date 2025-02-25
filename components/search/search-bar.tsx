@@ -19,11 +19,11 @@ interface SearchResult {
 }
 
 export function SearchBar() {
+	const router = useRouter();
 	const { searchQuery, setSearchQuery, searchResults, isSearching, searchRef, isDropdownOpen, setIsDropdownOpen } = useSearch();
 	const [inputValue, setInputValue] = useState("");
-	const router = useRouter();
-	const inputRef = useRef<HTMLInputElement>(null);
 	const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
+	const inputRef = useRef<HTMLInputElement>(null);
 
 	// Sync input value with search query
 	useEffect(() => {
@@ -67,7 +67,6 @@ export function SearchBar() {
 			const terms = query.toLowerCase().split(" ").filter(Boolean);
 			if (terms.length > 0) {
 				const lastTerm = terms[terms.length - 1];
-
 				const commonWords = searchResults
 					.filter((result) => result.type === "product")
 					.flatMap((result) => (result.item as ShopifyProduct).title.toLowerCase().split(" "))
@@ -89,23 +88,16 @@ export function SearchBar() {
 
 	// Update suggestions when search results change
 	useEffect(() => {
-		setSuggestions(generateSuggestions(inputValue));
-	}, [generateSuggestions, inputValue, searchResults]);
+		const newSuggestions = generateSuggestions(inputValue);
+		setSuggestions(newSuggestions);
+	}, [inputValue, generateSuggestions]);
 
-	// Handle search input change
 	const handleInputChange = (value: string) => {
 		setInputValue(value);
 		setSearchQuery(value);
-
-		// Ensure dropdown opens when typing
-		if (value.trim().length > 0) {
-			setIsDropdownOpen(true);
-		} else {
-			setIsDropdownOpen(false);
-		}
+		setIsDropdownOpen(!!value.trim());
 	};
 
-	// Handle selection of search results
 	const handleSelect = (result: SearchResult) => {
 		if (result.type === "product") {
 			const product = result.item as ShopifyProduct;
@@ -124,127 +116,78 @@ export function SearchBar() {
 		}
 	};
 
-	// Handle search form submission
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (inputValue.trim()) {
-			router.push(`/search?q=${encodeURIComponent(inputValue.trim())}`);
+			setInputValue("");
+			setSearchQuery("");
 			setIsDropdownOpen(false);
+			router.push(`/search?q=${encodeURIComponent(inputValue.trim())}`);
 		}
 	};
 
-	// Handle clicks outside the search bar
-	useEffect(() => {
-		if (!isDropdownOpen) return;
-
-		const handleClickOutside = (event: MouseEvent) => {
-			if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-				setIsDropdownOpen(false);
-			}
-		};
-
-		// Add event listener with capture phase to ensure it fires before other handlers
-		document.addEventListener("mousedown", handleClickOutside, true);
-
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside, true);
-		};
-	}, [isDropdownOpen, searchRef, setIsDropdownOpen]);
-
 	return (
-		<div ref={searchRef} className="relative w-full max-w-md">
+		<div className="relative w-full max-w-2xl">
 			<form onSubmit={handleSubmit} className="relative">
-				<div className="relative">
-					<SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<CommandInput
-						ref={inputRef}
-						value={inputValue}
-						onValueChange={handleInputChange}
-						className="pl-10 pr-10"
-						placeholder="Search products..."
-						onFocus={() => {
-							if (inputValue.trim().length > 0) {
-								setIsDropdownOpen(true);
-							}
-						}}
-					/>
-					{isSearching && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
-					{inputValue && !isSearching && (
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0"
-							onClick={() => {
-								setInputValue("");
-								setSearchQuery("");
-								setIsDropdownOpen(false);
-								inputRef.current?.focus();
-							}}
-						>
-							<span className="sr-only">Clear</span>
-							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-								<line x1="18" y1="6" x2="6" y2="18" />
-								<line x1="6" y1="6" x2="18" y2="18" />
-							</svg>
+				<Command className="relative z-50 max-w-2xl overflow-visible bg-transparent">
+					<div className="flex items-center border rounded-xl px-3 bg-background dark:bg-neutral-950 border-input">
+						<SearchIcon className="h-4 w-4 shrink-0 text-foreground/60" />
+						<CommandInput ref={inputRef} value={inputValue} onValueChange={handleInputChange} placeholder="Search products..." className="flex-1 h-11 px-3 text-sm outline-none placeholder:text-muted-foreground bg-transparent border-0 focus-visible:ring-0" />
+						{isSearching && <Loader2 className="h-4 w-4 animate-spin text-foreground/60" />}
+						<Button type="submit" size="sm" variant="ghost" className="h-7 px-2 text-xs">
+							Search
 						</Button>
-					)}
-				</div>
+					</div>
+				</Command>
 			</form>
 
-			{isDropdownOpen && (
-				<div className="absolute top-full left-0 z-50 mt-2 w-full rounded-md border bg-background shadow-lg">
-					<div className="p-2">
-						{isSearching ? (
-							<div className="flex items-center justify-center p-4">
-								<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-								<span className="ml-2">Searching...</span>
-							</div>
-						) : suggestions.length > 0 ? (
-							<div className="max-h-[300px] overflow-y-auto">
-								{suggestions.map((result, index) => {
-									if (result.type === "product") {
-										const product = result.item as ShopifyProduct;
-										return (
-											<button key={`product-${index}`} className="w-full p-2 text-left hover:bg-accent flex items-center gap-2" onClick={() => handleSelect(result)}>
-												{product.images?.nodes?.[0]?.url ? (
-													<div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border">
-														<Image src={product.images.nodes[0].url} alt={product.images.nodes[0].altText || product.title} width={40} height={40} className="h-full w-full object-cover" />
-													</div>
-												) : (
-													<div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border bg-muted flex items-center justify-center">
-														<SearchIcon className="h-4 w-4 text-muted-foreground" />
-													</div>
-												)}
-												<div className="ml-2">
-													<p className="text-sm font-medium">{product.title}</p>
-													<p className="text-xs text-muted-foreground">{product.productType}</p>
-												</div>
-											</button>
-										);
-									}
+			{/* Autocomplete dropdown */}
+			{isDropdownOpen && suggestions.length > 0 && (
+				<div className="absolute top-full left-0 right-0 z-50 mt-2 overflow-hidden rounded-xl border bg-background shadow-md animate-in fade-in-0 zoom-in-95">
+					<div className="max-h-96 overflow-y-auto overscroll-contain">
+						{suggestions.map((result, index) => {
+							if (result.type === "product") {
+								const product = result.item as ShopifyProduct;
+								return (
+									<Link
+										key={product.id}
+										href={`/products/${product.handle}`}
+										className="flex items-start gap-4 p-4 hover:bg-accent"
+										onClick={() => {
+											setInputValue("");
+											setSearchQuery("");
+											setIsDropdownOpen(false);
+										}}
+									>
+										{product.images?.nodes[0] && (
+											<div className="relative h-16 w-16 overflow-hidden rounded-lg border">
+												<Image src={product.images.nodes[0].url} alt={product.images.nodes[0].altText || product.title} fill className="object-cover" sizes="64px" />
+											</div>
+										)}
+										<div className="flex-1 space-y-1">
+											<h4 className="text-sm font-medium leading-none">{product.title}</h4>
+											<p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+											<p className="text-sm font-medium text-foreground">{formatPrice(parseFloat(product.priceRange.minVariantPrice.amount))}</p>
+										</div>
+									</Link>
+								);
+							}
 
-									if (result.type === "collection") {
-										return (
-											<button key={`collection-${index}`} className="w-full p-2 text-left hover:bg-accent flex items-center gap-2" onClick={() => handleSelect(result)}>
-												<span className="text-sm">Shop {result.item as string}</span>
-											</button>
-										);
-									}
+							if (result.type === "collection") {
+								return (
+									<button key={`collection-${index}`} className="w-full p-4 text-left hover:bg-accent flex items-center gap-2" onClick={() => handleSelect(result)}>
+										<span className="text-sm">Shop {result.item as string}</span>
+									</button>
+								);
+							}
 
-									return (
-										<button key={`suggestion-${index}`} className="w-full p-2 text-left hover:bg-accent flex items-center gap-2" onClick={() => handleSelect(result)}>
-											<SearchIcon className="h-4 w-4 text-muted-foreground" />
-											<span className="text-sm">{result.item as string}</span>
-										</button>
-									);
-								})}
-							</div>
-						) : inputValue ? (
-							<div className="p-4 text-center text-sm text-muted-foreground">No results found for "{inputValue}"</div>
-						) : (
-							<div className="p-4 text-center text-sm text-muted-foreground">Start typing to search products</div>
-						)}
+							return (
+								<button key={`suggestion-${index}`} className="w-full p-4 text-left hover:bg-accent flex items-center gap-2" onClick={() => handleSelect(result)}>
+									<SearchIcon className="h-4 w-4 text-muted-foreground" />
+									<span className="text-sm">{result.item as string}</span>
+								</button>
+							);
+						})}
 					</div>
 				</div>
 			)}

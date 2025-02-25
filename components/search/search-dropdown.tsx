@@ -49,24 +49,6 @@ export function SearchDropdown() {
 		setIsDropdownOpen(false);
 	}, [pathname, setIsDropdownOpen]);
 
-	// Ensure dropdown closes when clicking outside
-	useEffect(() => {
-		if (!isDropdownOpen) return;
-
-		const handleClickOutside = (event: MouseEvent) => {
-			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-				setIsDropdownOpen(false);
-			}
-		};
-
-		// Add event listener with capture phase to ensure it fires before other handlers
-		document.addEventListener("mousedown", handleClickOutside, true);
-
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside, true);
-		};
-	}, [isDropdownOpen, setIsDropdownOpen]);
-
 	// Reset selected index when search results change
 	useEffect(() => {
 		setSelectedIndex(-1);
