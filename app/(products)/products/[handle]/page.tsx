@@ -1,11 +1,8 @@
-import type { Metadata } from "next";
-import { getProductPageData } from "@/lib/actions/shopify";
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ProductContent } from "@/components/products/sections/product-content";
-import type { ShopifyImage, ShopifyProduct } from "@/lib/types";
-import { WithContext, Product } from "schema-dts";
-import { jsonLdScriptProps } from "react-schemaorg";
-import { unstable_noStore as noStore } from "next/cache";
+import { getProductPageData } from "@/lib/actions/shopify";
+import { ProductServerWrapper } from "@/components/products/product-server-wrapper";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 // Tell Next.js this is a dynamic route that shouldn't be prerendered
 export async function generateStaticParams() {
@@ -19,165 +16,82 @@ interface ProductPageProps {
 	params: Promise<{
 		handle: string;
 	}>;
-	searchParams?: Promise<{
-		variant?: string;
-	}>;
 }
-
-// Get product data
-async function getPageData(handle: string) {
-	// Explicitly opt out of caching
-	noStore();
-
-	const data = await getProductPageData(handle);
-	if (!data.product) {
-		notFound();
-	}
-	return data;
-}
-
-// Error fallback component
-const ProductError = () => (
-	<div className="w-full min-h-[50vh] flex items-center justify-center">
-		<div className="text-center">
-			<h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
-			<p className="text-muted-foreground">Unable to load product information</p>
-		</div>
-	</div>
-);
 
 // Generate metadata for the product
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
-	const { handle } = await params;
-	const { product } = await getPageData(handle);
+	try {
+		// In Next.js 15, we need to await params
+		const { handle } = await params;
+		const { product } = await getProductPageData(handle);
 
-	const title = `${product.title} | Zugzology`;
-	const description = product.description || `Buy ${product.title} from Zugzology. Premium mushroom cultivation supplies and equipment.`;
-	const url = `https://zugzology.com/products/${product.handle}`;
+		if (!product) {
+			return {
+				title: "Product Not Found",
+				description: "The requested product could not be found.",
+			};
+		}
 
-	const productSchema: WithContext<Product> = {
-		"@context": "https://schema.org",
-		"@type": "Product",
-		name: product.title,
-		description: product.description,
-		image: product.images.nodes.map((node: ShopifyImage) => node.url) || [],
-		brand: {
-			"@type": "Brand",
-			name: "Zugzology",
-		},
-		offers: {
-			"@type": "AggregateOffer",
-			priceCurrency: "USD",
-			lowPrice: product.priceRange?.minVariantPrice?.amount,
-			highPrice: product.priceRange?.maxVariantPrice?.amount,
-			offerCount: product.variants.nodes.length || 1,
-			availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-			itemCondition: "https://schema.org/NewCondition",
-			seller: {
-				"@type": "Organization",
-				name: "Zugzology",
+		return {
+			title: product.title,
+			description: product.description || `${product.title} - Available at Zugzology`,
+			openGraph: {
+				type: "website",
+				title: product.title,
+				description: product.description || `${product.title} - Available at Zugzology`,
+				images: product.images?.nodes?.[0]?.url
+					? [
+							{
+								url: product.images.nodes[0].url,
+								width: product.images.nodes[0].width || 1200,
+								height: product.images.nodes[0].height || 630,
+								alt: product.images.nodes[0].altText || product.title,
+							},
+					  ]
+					: [],
 			},
-		},
-		category: product.productType || "Mushroom Cultivation Supplies",
-		identifier: [
-			{
-				"@type": "PropertyValue",
-				propertyID: "id",
-				value: product.id,
-			},
-		],
-		url,
-		sameAs: [url],
-		additionalProperty: [
-			{
-				"@type": "PropertyValue",
-				name: "productType",
-				value: product.productType,
-			},
-		],
-	};
+		};
+	} catch (error) {
+		console.error("Error generating metadata:", error);
+		return {
+			title: "Product - Zugzology",
+			description: "View our premium mushroom cultivation supplies.",
+		};
+	}
+}
 
-	return {
-		title,
-		description,
-		alternates: {
-			canonical: url,
-		},
-		openGraph: {
-			title,
-			description,
-			type: "website",
-			url,
-			images: product.images.nodes.map((node: ShopifyImage) => ({
-				url: node.url,
-				width: node.width,
-				height: node.height,
-				alt: node.altText || product.title,
-			})),
-		},
-		twitter: {
-			card: "summary_large_image",
-			title,
-			description,
-			images: product.images.nodes.map((node: ShopifyImage) => node.url),
-		},
-		other: {
-			"product:price:amount": product.priceRange?.minVariantPrice?.amount,
-			"product:price:currency": "USD",
-			"product:availability": product.availableForSale ? "instock" : "outofstock",
-		},
-	};
+// Error fallback component
+function ProductError() {
+	return (
+		<div className="w-full min-h-[50vh] flex items-center justify-center">
+			<div className="text-center">
+				<h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+				<p className="text-muted-foreground">Unable to load product information</p>
+				<a href="/" className="mt-4 inline-block text-primary hover:underline">
+					Return to Home
+				</a>
+			</div>
+		</div>
+	);
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
-	const { handle } = await params;
-	const { product } = await getPageData(handle);
+	try {
+		// In Next.js 15, we need to await params
+		const { handle } = await params;
+		const { product, relatedProducts } = await getProductPageData(handle);
 
-	const productSchema: WithContext<Product> = {
-		"@context": "https://schema.org",
-		"@type": "Product",
-		name: product.title,
-		description: product.description,
-		image: product.images.nodes.map((node: ShopifyImage) => node.url) || [],
-		brand: {
-			"@type": "Brand",
-			name: "Zugzology",
-		},
-		offers: {
-			"@type": "AggregateOffer",
-			priceCurrency: "USD",
-			lowPrice: product.priceRange?.minVariantPrice?.amount,
-			highPrice: product.priceRange?.maxVariantPrice?.amount,
-			offerCount: product.variants.nodes.length || 1,
-			availability: product.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-			itemCondition: "https://schema.org/NewCondition",
-			seller: {
-				"@type": "Organization",
-				name: "Zugzology",
-			},
-		},
-		category: product.productType || "Mushroom Cultivation Supplies",
-		identifier: [
-			{
-				"@type": "PropertyValue",
-				propertyID: "id",
-				value: product.id,
-			},
-		],
-		url: `https://zugzology.com/products/${product.handle}`,
-		additionalProperty: [
-			{
-				"@type": "PropertyValue",
-				name: "productType",
-				value: product.productType,
-			},
-		],
-	};
+		if (!product) {
+			notFound();
+		}
 
-	return (
-		<>
-			<script {...jsonLdScriptProps(productSchema)} />
-			<ProductContent product={product} />
-		</>
-	);
+		return (
+			<ErrorBoundary fallback={<ProductError />}>
+				<ProductServerWrapper product={product} relatedProducts={relatedProducts} />
+			</ErrorBoundary>
+		);
+	} catch (error) {
+		console.error("Error loading product page:", error);
+		return <ProductError />;
+	}
 }

@@ -2,11 +2,12 @@ import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { getBlogs } from "@/lib/actions/shopify";
+import { getBlogs, getPaginatedBlogPosts } from "@/lib/api/shopify/actions";
 import type { ShopifyBlogArticle, ShopifyBlog } from "@/lib/types";
 import { jsonLdScriptProps } from "react-schemaorg";
 import { WithContext, Blog, BreadcrumbList } from "schema-dts";
 import { notFound } from "next/navigation";
+import { PaginationControls } from "@/components/ui/pagination";
 
 export const metadata: Metadata = {
 	title: "Blog - Mushroom Cultivation Insights & Guides | Zugzology",
@@ -83,15 +84,37 @@ function BlogCard({ post, blogHandle }: BlogCardProps) {
 }
 
 // Helper function to get random featured posts
-function getRandomFeaturedPosts(posts: BlogPost[], count: number = 2) {
-	const shuffled = [...posts].sort(() => 0.5 - Math.random());
+function getRandomFeaturedPosts(posts: ShopifyBlogArticle[], count: number = 2) {
+	// Convert ShopifyBlogArticle to BlogPost by adding blogHandle
+	const blogPosts: BlogPost[] = posts.map((post) => ({
+		...post,
+		blogHandle: post.blog?.handle || "news", // Default to 'news' if blog handle is not available
+	}));
+
+	const shuffled = [...blogPosts].sort(() => 0.5 - Math.random());
 	return shuffled.slice(0, count);
 }
 
-export default async function BlogsPage() {
+// Constants for pagination
+const POSTS_PER_PAGE = 12;
+
+export default async function BlogsPage({ searchParams }: { searchParams?: { page?: string } }) {
+	// Always await searchParams in Next.js 15
+	const nextjs15SearchParams = await searchParams;
+	const currentPage = nextjs15SearchParams?.page ? parseInt(nextjs15SearchParams.page) : 1;
+
+	// Get blogs for structured data
 	const blogs = await getBlogs();
 
 	if (!blogs) {
+		return notFound();
+	}
+
+	// Get paginated blog posts
+	const { posts: allPosts, pagination } = await getPaginatedBlogPosts(currentPage, POSTS_PER_PAGE);
+
+	if (!allPosts.length && currentPage > 1) {
+		// If no posts found and we're not on the first page, redirect to first page
 		return notFound();
 	}
 
@@ -131,19 +154,17 @@ export default async function BlogsPage() {
 		],
 	};
 
-	const allPosts: BlogPost[] = blogs.flatMap((blog: ShopifyBlog) =>
-		blog.articles.edges.map(({ node }) => ({
-			...node,
-			blogHandle: blog.handle,
-		}))
-	);
+	// Get featured posts (only on first page)
+	const featuredPosts = currentPage === 1 ? getRandomFeaturedPosts(allPosts) : [];
 
-	// Sort posts by date
-	allPosts.sort((a: BlogPost, b: BlogPost) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+	// Filter out featured posts from the main list if we're on the first page
+	// Convert ShopifyBlogArticle to BlogPost by adding blogHandle
+	const blogPosts: BlogPost[] = allPosts.map((post) => ({
+		...post,
+		blogHandle: post.blog?.handle || "news", // Default to 'news' if blog handle is not available
+	}));
 
-	// Get featured posts
-	const featuredPosts = getRandomFeaturedPosts(allPosts);
-	const remainingPosts = allPosts.filter((post) => !featuredPosts.find((fp) => fp.id === post.id));
+	const paginatedPosts = currentPage === 1 ? blogPosts.filter((post) => !featuredPosts.find((fp) => fp.id === post.id)) : blogPosts;
 
 	return (
 		<>
@@ -200,12 +221,12 @@ export default async function BlogsPage() {
 					)}
 
 					{/* Latest Articles Section - Only show if there are remaining posts */}
-					{remainingPosts.length > 0 && (
+					{paginatedPosts.length > 0 && (
 						<section>
 							<div className="flex items-center justify-between mb-8">
 								<div>
 									<h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Latest Articles</h2>
-									<p className="mt-1 text-neutral-600 dark:text-neutral-400">Stay up to date with our newest posts</p>
+									<p className="mt-1 text-neutral-600 dark:text-neutral-400">{pagination.totalPosts > 0 ? `Showing ${(pagination.currentPage - 1) * pagination.postsPerPage + 1}-${Math.min(pagination.currentPage * pagination.postsPerPage, pagination.totalPosts)} of ${pagination.totalPosts} articles` : "No articles available"}</p>
 								</div>
 							</div>
 							<Suspense
@@ -222,10 +243,17 @@ export default async function BlogsPage() {
 								}
 							>
 								<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-									{remainingPosts.map((post) => (
+									{paginatedPosts.map((post) => (
 										<BlogCard key={post.id} post={post} blogHandle={post.blogHandle} />
 									))}
 								</div>
+
+								{/* Pagination */}
+								{pagination.totalPages > 1 && (
+									<div className="mt-12 mb-8">
+										<PaginationControls currentPage={pagination.currentPage} totalPages={pagination.totalPages} baseUrl="/blogs" />
+									</div>
+								)}
 							</Suspense>
 						</section>
 					)}

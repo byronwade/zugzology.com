@@ -4,12 +4,12 @@ import { memo, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ProductCard } from "@/components/products/product-card";
 import type { ShopifyProduct } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useInView } from "react-intersection-observer";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useIntersectionObserver } from "@/lib/hooks/use-intersection-observer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationControls } from "@/components/ui/pagination";
 
 interface ProductListProps {
 	products: ShopifyProduct[];
@@ -57,9 +57,49 @@ const useStockInfo = (product: ShopifyProduct) => {
 
 // Memoized ProductGrid component
 const ProductGrid = memo(({ products, visibleProducts, onRemoveFromWishlist, onAddToWishlist, collectionHandle }: { products: ShopifyProduct[]; visibleProducts: Set<string>; onRemoveFromWishlist?: (handle: string) => void; onAddToWishlist?: (handle: string) => void; collectionHandle?: string }) => {
+	// Optimize rendering by only rendering products that are likely to be visible
+	// This is a simple virtualization technique that works well for most cases
+	const [renderedProducts, setRenderedProducts] = useState<ShopifyProduct[]>([]);
+
+	useEffect(() => {
+		// Check if this is the "All Products" collection
+		const isAllProductsCollection = collectionHandle === "all";
+
+		// For the "All Products" page, use more aggressive virtualization
+		if (isAllProductsCollection && products.length > 12) {
+			// Initially render only the first 8 products
+			setRenderedProducts(products.slice(0, 8));
+
+			// After a short delay, render the first 12 products
+			const timer1 = setTimeout(() => {
+				setRenderedProducts(products.slice(0, 12));
+
+				// After another delay, render all products
+				const timer2 = setTimeout(() => {
+					setRenderedProducts(products);
+				}, 300);
+
+				return () => clearTimeout(timer2);
+			}, 100);
+
+			return () => clearTimeout(timer1);
+		} else {
+			// For other collections, use the standard approach
+			// Initially render only the first 12 products
+			setRenderedProducts(products.slice(0, 12));
+
+			// After a short delay, render the rest
+			const timer = setTimeout(() => {
+				setRenderedProducts(products);
+			}, 100);
+
+			return () => clearTimeout(timer);
+		}
+	}, [products, collectionHandle]);
+
 	return (
 		<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-			{products.map((product) => {
+			{renderedProducts.map((product) => {
 				const stockInfo = useStockInfo(product);
 				const isVisible = visibleProducts.has(product.id);
 
@@ -71,145 +111,63 @@ const ProductGrid = memo(({ products, visibleProducts, onRemoveFromWishlist, onA
 
 ProductGrid.displayName = "ProductGrid";
 
-// Pagination component
-const Pagination = memo(({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) => {
-	if (totalPages <= 1) return null;
-
-	return (
-		<div className="flex items-center justify-center mt-8 space-x-2">
-			<Button variant="outline" size="icon" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1} aria-label="Previous page">
-				<ChevronLeft className="h-4 w-4" />
-			</Button>
-
-			<div className="flex items-center space-x-2">
-				{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-					<Button key={page} variant={currentPage === page ? "default" : "outline"} size="sm" onClick={() => onPageChange(page)} aria-label={`Page ${page}`} aria-current={currentPage === page ? "page" : undefined}>
-						{page}
-					</Button>
-				))}
-			</div>
-
-			<Button variant="outline" size="icon" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage >= totalPages} aria-label="Next page">
-				<ChevronRight className="h-4 w-4" />
-			</Button>
-		</div>
-	);
-});
-
-Pagination.displayName = "Pagination";
-
 // Main ProductList component
 export function ProductList({ products, totalProducts = 0, currentPage = 1, productsPerPage = 24, onRemoveFromWishlist, onAddToWishlist, collectionHandle }: ProductListProps) {
+	const [visibleProducts, setVisibleProducts] = useState<Set<string>>(new Set());
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const pathname = usePathname();
-	const [visibleProducts, setVisibleProducts] = useState<Set<string>>(new Set());
-	const observerRef = useRef<IntersectionObserver | null>(null);
-	const productRefs = useRef<Map<string, HTMLElement>>(new Map());
+	const containerRef = useRef<HTMLDivElement>(null);
 
 	// Calculate total pages
 	const totalPages = Math.max(1, Math.ceil((totalProducts || products.length) / productsPerPage));
 
-	// Handle page change
-	const handlePageChange = useCallback(
-		(page: number) => {
-			const params = new URLSearchParams(searchParams.toString());
-			params.set("page", page.toString());
-			router.push(`${pathname}?${params.toString()}#products-top`);
-		},
-		[router, searchParams, pathname]
-	);
-
-	// Setup intersection observer to track visible products
-	useEffect(() => {
-		// Cleanup previous observer
-		if (observerRef.current) {
-			observerRef.current.disconnect();
-		}
-
-		// Create new observer with a stable callback
-		const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-			const updatedVisibleProducts = new Set(visibleProducts);
-			let hasChanges = false;
-
-			entries.forEach((entry) => {
-				const productId = entry.target.getAttribute("data-product-id");
-				if (productId) {
-					if (entry.isIntersecting && !updatedVisibleProducts.has(productId)) {
-						updatedVisibleProducts.add(productId);
-						hasChanges = true;
-					}
-				}
-			});
-
-			// Only update state if there are changes
-			if (hasChanges) {
-				setVisibleProducts(updatedVisibleProducts);
+	// Optimize rendering by only tracking visibility for visible products
+	// This reduces the number of IntersectionObserver instances
+	const handleVisibilityChange = useCallback((productId: string, isVisible: boolean) => {
+		setVisibleProducts((prev) => {
+			const newSet = new Set(prev);
+			if (isVisible) {
+				newSet.add(productId);
 			}
-		};
-
-		observerRef.current = new IntersectionObserver(handleIntersection, {
-			rootMargin: "200px",
-			threshold: 0.1,
+			return newSet;
 		});
-
-		// Observe all product elements
-		productRefs.current.forEach((ref) => {
-			if (observerRef.current) {
-				observerRef.current.observe(ref);
-			}
-		});
-
-		return () => {
-			if (observerRef.current) {
-				observerRef.current.disconnect();
-			}
-		};
-	}, []); // Empty dependency array to ensure this only runs once
-
-	// Set up refs for each product with a stable callback
-	const setProductRef = useCallback((element: HTMLElement | null, productId: string) => {
-		if (element) {
-			element.setAttribute("data-product-id", productId);
-			productRefs.current.set(productId, element);
-
-			// Observe immediately if observer exists
-			if (observerRef.current) {
-				observerRef.current.observe(element);
-			}
-		} else if (productRefs.current.has(productId)) {
-			// Only delete if it exists to avoid unnecessary updates
-			productRefs.current.delete(productId);
-		}
 	}, []);
 
-	// If no products, show loading skeleton
-	if (!products.length) {
-		return (
-			<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-				{Array.from({ length: 12 }).map((_, i) => (
-					<ProductSkeleton key={i} />
-				))}
-			</div>
-		);
-	}
+	// Optimize page navigation
+	const handlePageChange = useCallback(
+		(page: number) => {
+			if (page === currentPage) return;
+
+			// Create new URLSearchParams
+			const params = new URLSearchParams(searchParams.toString());
+			params.set("page", page.toString());
+
+			// Use shallow routing to avoid full page reload
+			router.push(`${pathname}?${params.toString()}`);
+
+			// No scrolling - let the browser handle the navigation naturally
+		},
+		[currentPage, pathname, router, searchParams]
+	);
+
+	// Optimize initial visibility tracking
+	useEffect(() => {
+		// Mark first 8 products as visible by default
+		const initialVisible = new Set<string>();
+		products.slice(0, 8).forEach((product) => {
+			initialVisible.add(product.id);
+		});
+		setVisibleProducts(initialVisible);
+	}, [products]);
 
 	return (
-		<div className="space-y-8">
-			{/* Product Grid */}
-			<div className="relative">
-				<ProductGrid products={products} visibleProducts={visibleProducts} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} collectionHandle={collectionHandle} />
+		<div ref={containerRef}>
+			<ProductGrid products={products} visibleProducts={visibleProducts} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} collectionHandle={collectionHandle} />
 
-				{/* Product Refs - Hidden elements for intersection observer */}
-				<div className="sr-only" aria-hidden="true">
-					{products.map((product) => (
-						<div key={`ref-${product.id}`} ref={(el) => setProductRef(el, product.id)} data-product-id={product.id} />
-					))}
-				</div>
+			<div className="mt-12 mb-8">
+				<PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
 			</div>
-
-			{/* Pagination */}
-			{totalPages > 1 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
 		</div>
 	);
 }

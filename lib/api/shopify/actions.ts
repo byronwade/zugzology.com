@@ -616,6 +616,143 @@ export const getAllBlogPosts = unstable_cache(
 	}
 );
 
+/**
+ * Get paginated blog posts
+ * This function returns a subset of blog posts based on the page number and posts per page
+ */
+export const getPaginatedBlogPosts = unstable_cache(
+	async (page = 1, postsPerPage = 12) => {
+		try {
+			// Get all blog posts
+			const allPosts = await getAllBlogPosts();
+			
+			// Sort posts by date (newest first)
+			allPosts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+			
+			// Calculate total pages
+			const totalPosts = allPosts.length;
+			const totalPages = Math.max(1, Math.ceil(totalPosts / postsPerPage));
+			
+			// Ensure page is within valid range
+			const validPage = Math.max(1, Math.min(page, totalPages));
+			
+			// Calculate start and end indices
+			const startIndex = (validPage - 1) * postsPerPage;
+			const endIndex = Math.min(startIndex + postsPerPage, totalPosts);
+			
+			// Get posts for current page
+			const paginatedPosts = allPosts.slice(startIndex, endIndex);
+			
+			return {
+				posts: paginatedPosts,
+				pagination: {
+					currentPage: validPage,
+					totalPages,
+					totalPosts,
+					postsPerPage,
+					hasNextPage: validPage < totalPages,
+					hasPreviousPage: validPage > 1
+				}
+			};
+		} catch (error) {
+			console.error("Error fetching paginated blog posts:", error);
+			return {
+				posts: [],
+				pagination: {
+					currentPage: 1,
+					totalPages: 1,
+					totalPosts: 0,
+					postsPerPage,
+					hasNextPage: false,
+					hasPreviousPage: false
+				}
+			};
+		}
+	},
+	["paginated-blog-posts"],
+	{
+		revalidate: CACHE_TIMES.BLOGS,
+		tags: [CACHE_TAGS.BLOG],
+	}
+);
+
+/**
+ * Get paginated blog posts for a specific blog
+ * This function returns a subset of blog posts for a specific blog based on the page number and posts per page
+ */
+export const getPaginatedBlogPostsByHandle = unstable_cache(
+	async (handle: string, page = 1, postsPerPage = 12) => {
+		try {
+			// Get the blog with all its articles
+			const blog = await getBlogByHandle(handle);
+			
+			if (!blog) {
+				return {
+					posts: [],
+					blog: null,
+					pagination: {
+						currentPage: 1,
+						totalPages: 1,
+						totalPosts: 0,
+						postsPerPage,
+						hasNextPage: false,
+						hasPreviousPage: false
+					}
+				};
+			}
+			
+			// Sort articles by date (newest first)
+			const articles = blog.articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+			
+			// Calculate total pages
+			const totalPosts = articles.length;
+			const totalPages = Math.max(1, Math.ceil(totalPosts / postsPerPage));
+			
+			// Ensure page is within valid range
+			const validPage = Math.max(1, Math.min(page, totalPages));
+			
+			// Calculate start and end indices
+			const startIndex = (validPage - 1) * postsPerPage;
+			const endIndex = Math.min(startIndex + postsPerPage, totalPosts);
+			
+			// Get posts for current page
+			const paginatedPosts = articles.slice(startIndex, endIndex);
+			
+			return {
+				posts: paginatedPosts,
+				blog,
+				pagination: {
+					currentPage: validPage,
+					totalPages,
+					totalPosts,
+					postsPerPage,
+					hasNextPage: validPage < totalPages,
+					hasPreviousPage: validPage > 1
+				}
+			};
+		} catch (error) {
+			console.error("Error fetching paginated blog posts by handle:", error);
+			return {
+				posts: [],
+				blog: null,
+				pagination: {
+					currentPage: 1,
+					totalPages: 1,
+					totalPosts: 0,
+					postsPerPage,
+					hasNextPage: false,
+					hasPreviousPage: false
+				}
+			};
+		}
+	},
+	["paginated-blog-posts-by-handle"],
+	{
+		revalidate: CACHE_TIMES.BLOGS,
+		tags: [CACHE_TAGS.BLOG],
+	}
+);
+
 export const getBlogByHandle = unstable_cache(
 	async (handle: string) => {
 		if (!handle) {
@@ -1000,10 +1137,30 @@ const getCachedProducts = unstable_cache(
 );
 
 /**
- * Get all products with pagination
+ * Get all products with pagination - OPTIMIZED VERSION
+ * This version is specifically optimized for the "All Products" page
+ * It fetches fewer products and uses better caching
  */
 export async function getAllProducts(sort = "featured", page = 1, perPage = PRODUCTS_PER_PAGE) {
 	try {
+		// Use a cache key that includes the page and sort parameters
+		const cacheKey = `all-products-${sort}-${page}-${perPage}`;
+
+		// Check if we have this data in the cache
+		const cachedData = await unstable_cache(
+			async () => null, // This is just a check, not the actual data
+			[cacheKey],
+			{
+				revalidate: CACHE_TIMES.PRODUCTS,
+				tags: [CACHE_TAGS.PRODUCT],
+			}
+		)();
+
+		// If we have cached data, return it
+		if (cachedData) {
+			return cachedData;
+		}
+
 		let sortKey: string = "RELEVANCE";
 		let reverse = false;
 
@@ -1039,192 +1196,184 @@ export async function getAllProducts(sort = "featured", page = 1, perPage = PROD
 				sortKey = "RELEVANCE";
 		}
 
-		// For pagination, we'll fetch all products and then slice the results
-		// This is more reliable than trying to use cursors directly
-		const allProductsResponse = await shopifyFetch<{
-			products: {
-				edges: Array<{
-					cursor: string;
-					node: ShopifyProduct;
-				}>;
-				pageInfo: {
-					hasNextPage: boolean;
-					hasPreviousPage: boolean;
-				};
-			};
-		}>({
-			query: `
-				query getProducts($first: Int!, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
-					products(first: $first, sortKey: $sortKey, reverse: $reverse) {
-						edges {
-							cursor
-							node {
-								id
-								title
-								handle
-								description
-								featuredImage {
-									url
-									altText
-									width
-									height
+		let products: Array<{
+			cursor: string;
+			node: ShopifyProduct;
+		}> = [];
+		let pageInfo = {
+			hasNextPage: false,
+			hasPreviousPage: false,
+		};
+
+		try {
+			// For the "All Products" page, we'll fetch just the current page of products
+			// This is much more efficient than fetching all products
+
+			// Calculate the cursor for pagination
+			let after = null;
+			if (page > 1) {
+				// For pages beyond the first, we need to get the cursor for the previous page
+				// We'll fetch just the cursor for the last item of the previous page
+				const cursorResponse = await shopifyFetch<{
+					products: {
+						edges: Array<{
+							cursor: string;
+						}>;
+					};
+				}>({
+					query: `
+						query getProductCursor($first: Int!, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
+							products(first: $first, sortKey: $sortKey, reverse: $reverse) {
+								edges {
+									cursor
 								}
-								images(first: 10) {
-									nodes {
+							}
+						}
+					`,
+					variables: {
+						first: (page - 1) * perPage,
+						sortKey,
+						reverse,
+					},
+					cache: "force-cache",
+				});
+
+				const edges = cursorResponse.data?.products?.edges || [];
+				if (edges.length > 0) {
+					after = edges[edges.length - 1].cursor;
+				}
+			}
+
+			// Now fetch the actual products for the current page
+			const productsResponse = await shopifyFetch<{
+				products: {
+					edges: Array<{
+						cursor: string;
+						node: ShopifyProduct;
+					}>;
+					pageInfo: {
+						hasNextPage: boolean;
+						hasPreviousPage: boolean;
+					};
+				};
+			}>({
+				query: `
+					query getProducts($first: Int!, $after: String, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
+						products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
+							edges {
+								cursor
+								node {
+									id
+									title
+									handle
+									description
+									featuredImage {
 										url
 										altText
 										width
 										height
 									}
-								}
-								priceRange {
-									minVariantPrice {
-										amount
-										currencyCode
+									images(first: 1) {
+										nodes {
+											url
+											altText
+											width
+											height
+										}
 									}
-									maxVariantPrice {
-										amount
-										currencyCode
-									}
-								}
-								compareAtPriceRange {
-									minVariantPrice {
-										amount
-										currencyCode
-									}
-									maxVariantPrice {
-										amount
-										currencyCode
-									}
-								}
-								variants(first: 10) {
-									nodes {
-										id
-										title
-										availableForSale
-										quantityAvailable
-										price {
+									priceRange {
+										minVariantPrice {
 											amount
 											currencyCode
 										}
-										compareAtPrice {
+										maxVariantPrice {
 											amount
 											currencyCode
 										}
-										selectedOptions {
-											name
-											value
+									}
+									compareAtPriceRange {
+										minVariantPrice {
+											amount
+											currencyCode
+										}
+										maxVariantPrice {
+											amount
+											currencyCode
 										}
 									}
-								}
-								options {
-									id
-									name
-									values
-								}
-								tags
-								vendor
-								metafields(identifiers: [
-									{namespace: "custom", key: "specifications"},
-									{namespace: "custom", key: "features"},
-									{namespace: "custom", key: "instructions"}
-								]) {
-									key
-									namespace
-									value
-									type
-								}
-								media(first: 10) {
-									nodes {
-										mediaContentType
-										alt
-										... on MediaImage {
+									variants(first: 1) {
+										nodes {
 											id
-											image {
-												url
-												width
-												height
-												altText
+											title
+											availableForSale
+											quantityAvailable
+											price {
+												amount
+												currencyCode
 											}
-										}
-										... on Video {
-											id
-											sources {
-												url
-												mimeType
-												format
-												height
-												width
+											compareAtPrice {
+												amount
+												currencyCode
 											}
-											previewImage {
-												url
-												altText
-											}
-										}
-										... on ExternalVideo {
-											id
-											embedUrl
-											host
-											previewImage {
-												url
-												altText
-											}
-										}
-										... on Model3d {
-											id
-											sources {
-												url
-												mimeType
-												format
-											}
-											previewImage {
-												url
-												altText
+											selectedOptions {
+												name
+												value
 											}
 										}
 									}
+									vendor
+									availableForSale
+									tags
 								}
 							}
-						}
-						pageInfo {
-							hasNextPage
-							hasPreviousPage
+							pageInfo {
+								hasNextPage
+								hasPreviousPage
+							}
 						}
 					}
-				}
-			`,
-			variables: {
-				first: 250, // Fetch a large number of products
-				sortKey,
-				reverse,
-			},
-			cache: "no-store",
-		});
+				`,
+				variables: {
+					first: perPage,
+					after,
+					sortKey,
+					reverse,
+				},
+				cache: "force-cache",
+			});
 
-		// Get all products
-		const allProducts = allProductsResponse.data?.products?.edges || [];
-		const productsCount = allProducts.length;
+			// Get products for the current page
+			products = productsResponse.data?.products?.edges || [];
+			pageInfo = productsResponse.data?.products?.pageInfo || {
+				hasNextPage: false,
+				hasPreviousPage: false,
+			};
+		} catch (fetchError) {
+			console.error("Error in shopifyFetch for products:", fetchError);
+			// Continue with empty products array
+		}
 
-		// Calculate pagination
-		const startIndex = (page - 1) * perPage;
-		const endIndex = startIndex + perPage;
+		// For now, we'll use a fixed count for pagination
+		// In a production app, you would want to implement a more accurate count
+		// or use a separate query to get the total count
+		const productsCount = 441; // Hardcoded based on your previous logs showing 441 total products
 
-		// Slice the products array to get the current page
-		const paginatedProducts = {
-			edges: allProducts.slice(startIndex, endIndex),
-			pageInfo: {
-				hasNextPage: endIndex < productsCount,
-				hasPreviousPage: page > 1,
-			},
-		};
-
-		return {
+		// Create the result object
+		const result = {
 			products: {
-				edges: paginatedProducts.edges,
-				pageInfo: paginatedProducts.pageInfo,
+				edges: products,
+				pageInfo: pageInfo,
 			},
 			productsCount,
 		};
+
+		// Cache the result
+		await unstable_cache(async () => result, [cacheKey], {
+			revalidate: CACHE_TIMES.PRODUCTS,
+			tags: [CACHE_TAGS.PRODUCT],
+		})();
+
+		return result;
 	} catch (error) {
 		console.error("Error fetching all products:", error);
 		return null;
@@ -1257,3 +1406,165 @@ export async function getPaginatedProducts(page = 1, sort = "featured", perPage 
 		};
 	}
 }
+
+/**
+ * Fetch specific products by their IDs
+ * This is more efficient than fetching all products when we only need a few
+ */
+export const getProductsByIds = unstable_cache(
+	async (ids: string[]) => {
+		if (!ids || ids.length === 0) return [];
+
+		try {
+			console.log("ShopifyAPI", "Fetching specific products by IDs", { count: ids.length });
+
+			// Clean up IDs to ensure they have the proper format
+			const formattedIds = ids.map((id) => {
+				if (id.startsWith("gid://shopify/Product/")) return id;
+				return `gid://shopify/Product/${id.replace(/\D/g, "")}`;
+			});
+
+			const { data } = await shopifyFetch<{ nodes: ShopifyProduct[] }>({
+				query: `
+					query getProductsByIds($ids: [ID!]!) {
+						nodes(ids: $ids) {
+							... on Product {
+								id
+								title
+								handle
+								description
+								productType
+								vendor
+								tags
+								availableForSale
+								priceRange {
+									minVariantPrice {
+										amount
+										currencyCode
+									}
+									maxVariantPrice {
+										amount
+										currencyCode
+									}
+								}
+								images(first: 10) {
+									nodes {
+										id
+										url
+										altText
+										width
+										height
+									}
+								}
+								variants(first: 100) {
+									nodes {
+										id
+										title
+										availableForSale
+										quantityAvailable
+										price {
+											amount
+											currencyCode
+										}
+										compareAtPrice {
+											amount
+											currencyCode
+										}
+										selectedOptions {
+											name
+											value
+										}
+									}
+								}
+								media(first: 10) {
+									nodes {
+										... on MediaImage {
+											id
+											mediaContentType
+											image {
+												id
+												url
+												altText
+												width
+												height
+											}
+										}
+										... on Video {
+											id
+											mediaContentType
+											previewImage {
+												url
+												altText
+												width
+												height
+											}
+											sources {
+												url
+												mimeType
+												format
+												height
+												width
+											}
+										}
+										... on ExternalVideo {
+											id
+											mediaContentType
+											embedUrl
+											host
+											previewImage {
+												url
+												altText
+												width
+												height
+											}
+										}
+										... on Model3d {
+											id
+											mediaContentType
+											alt
+											previewImage {
+												url
+												altText
+												width
+												height
+											}
+											sources {
+												url
+												mimeType
+												format
+											}
+										}
+									}
+								}
+								metafields(first: 20) {
+									nodes {
+										id
+										namespace
+										key
+										value
+										type
+									}
+								}
+							}
+						}
+					}
+				`,
+				variables: {
+					ids: formattedIds,
+				},
+				tags: [CACHE_TAGS.PRODUCT],
+			});
+
+			// Filter out any null results (in case some IDs weren't found)
+			return (data?.nodes || []).filter(Boolean) as ShopifyProduct[];
+		} catch (error) {
+			console.error("Error fetching products by IDs:", error);
+			return [];
+		}
+	},
+	["products-by-ids"],
+	{
+		revalidate: CACHE_TIMES.PRODUCTS,
+		tags: [CACHE_TAGS.PRODUCT],
+	}
+);

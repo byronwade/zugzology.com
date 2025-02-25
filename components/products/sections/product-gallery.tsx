@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, debugLog } from "@/lib/utils";
 import { Play } from "lucide-react";
 import { ShopifyMediaImage, ShopifyMediaVideo, ShopifyExternalVideo, ShopifyModel3d, ShopifyProduct } from "@/lib/types";
 import Script from "next/script";
@@ -241,25 +241,25 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 	}, []);
 
 	// More detailed debug logs
-	console.log("ProductGallery - Raw product data:", product);
-	console.log("ProductGallery - Media nodes:", product?.media?.nodes);
-	console.log("ProductGallery - First media item:", product?.media?.nodes?.[0]);
-	console.log("ProductGallery - Metafields:", product?.metafields);
+	debugLog("ProductGallery", "Raw product data:", product);
+	debugLog("ProductGallery", "Media nodes:", product?.media?.nodes);
+	debugLog("ProductGallery", "First media item:", product?.media?.nodes?.[0]);
+	debugLog("ProductGallery", "Metafields:", product?.metafields);
 
 	useEffect(() => {
 		setMounted(true);
 		// Debug mounted state
-		console.log("ProductGallery - Component mounted");
+		debugLog("ProductGallery", "Component mounted");
 	}, []);
 
 	// Get media items from product
 	const mediaItems = useMemo(() => {
 		const items: MediaType[] = mediaProp || [];
-		console.log("Initial media items:", items);
+		debugLog("ProductGallery", "Initial media items:", items);
 
 		// If no media prop is provided, extract media from product
 		if (items.length === 0 && product) {
-			console.log("Extracting media from product:", product);
+			debugLog("ProductGallery", "Extracting media from product:", product);
 
 			// Add media items if they exist
 			if (product.media?.nodes) {
@@ -295,18 +295,18 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 		// Process YouTube videos from metafields
 		const youtubeMetafield = product?.metafields?.find((metafield) => metafield?.namespace === "custom" && metafield?.key === "youtube_videos");
 
-		console.log("Found YouTube metafield:", youtubeMetafield);
+		debugLog("ProductGallery", "Found YouTube metafield:", youtubeMetafield);
 
 		if (youtubeMetafield?.value) {
 			try {
 				// Parse the metaobject references
 				const metaobjectRefs = JSON.parse(youtubeMetafield.value);
-				console.log("Parsed metaobject refs:", metaobjectRefs);
+				debugLog("ProductGallery", "Parsed metaobject refs:", metaobjectRefs);
 
 				// Find all URL metafields that contain YouTube links
 				const youtubeUrls = product.metafields?.filter((metafield) => metafield?.type === "url" && metafield?.value && metafield.value.toLowerCase().includes("youtube")) || [];
 
-				console.log("Found YouTube URL metafields:", youtubeUrls);
+				debugLog("ProductGallery", "Found YouTube URL metafields:", youtubeUrls);
 
 				// Create video objects for each YouTube URL
 				const youtubeVideos = youtubeUrls
@@ -336,21 +336,23 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 					})
 					.filter((video): video is YouTubeMedia => Boolean(video));
 
-				console.log("Final YouTube videos array:", youtubeVideos);
+				debugLog("ProductGallery", "Final YouTube videos array:", youtubeVideos.length);
 				return [...items, ...youtubeVideos];
 			} catch (error) {
 				console.error("Error processing YouTube videos:", error);
 				console.error("Raw metafield value:", youtubeMetafield.value);
-				console.error("All metafields:", product.metafields);
 				return items;
 			}
 		}
 
-		console.log("No YouTube videos to process");
+		debugLog("ProductGallery", "No YouTube videos to process");
 		return items;
 	}, [mediaProp, title, product?.metafields]);
 
-	console.log("Final combined mediaItems:", mediaItems);
+	// Only log media items in development, not in production
+	if (process.env.NODE_ENV === "development") {
+		debugLog("ProductGallery", "Final combined mediaItems:", mediaItems.length);
+	}
 
 	// Filter out invalid 3D models
 	const validMedia = mediaItems.filter((media): media is MediaType => {
@@ -360,11 +362,14 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 		return true;
 	});
 
-	console.log("ProductGallery - Combined media array:", validMedia);
+	// Only log in development
+	if (process.env.NODE_ENV === "development") {
+		debugLog("ProductGallery", "Combined media array:", validMedia.length);
+	}
 
 	// Early return with debug message if no media
 	if (!mounted || !validMedia.length) {
-		console.log("ProductGallery - No media or not mounted yet. Mounted:", mounted, "Media length:", validMedia.length);
+		debugLog("ProductGallery", `No media or not mounted yet. Mounted: ${mounted}, Media length: ${validMedia.length}`);
 		return (
 			<div className="w-full">
 				{mediaItems.length === 0 ? (
@@ -425,10 +430,10 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 										className={cn("relative aspect-square border rounded overflow-hidden transition-all", selectedMediaIndex === index ? "border-primary ring-1 ring-primary" : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600")}
 										aria-label={`View product image ${index + 1}`}
 									>
-										{isMediaImage(item) && <Image src={item.image.url} alt={item.alt || `${title} thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" />}
+										{isMediaImage(item) && <Image src={item.image.url} alt={item.alt || `${title} thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" priority={index === 0} />}
 										{isMediaVideo(item) && (
 											<div className="relative w-full h-full">
-												<Image src={item.previewImage?.url || ""} alt={item.alt || `${title} video thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" />
+												<Image src={item.previewImage?.url || ""} alt={item.alt || `${title} video thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" priority={index === 0} />
 												<div className="absolute inset-0 flex items-center justify-center">
 													<Play className="h-6 w-6 text-white drop-shadow-md" />
 												</div>
@@ -436,7 +441,7 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 										)}
 										{isExternalVideo(item) && (
 											<div className="relative w-full h-full">
-												<Image src={item.previewImage?.url || ""} alt={item.alt || `${title} video thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" />
+												<Image src={item.previewImage?.url || ""} alt={item.alt || `${title} video thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" priority={index === 0} />
 												<div className="absolute inset-0 flex items-center justify-center">
 													<Play className="h-6 w-6 text-white drop-shadow-md" />
 												</div>
@@ -444,7 +449,7 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 										)}
 										{isModel3d(item) && (
 											<div className="relative w-full h-full">
-												<Image src={item.previewImage?.url || ""} alt={item.alt || `${title} 3D model thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" />
+												<Image src={item.previewImage?.url || ""} alt={item.alt || `${title} 3D model thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" priority={index === 0} />
 												<div className="absolute inset-0 flex items-center justify-center">
 													<Box className="h-6 w-6 text-white drop-shadow-md" />
 												</div>
@@ -461,7 +466,7 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 	}
 
 	const activeMedia = validMedia[selectedMediaIndex];
-	console.log("ProductGallery - Active media:", activeMedia);
+	debugLog("ProductGallery", "Active media:", activeMedia);
 
 	return (
 		<>
@@ -554,7 +559,7 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 						</div>
 					</div>
 				</div>
-				;{/* Mobile Thumbnails Row */}
+				{/* Mobile Thumbnails Row */}
 				<div className="md:hidden -mx-4">
 					<div className="flex gap-3 overflow-x-auto py-2 pl-4 scrollbar-hide">
 						{validMedia.map((media, index) => {
@@ -590,7 +595,6 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 						<div className="w-4 flex-shrink-0" aria-hidden="true" />
 					</div>
 				</div>
-				;
 			</div>
 		</>
 	);

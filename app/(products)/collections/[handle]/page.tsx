@@ -8,8 +8,10 @@ import { HomeLoading } from "@/components/loading";
 import { ProductsContent } from "@/components/products/products-content";
 import type { ShopifyCollectionWithPagination } from "@/lib/api/shopify/types";
 
-// Use the new Next.js 15 caching approach
+// Use the new Next.js 15 caching approach with stale-while-revalidate
 export const dynamic = "force-dynamic";
+export const revalidate = 3600; // Revalidate every hour
+export const fetchCache = "force-cache"; // Use force-cache for better performance
 
 interface CollectionPageProps {
 	params: {
@@ -26,10 +28,33 @@ interface CollectionPageProps {
 // Cache collection data with the new React cache API
 const getCachedCollection = cache(async (handle: string, sort = "featured", page = 1) => {
 	try {
-		// Special case for "all" collection
+		// Special case for "all" collection - optimize to fetch fewer products initially
 		if (handle === "all") {
-			const allProducts = await getAllProducts(sort, page, 35);
-			if (!allProducts) return null;
+			// Use a more efficient approach for the "all" collection
+			console.log("Server", `⚡ [Collection] Fetching optimized "all" collection, page ${page}, sort ${sort}`);
+
+			const allProducts = await getAllProducts(sort, page, 20); // Reduced from 24 to 20 products per page
+			if (!allProducts) {
+				console.log("Server", "⚡ [Collection] Failed to fetch all products, falling back to empty collection");
+				// Return a fallback collection with empty products
+				return {
+					id: "all",
+					handle: "all",
+					title: "All Products",
+					description: "Browse our complete collection of premium mushroom growing supplies and equipment.",
+					products: {
+						edges: [],
+						pageInfo: {
+							hasNextPage: false,
+							hasPreviousPage: false,
+							startCursor: "",
+							endCursor: "",
+						},
+					},
+					productsCount: 0,
+					image: null,
+				} as ShopifyCollectionWithPagination;
+			}
 
 			// Ensure the returned object matches ShopifyCollectionWithPagination
 			return {
@@ -42,11 +67,12 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 					pageInfo: {
 						hasNextPage: allProducts.products.pageInfo.hasNextPage,
 						hasPreviousPage: allProducts.products.pageInfo.hasPreviousPage,
-						startCursor: "", // Add empty strings for required fields
-						endCursor: "", // Add empty strings for required fields
+						startCursor: "",
+						endCursor: "",
 					},
 				},
 				productsCount: allProducts.productsCount,
+				image: null, // Add image field to match collection type
 			} as ShopifyCollectionWithPagination;
 		}
 
@@ -62,7 +88,7 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 
 		const collection = await getCollection(handle, {
 			page,
-			limit: 35,
+			limit: 20, // Reduced from 24 to 20 products per page for better performance
 			sort: sortKey,
 			reverse: sortDirection === "desc",
 		});
@@ -85,6 +111,7 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 });
 
 export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
+	// Always await params before using its properties in Next.js 15
 	const nextjs15Params = await params;
 	const collection = await getCachedCollection(nextjs15Params.handle);
 	if (!collection) return {};
@@ -99,48 +126,57 @@ export async function generateMetadata({ params }: CollectionPageProps): Promise
 			title,
 			description,
 			type: "website",
-			images: [],
+			images: collection.image
+				? [
+						{
+							url: collection.image.url,
+							width: collection.image.width || 1200,
+							height: collection.image.height || 630,
+							alt: collection.image.altText || collection.title,
+						},
+				  ]
+				: [],
 		},
 	};
 }
 
-// Collection content component with optimizations
-const CollectionContent = async ({ params, searchParams }: CollectionPageProps) => {
-	const nextjs15Search = await searchParams;
-	const nextjs15Params = await params;
-	const sort = nextjs15Search?.sort || "featured";
-	const page = nextjs15Search?.page ? parseInt(nextjs15Search.page) : 1;
+// Main collection page component
+export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
+	try {
+		// Always await params and searchParams before using their properties in Next.js 15
+		const nextjs15Params = await params;
+		const nextjs15SearchParams = await searchParams;
 
-	// Fetch collection data with pagination
-	const collection = await getCachedCollection(nextjs15Params.handle, sort, page);
+		const handle = nextjs15Params.handle;
+		const sort = nextjs15SearchParams?.sort || "featured";
+		const page = nextjs15SearchParams?.page ? parseInt(nextjs15SearchParams.page) : 1;
 
-	if (!collection) {
-		notFound();
-	}
+		// Get collection data with pagination
+		const collection = await getCachedCollection(handle, sort, page);
 
-	return <ProductsContent collection={collection} title={collection.title} description={collection.description || undefined} currentPage={page} defaultSort={sort} totalProducts={collection.productsCount} />;
-};
+		// If collection not found, return 404
+		if (!collection) {
+			console.log("Server", `⚡ [Collection] Collection not found: ${handle}`);
+			return notFound();
+		}
 
-// Error fallback component
-const CollectionError = () => (
-	<div className="w-full min-h-[50vh] flex items-center justify-center">
-		<div className="text-center">
-			<h2 className="text-xl font-semibold mb-2">Unable to load collection</h2>
-			<p className="text-muted-foreground">Please try refreshing the page</p>
-		</div>
-	</div>
-);
+		// Get site settings for SEO
+		const siteSettings = await getSiteSettings();
 
-export default async function CollectionPage(props: CollectionPageProps) {
-	return (
-		<ErrorBoundary fallback={<CollectionError />}>
-			<div className="collection-page w-full">
-				<section aria-label="Collection Products" className="collection-section w-full" itemScope itemType="https://schema.org/CollectionPage">
-					<Suspense fallback={<HomeLoading />}>
-						<CollectionContent {...props} />
-					</Suspense>
-				</section>
+		return (
+			<ErrorBoundary fallback={<div className="container py-10">Sorry, there was an error loading this collection. Please try again later.</div>}>
+				<Suspense fallback={<HomeLoading />}>
+					<ProductsContent collection={collection} title={collection.title} description={collection.description || undefined} currentPage={page} defaultSort={sort} totalProducts={collection.productsCount} />
+				</Suspense>
+			</ErrorBoundary>
+		);
+	} catch (error) {
+		console.error("Server", `⚡ [Collection] Error in CollectionPage:`, error);
+		return (
+			<div className="container py-10">
+				<h1 className="text-2xl font-bold mb-4">Collection Unavailable</h1>
+				<p>We're sorry, but this collection is currently unavailable. Please try again later or browse our other collections.</p>
 			</div>
-		</ErrorBoundary>
-	);
+		);
+	}
 }

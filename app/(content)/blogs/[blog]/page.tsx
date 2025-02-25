@@ -3,13 +3,17 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { getBlogByHandle } from "@/lib/actions/shopify";
+import { getBlogByHandle, getPaginatedBlogPostsByHandle } from "@/lib/api/shopify/actions";
 import type { ShopifyBlogArticle, ShopifyBlog } from "@/lib/types";
 import { BlogBreadcrumb } from "@/components/blog/blog-breadcrumb";
 import { jsonLdScriptProps } from "react-schemaorg";
 import type { WithContext } from "schema-dts";
 import { Blog, BreadcrumbList } from "schema-dts";
 import { unstable_noStore as noStore } from "next/cache";
+import { PaginationControls } from "@/components/ui/pagination";
+
+// Constants for pagination
+const POSTS_PER_PAGE = 12;
 
 // Get blog data
 async function getBlogData(handle: string) {
@@ -126,27 +130,39 @@ function getRandomFeaturedPosts(posts: ShopifyBlogArticle[], count: number = 3) 
 	return shuffled.slice(0, count);
 }
 
-export default async function BlogCategoryPage({ params }: { params: { blog: string } }) {
+export default async function BlogCategoryPage({ params, searchParams }: { params: { blog: string }; searchParams?: { page?: string } }) {
 	const startTime = performance.now();
+
+	// Always await params and searchParams in Next.js 15
 	const nextParams = await params;
-	const blog = await getBlogData(nextParams.blog);
+	const nextSearchParams = await searchParams;
+	const currentPage = nextSearchParams?.page ? parseInt(nextSearchParams.page) : 1;
+
+	// Get paginated blog posts for this blog handle
+	const { posts, blog, pagination } = await getPaginatedBlogPostsByHandle(nextParams.blog, currentPage, POSTS_PER_PAGE);
 
 	if (!blog) {
 		console.log(`❌ [Blog Category] Not found: ${nextParams.blog}`);
 		return notFound();
 	}
 
-	// Sort articles by date
-	const articles = blog.articles.sort((a: ShopifyBlogArticle, b: ShopifyBlogArticle) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+	// If no posts found and we're not on the first page, redirect to first page
+	if (posts.length === 0 && currentPage > 1) {
+		return notFound();
+	}
 
-	// Get featured posts
-	const featuredPosts = getRandomFeaturedPosts(articles);
-	const remainingPosts = articles.filter((article: ShopifyBlogArticle) => !featuredPosts.find((fp) => fp.id === article.id));
+	// Get featured posts (only on first page)
+	const featuredPosts = currentPage === 1 ? getRandomFeaturedPosts(posts) : [];
+
+	// Filter out featured posts from the main list if we're on the first page
+	const remainingPosts = currentPage === 1 ? posts.filter((post) => !featuredPosts.find((fp) => fp.id === post.id)) : posts;
 
 	const duration = performance.now() - startTime;
 	console.log(`⚡ [Blog Category ${blog.title}] ${duration.toFixed(2)}ms`, {
-		articles: articles.length,
-		hasImages: articles.filter((a: ShopifyBlogArticle) => a.image).length,
+		articles: posts.length,
+		hasImages: posts.filter((a: ShopifyBlogArticle) => a.image).length,
+		page: currentPage,
+		totalPages: pagination.totalPages,
 	});
 
 	// Generate structured data
@@ -164,7 +180,7 @@ export default async function BlogCategoryPage({ params }: { params: { blog: str
 				url: "https://zugzology.com/logo.png",
 			},
 		},
-		blogPost: articles.map((article: ShopifyBlogArticle) => ({
+		blogPost: posts.map((article: ShopifyBlogArticle) => ({
 			"@type": "BlogPosting",
 			headline: article.title,
 			description: article.excerpt,
@@ -178,8 +194,8 @@ export default async function BlogCategoryPage({ params }: { params: { blog: str
 				image: {
 					"@type": "ImageObject",
 					url: article.image.url,
-					height: article.image.height.toString(),
-					width: article.image.width.toString(),
+					height: article.image.height?.toString() || "600",
+					width: article.image.width?.toString() || "800",
 				},
 			}),
 		})),
@@ -278,7 +294,7 @@ export default async function BlogCategoryPage({ params }: { params: { blog: str
 							<div className="flex items-center justify-between mb-8">
 								<div>
 									<h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">All {blog.title} Articles</h2>
-									<p className="mt-1 text-neutral-600 dark:text-neutral-400">Browse all articles in this category</p>
+									<p className="mt-1 text-neutral-600 dark:text-neutral-400">{pagination.totalPosts > 0 ? `Showing ${(pagination.currentPage - 1) * pagination.postsPerPage + 1}-${Math.min(pagination.currentPage * pagination.postsPerPage, pagination.totalPosts)} of ${pagination.totalPosts} articles` : "No articles available"}</p>
 								</div>
 							</div>
 							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -286,11 +302,18 @@ export default async function BlogCategoryPage({ params }: { params: { blog: str
 									<BlogCard key={article.id} article={article} blogHandle={blog.handle} />
 								))}
 							</div>
+
+							{/* Pagination */}
+							{pagination.totalPages > 1 && (
+								<div className="mt-12 mb-8">
+									<PaginationControls currentPage={pagination.currentPage} totalPages={pagination.totalPages} baseUrl={`/blogs/${blog.handle}`} />
+								</div>
+							)}
 						</section>
 					)}
 
 					{/* Show message if no posts at all */}
-					{articles.length === 0 && (
+					{posts.length === 0 && (
 						<div className="text-center py-12">
 							<p className="text-neutral-600 dark:text-neutral-400">No articles found in this category.</p>
 						</div>

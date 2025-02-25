@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
-import { ProductGallery } from "./sections/product-gallery";
-import { ShopifyProduct, ShopifyProductVariant, ShopifyMediaImage, ShopifyMediaVideo, ShopifyBlogArticle, ShopifyExternalVideo, ShopifyImage } from "@/lib/types";
-import { ProductInfo } from "./sections/product-info";
-import { ProductActions } from "./sections/product-actions";
+import { ProductGallery } from "@/components/products/sections/product-gallery";
+import { ShopifyProduct, ShopifyProductVariant, ShopifyMediaImage, ShopifyMediaVideo, ShopifyExternalVideo, ShopifyBlogArticle } from "@/lib/types";
+import { ProductInfo } from "@/components/products/sections/product-info";
+import { ProductActions } from "@/components/products/sections/product-actions";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { getProducts, getAllBlogPosts } from "@/lib/actions/shopify";
+import { getProducts, getAllBlogPosts, getProductsByIds } from "@/lib/actions/shopify";
 import { RelatedProducts } from "./sections/related-products";
 import { RecentPosts } from "@/components/blog/recent-posts";
 import { HistoryRecommendations } from "./sections/history-recommendations";
@@ -17,9 +17,16 @@ import { FrequentlyBoughtTogether } from "./sections/frequently-bought-together"
 import Link from "next/link";
 import Image from "next/image";
 import { Package } from "lucide-react";
+import { debugLog } from "@/lib/utils";
+
+interface ProductWithRecommendations extends ShopifyProduct {
+	recommendations?: {
+		nodes: ShopifyProduct[];
+	};
+}
 
 interface ProductContentClientProps {
-	product: ShopifyProduct;
+	product: ProductWithRecommendations;
 }
 
 interface SelectedOptions {
@@ -72,7 +79,7 @@ Breadcrumb.displayName = "Breadcrumb";
 
 export const ProductContentClient = ({ product }: ProductContentClientProps) => {
 	// Debug log the incoming product data
-	console.log("ProductContentClient - Initial product data:", product);
+	debugLog("ProductContentClient", "Initial product data:", product);
 
 	// Early return if no product data
 	if (!product) {
@@ -84,14 +91,14 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 	const [mounted, setMounted] = useState(false);
 	const [selectedVariant, setSelectedVariant] = useState<ShopifyProductVariant | null>(() => {
 		const firstVariant = product?.variants?.nodes?.[0] || null;
-		console.log("ProductContentClient - Initial selected variant:", firstVariant);
+		debugLog("ProductContentClient", "Initial selected variant:", firstVariant);
 		return firstVariant;
 	});
 	const [quantity, setQuantity] = useState(1);
 	const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 	const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>(() => {
 		const initialOptions = getInitialSelectedOptions(product?.variants?.nodes?.[0] || null);
-		console.log("ProductContentClient - Initial selected options:", initialOptions);
+		debugLog("ProductContentClient", "Initial selected options:", initialOptions);
 		return initialOptions;
 	});
 	const [complementaryProducts, setComplementaryProducts] = useState<ShopifyProduct[]>([]);
@@ -118,7 +125,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 
 	// 3. All useMemo hooks
 	const mediaItems = useMemo(() => {
-		console.log("Building media items from:", {
+		debugLog("ProductContentClient", "Building media items from", {
 			media: product.media?.nodes,
 			images: product.images?.nodes,
 		});
@@ -126,10 +133,10 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 		const items: (ShopifyMediaImage | ShopifyMediaVideo | ShopifyExternalVideo)[] = [];
 
 		try {
-			// Add media items if they exist
+			// Process media nodes
 			if (product.media?.nodes) {
 				product.media.nodes.forEach((node) => {
-					console.log("Processing media node:", node);
+					debugLog("ProductContentClient", "Processing media node", node);
 
 					if (node.mediaContentType === "IMAGE") {
 						items.push(node as ShopifyMediaImage);
@@ -155,7 +162,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 				});
 			}
 
-			console.log("Final media items:", items);
+			debugLog("ProductContentClient", "Final media items", items);
 		} catch (error) {
 			console.error("Error processing product media:", error);
 		}
@@ -166,7 +173,21 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 	// 4. All useEffect hooks
 	useEffect(() => {
 		setMounted(true);
-		console.log("ProductContentClient - Component mounted");
+		debugLog("ProductContentClient", "Component mounted");
+
+		// Try to get pre-fetched blog posts from the hidden input
+		try {
+			const blogPostsElement = document.getElementById("recent-blog-posts-data") as HTMLInputElement;
+			if (blogPostsElement && blogPostsElement.value) {
+				const posts = JSON.parse(blogPostsElement.value);
+				if (Array.isArray(posts) && posts.length > 0) {
+					debugLog("ProductContentClient", "Using pre-fetched blog posts", posts.length);
+					setRecentPosts(posts);
+				}
+			}
+		} catch (error) {
+			console.error("Error parsing pre-fetched blog posts:", error);
+		}
 	}, []);
 
 	useEffect(() => {
@@ -174,89 +195,73 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 
 		const variants = product?.variants?.nodes || [];
 		const matchingVariant = findMatchingVariant(variants, selectedOptions);
-		console.log("ProductContentClient - Matching variant found:", matchingVariant);
-
 		if (matchingVariant) {
 			setSelectedVariant(matchingVariant);
+			debugLog("ProductContentClient", "Matching variant found:", matchingVariant);
 		}
 	}, [selectedOptions, product?.variants?.nodes, mounted]);
 
 	useEffect(() => {
 		const fetchComplementaryProducts = async () => {
-			try {
-				// Ensure we have valid product data
-				if (!product || !product.metafields) {
-					console.log("No valid product or metafields data");
-					return;
-				}
+			if (product.metafields && mounted) {
+				try {
+					// Check if we already have recommendations from the server
+					if (product.recommendations?.nodes && product.recommendations.nodes.length > 0) {
+						debugLog("ProductContentClient", "Using server-provided recommendations", product.recommendations.nodes.length);
+						setComplementaryProducts(product.recommendations.nodes);
+						setRecommendedProducts(product.recommendations.nodes.slice(0, 8));
+						return;
+					}
 
-				// Find the complementary_products metafield
-				const complementaryMetafield = product.metafields.find((metafield) => metafield && metafield.namespace === "shopify--discovery--product_recommendation" && metafield.key === "complementary_products");
+					// Find the complementary_products metafield
+					const complementaryMetafield = product.metafields.find((metafield) => metafield && metafield.namespace === "shopify--discovery--product_recommendation" && metafield.key === "complementary_products");
 
-				console.log("Found complementary metafield:", complementaryMetafield);
+					debugLog("ProductContentClient", "Found complementary metafield:", complementaryMetafield);
 
-				if (complementaryMetafield?.value) {
-					try {
-						// Parse the complementary product data
-						const complementaryData = JSON.parse(complementaryMetafield.value);
-						console.log("Raw complementary data:", complementaryData);
+					if (complementaryMetafield?.value) {
+						try {
+							// Parse the complementary product data
+							const complementaryData = JSON.parse(complementaryMetafield.value);
+							debugLog("Raw complementary data:", complementaryData);
 
-						// Get the product references from the correct structure
-						const productReferences = (complementaryData?.recommendations || []).filter(Boolean);
-						console.log("Product references:", productReferences);
+							// Get the product references from the correct structure
+							const productReferences = (complementaryData?.recommendations || []).filter(Boolean);
+							debugLog("Product references:", productReferences);
 
-						if (productReferences.length > 0) {
-							// Fetch all products
-							const allProducts = await getProducts();
-							console.log("All available products:", allProducts.length);
+							if (productReferences.length > 0) {
+								// Extract product IDs
+								const productIds = productReferences
+									.map((ref: any) => {
+										if (!ref) return null;
+										// Extract the product ID from the reference
+										return typeof ref === "string" ? ref : ref.id;
+									})
+									.filter(Boolean);
 
-							// Filter products to get only the complementary ones
-							const complementary = productReferences
-								.map((ref: any) => {
-									if (!ref) return null;
-									// Extract the product ID from the reference
-									const productId = typeof ref === "string" ? ref : ref.id;
-									if (!productId) return null;
-
-									const found = allProducts.find((p) => p && p.id && (p.id === productId || p.id === `gid://shopify/Product/${productId}` || p.id.endsWith(`/${productId}`)));
-
-									if (!found) {
-										console.log("Could not find product with ID:", productId);
-									} else {
-										console.log("Found complementary product:", found.title);
-									}
-									return found;
-								})
-								.filter((p): p is ShopifyProduct => Boolean(p && p.id && p.title && p.priceRange?.minVariantPrice?.amount));
-
-							console.log("Final complementary products:", complementary.length);
-							setComplementaryProducts(complementary);
+								// Fetch only the specific products we need
+								if (productIds.length > 0) {
+									const complementaryProducts = await getProductsByIds(productIds);
+									debugLog("ProductContentClient", "Fetched complementary products", complementaryProducts.length);
+									setComplementaryProducts(complementaryProducts);
+								}
+							}
+						} catch (error) {
+							console.error("Error parsing complementary products:", error);
+							setComplementaryProducts([]);
 						}
-					} catch (error) {
-						console.error("Error parsing complementary products:", error);
+					} else {
+						console.log("No complementary products metafield found");
 						setComplementaryProducts([]);
 					}
-				} else {
-					console.log("No complementary products metafield found");
+				} catch (error) {
+					console.error("Error fetching complementary products:", error);
 					setComplementaryProducts([]);
 				}
-			} catch (error) {
-				console.error("Error fetching complementary products:", error);
-				setComplementaryProducts([]);
 			}
 		};
 
-		if (mounted) {
-			fetchComplementaryProducts();
-		}
-	}, [product?.metafields, mounted]);
-
-	useEffect(() => {
-		if (product.recommendations?.nodes) {
-			console.log("ProductContentClient - Setting recommended products:", product.recommendations.nodes);
-			setRecommendedProducts(product.recommendations.nodes);
-		}
-	}, [product.recommendations?.nodes]);
+		fetchComplementaryProducts();
+	}, [product.metafields, product.recommendations?.nodes, mounted]);
 
 	useEffect(() => {
 		if (!mounted) return;
@@ -310,44 +315,69 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 	}, [mounted, product]);
 
 	useEffect(() => {
-		const fetchAllProducts = async () => {
+		const fetchRandomProducts = async () => {
+			// If we already have recommendations from the server, use those
+			if (product.recommendations?.nodes && product.recommendations.nodes.length > 0) {
+				debugLog("ProductContentClient", "Using server-provided recommendations for random products");
+				setRandomProducts(product.recommendations.nodes);
+				return;
+			}
+
 			try {
-				const allProducts = await getProducts();
-				if (allProducts?.length) {
-					// Get random products excluding current product and history products
-					const historyIds = new Set(historyProducts.map((p) => p.id));
-					const availableForRandom = allProducts.filter((p) => p.id !== product.id && !historyIds.has(p.id));
+				// Only fetch if we don't already have recommendations
+				if (randomProducts.length === 0) {
+					debugLog("ProductContentClient", "Fetching random products from API");
 
-					const shuffled = [...availableForRandom].sort(() => 0.5 - Math.random()).slice(0, 20);
+					// Add timeout to prevent hanging requests
+					const controller = new AbortController();
+					const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-					setRandomProducts(shuffled);
-					setRecommendedProducts(shuffled.slice(0, 8));
+					try {
+						const randomProductsResponse = await fetch(`/api/random-products-new?exclude=${encodeURIComponent(product.id)}`, { signal: controller.signal });
+
+						clearTimeout(timeoutId);
+
+						if (!randomProductsResponse.ok) {
+							throw new Error(`API returned ${randomProductsResponse.status}`);
+						}
+
+						const randomProducts = await randomProductsResponse.json();
+
+						if (randomProducts?.length) {
+							debugLog("ProductContentClient", "Successfully fetched random products", randomProducts.length);
+							setRandomProducts(randomProducts);
+							setRecommendedProducts(randomProducts.slice(0, 8));
+						} else {
+							throw new Error("No products returned from API");
+						}
+					} catch (fetchError) {
+						clearTimeout(timeoutId);
+						throw fetchError;
+					}
 				}
 			} catch (error) {
-				console.error("Error fetching products:", error);
+				console.error("Error fetching random products:", error);
+
+				// Fallback to empty arrays or server-provided recommendations
+				if (!randomProducts.length) {
+					if (product.recommendations?.nodes?.length) {
+						setRandomProducts(product.recommendations.nodes);
+						setRecommendedProducts(product.recommendations.nodes.slice(0, 8));
+					} else {
+						setRandomProducts([]);
+						setRecommendedProducts([]);
+					}
+				}
 			}
 		};
 
 		if (mounted) {
-			fetchAllProducts();
+			fetchRandomProducts();
 		}
-	}, [product.id, mounted, historyProducts]);
-
-	useEffect(() => {
-		const fetchRecentPosts = async () => {
-			try {
-				const posts = await getAllBlogPosts();
-				console.log("ProductContentClient - Setting recent posts:", posts.slice(0, 3));
-				setRecentPosts(posts.slice(0, 3));
-			} catch (error) {
-				console.error("Error fetching recent posts:", error);
-			}
-		};
-		fetchRecentPosts();
-	}, []);
+	}, [product.id, product.recommendations?.nodes, mounted, randomProducts.length]);
 
 	if (!mounted) {
-		console.log("ProductContentClient - Not mounted yet");
+		debugLog("ProductContentClient", "Not mounted yet");
 		return null;
 	}
 

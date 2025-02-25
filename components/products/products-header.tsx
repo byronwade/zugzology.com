@@ -75,75 +75,77 @@ export const ProductsHeader = memo(function ProductsHeader({ title, description,
 	// Check if any filters are active
 	const hasActiveFilters = filters && Object.values(filters).some((value) => value !== "");
 
+	// Check if we should hide the count (for special collections)
+	const shouldHideCount = title === "Today's Sale" || title === "Best Sellers" || title === "Todays Sale";
+
+	// Check if description actually has content
+	const hasDescription = description && description.trim().length > 0;
+
 	return (
-		<div className={cn("w-full border-b p-4 mb-8", className)}>
-			<div className="flex flex-col space-y-2 mb-4">
-				{/* Title and Image */}
-				<div className="flex items-center gap-4">
+		<div className={cn("w-full border-b border-border/60 p-4 mb-8", className)}>
+			{/* Title, Description and Sort */}
+			<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+				<div className="flex items-center gap-4 flex-1 min-w-0">
 					{image?.url && (
-						<div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200 dark:border-neutral-800">
-							<Image src={image.url} alt={image.altText || title} fill className="object-cover" sizes="64px" />
+						<div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-border">
+							<Image src={image.url} alt={image.altText || title} fill className="object-cover" sizes="64px" priority />
 						</div>
 					)}
-					<div>
-						<h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-						{description && <p className="text-muted-foreground">{description}</p>}
+					<div className="flex-1 min-w-0">
+						<h1 className="text-2xl md:text-3xl font-bold tracking-tight truncate">{title}</h1>
+						{hasDescription && <p className="text-muted-foreground mt-1 line-clamp-3 max-w-[500px]">{description}</p>}
 					</div>
 				</div>
 
-				{/* Active Filters */}
-				{hasActiveFilters && (
-					<div className="flex flex-wrap gap-2 mt-2">
-						<div className="flex items-center">
-							<Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-							<span className="text-sm font-medium">Active Filters:</span>
-						</div>
-						{filters &&
-							Object.entries(filters).map(([key, value]) => {
-								if (!value) return null;
-								return (
-									<Badge key={key} variant="secondary" className="flex items-center gap-1">
-										<span>
-											{key}: {value}
-										</span>
-										<Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-transparent" onClick={() => handleRemoveFilter(key)}>
-											<X className="h-3 w-3" />
-											<span className="sr-only">Remove {key} filter</span>
-										</Button>
-									</Badge>
-								);
-							})}
-						{onUpdateFilter && (
-							<Button variant="ghost" size="sm" className="text-xs h-7" onClick={handleClearAllFilters}>
-								Clear All
-							</Button>
-						)}
-					</div>
-				)}
-			</div>
-
-			{/* Sort and Filter Controls */}
-			<div className="flex items-center justify-between mt-6">
-				{/* Product Count */}
-				<div className="text-sm text-muted-foreground">{typeof count === "number" && `${count} product${count !== 1 ? "s" : ""}`}</div>
-
 				{/* Sort Dropdown */}
-				<Select value={currentSort} onValueChange={handleUpdateSort}>
-					<SelectTrigger className="w-[180px] bg-background">
-						<div className="flex items-center gap-2">
-							<ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-							<SelectValue placeholder="Sort by" />
-						</div>
-					</SelectTrigger>
-					<SelectContent>
-						{sortOptions.map((option) => (
-							<SelectItem key={option.value} value={option.value}>
-								{option.label}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				<div className="flex-shrink-0">
+					<Select value={currentSort} onValueChange={handleUpdateSort}>
+						<SelectTrigger className="w-full md:w-[180px] bg-background">
+							<div className="flex items-center gap-2">
+								<ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+								<SelectValue placeholder="Sort by" />
+							</div>
+						</SelectTrigger>
+						<SelectContent>
+							{sortOptions.map((option) => (
+								<SelectItem key={option.value} value={option.value}>
+									{option.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
 			</div>
+
+			{/* Active Filters */}
+			{hasActiveFilters && (
+				<div className="flex flex-wrap gap-2 items-center mt-4">
+					<div className="flex items-center">
+						<Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+						<span className="text-sm font-medium">Filters:</span>
+					</div>
+					{filters &&
+						Object.entries(filters).map(([key, value]) => {
+							if (!value) return null;
+							return (
+								<Badge key={key} variant="secondary" className="flex items-center gap-1 py-1 px-2">
+									<span className="text-xs">
+										{key}: {value}
+									</span>
+									<Button variant="ghost" size="icon" className="h-4 w-4 p-0 ml-1 hover:bg-transparent hover:text-destructive" onClick={() => handleRemoveFilter(key)}>
+										<X className="h-3 w-3" />
+										<span className="sr-only">Remove {key} filter</span>
+									</Button>
+								</Badge>
+							);
+						})}
+					{onUpdateFilter && (
+						<Button variant="ghost" size="sm" className="text-xs h-7 px-2 hover:bg-secondary" onClick={handleClearAllFilters}>
+							Clear All
+						</Button>
+					)}
+				</div>
+			)}
 		</div>
 	);
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { Search, Sun, Moon, Sprout, User, ShoppingCart, Menu, Sparkles, X, ChevronRight, Brain, TestTube, Leaf, BookOpen, ShoppingBag, Star, Tag, Package, HelpCircle, Clock, ArrowRight, Heart, LogIn, UserPlus, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

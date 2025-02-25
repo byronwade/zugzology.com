@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/providers/cart-provider";
 import { Loader2, ShoppingCart, Package, ArrowRight, Shield, TruckIcon, Star, Info, Check, HeartHandshake, Users, Headphones, Percent, Heart, Share2, Link2, Mail, MessageCircle, BookmarkIcon } from "lucide-react";
 import { toast } from "sonner";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, debugLog } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -31,7 +31,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 	const [isBuyingNow, setIsBuyingNow] = useState(false);
 	const [isWishlisted, setIsWishlisted] = useState(false);
 
-	console.log("Product Handle:", productHandle);
+	debugLog("ProductActions", "Product Handle:", productHandle);
 
 	// If no variant is selected, show a message
 	if (!selectedVariant) {
@@ -48,6 +48,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 
 	// Check if product is in wishlist on mount
 	useEffect(() => {
+		debugLog("ProductActions", "Checking product handle:", productHandle);
 		const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
 		setIsWishlisted(wishlist.includes(productHandle));
 	}, [productHandle]);
@@ -458,7 +459,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 
 						{/* Bulk Discounts */}
 						{(() => {
-							console.log("Checking product handle:", productHandle);
+							debugLog("ProductActions", "Checking product handle:", productHandle);
 							return (
 								productHandle === "all-in-one-mushroom-grow-bags-1-pack" && (
 									<AccordionItem value="discounts" className="border rounded-lg bg-accent/50">

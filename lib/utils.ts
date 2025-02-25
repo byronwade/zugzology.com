@@ -12,3 +12,22 @@ export function formatPrice(amount: string | number, currencyCode: string = "USD
 		currency: currencyCode,
 	}).format(numericAmount);
 }
+
+/**
+ * Debug logger utility that only logs when debugging is enabled
+ * Enable by setting DEBUG_LOGGING=true in .env or localStorage.debug = 'true'
+ */
+export const debugLog = (component: string, message: string, data?: any) => {
+	// Check if debugging is enabled via env or localStorage
+	const isDebugEnabled = 
+		process.env.NEXT_PUBLIC_DEBUG_LOGGING === 'true' || 
+		(typeof window !== 'undefined' && window.localStorage.getItem('debug') === 'true');
+	
+	if (!isDebugEnabled) return;
+	
+	if (data) {
+		console.log(`[${component}] ${message}`, data);
+	} else {
+		console.log(`[${component}] ${message}`);
+	}
+};

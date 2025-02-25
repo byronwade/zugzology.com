@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react";
 import { ShopifyProduct, ShopifyBlogArticle } from "@/lib/types";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 
@@ -23,7 +23,8 @@ interface SearchContextType {
 	setIsDropdownOpen: (open: boolean) => void;
 	recentSearches: string[];
 	addRecentSearch: (query: string) => void;
-	searchRef: React.RefObject<HTMLDivElement>;
+	shouldUpdateMainContent: boolean;
+	setShouldUpdateMainContent: (shouldUpdate: boolean) => void;
 }
 
 const SearchContext = createContext<SearchContextType>({
@@ -40,7 +41,8 @@ const SearchContext = createContext<SearchContextType>({
 	setIsDropdownOpen: () => {},
 	recentSearches: [],
 	addRecentSearch: () => {},
-	searchRef: React.createRef<HTMLDivElement>(),
+	shouldUpdateMainContent: false,
+	setShouldUpdateMainContent: () => {},
 });
 
 const MAX_RECENT_SEARCHES = 5;
@@ -60,6 +62,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 		isSearching: false,
 		isDropdownOpen: false,
 		recentSearches: [] as string[],
+		shouldUpdateMainContent: false, // Default to false - don't update main content during search
 	});
 
 	const [data, setData] = useState({
@@ -67,33 +70,10 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 		blogPosts: [] as ShopifyBlogArticle[],
 	});
 
-	const searchRef = useRef<HTMLDivElement>(null);
 	const debouncedSearchQuery = useDebounce(searchState.query, 100);
 
-	// Handle click outside with improved reliability
-	useEffect(() => {
-		if (!searchState.isDropdownOpen) return;
-
-		function handleClickOutside(event: MouseEvent | TouchEvent) {
-			if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-				setSearchState((prev) => ({
-					...prev,
-					query: "",
-					results: [],
-					isDropdownOpen: false,
-					isSearching: false,
-				}));
-			}
-		}
-
-		document.addEventListener("mousedown", handleClickOutside as EventListener);
-		document.addEventListener("touchstart", handleClickOutside as EventListener);
-
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside as EventListener);
-			document.removeEventListener("touchstart", handleClickOutside as EventListener);
-		};
-	}, [searchState.isDropdownOpen]);
+	// Handle click-outside detection is now moved to the component level
+	// No need for a searchRef here anymore
 
 	// Load recent searches from localStorage on mount
 	useEffect(() => {
@@ -242,18 +222,18 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 			},
 			recentSearches: searchState.recentSearches,
 			addRecentSearch,
-			searchRef,
+			shouldUpdateMainContent: searchState.shouldUpdateMainContent,
+			setShouldUpdateMainContent: (shouldUpdate: boolean) => {
+				setSearchState((prev) => ({
+					...prev,
+					shouldUpdateMainContent: shouldUpdate,
+				}));
+			},
 		}),
 		[searchState, data, addRecentSearch]
 	);
 
-	return (
-		<SearchContext.Provider value={contextValue}>
-			<div ref={searchRef} className="w-full">
-				{children}
-			</div>
-		</SearchContext.Provider>
-	);
+	return <SearchContext.Provider value={contextValue}>{children}</SearchContext.Provider>;
 }
 
 export const useSearch = () => {

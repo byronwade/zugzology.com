@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ShopifyProduct, CartItem } from "@/lib/types";
 import { useCart } from "@/lib/providers/cart-provider";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, debugLog } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface FrequentlyBoughtTogetherProps {
@@ -22,9 +22,12 @@ interface FrequentlyBoughtTogetherProps {
 export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }: FrequentlyBoughtTogetherProps) {
 	// Early return if mainProduct is not valid
 	if (!mainProduct?.id || !mainProduct?.title || !mainProduct?.priceRange?.minVariantPrice?.amount) {
-		console.warn("FrequentlyBoughtTogether: Invalid mainProduct data");
+		debugLog("FrequentlyBoughtTogether", "Invalid mainProduct data");
 		return null;
 	}
+
+	// Count invalid products instead of logging each one
+	let invalidProductCount = 0;
 
 	// Ensure complementaryProducts is an array and validate each product
 	const validComplementaryProducts = Array.isArray(complementaryProducts)
@@ -32,7 +35,7 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 				.filter((product) => {
 					const isValid = Boolean(product?.id && product?.title && product?.priceRange?.minVariantPrice?.amount && product?.variants?.nodes?.[0]);
 					if (!isValid) {
-						console.warn("Invalid complementary product:", product);
+						invalidProductCount++;
 					}
 					return isValid;
 				})
@@ -40,9 +43,14 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 				.filter((product, index, self) => index === self.findIndex((p) => p.id === product.id))
 		: [];
 
+	// Log the count of invalid products once instead of individually
+	if (invalidProductCount > 0) {
+		debugLog("FrequentlyBoughtTogether", `Filtered out ${invalidProductCount} invalid complementary products`);
+	}
+
 	// If no valid complementary products, don't render the component
 	if (validComplementaryProducts.length === 0) {
-		console.log("No valid complementary products to display");
+		debugLog("FrequentlyBoughtTogether", "No valid complementary products to display");
 		return null;
 	}
 

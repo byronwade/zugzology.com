@@ -38,8 +38,9 @@ const ProductsLoading = () => (
 );
 
 // Constants for prefetching
-const PREFETCH_BATCH_SIZE = 10;
-const PREFETCH_DELAY = 50;
+const PREFETCH_BATCH_SIZE = 5;
+const PREFETCH_DELAY = 100;
+const MAX_PREFETCH_IMAGES = 20;
 
 // Helper to prefetch images
 async function prefetchImages(products: ShopifyProduct[]): Promise<void> {
@@ -47,17 +48,15 @@ async function prefetchImages(products: ShopifyProduct[]): Promise<void> {
 
 	const imageUrls = new Set<string>();
 
-	// Extract image URLs
+	// Extract image URLs - only take the first image from each product
 	products.forEach((product) => {
-		product.images?.nodes?.forEach((image) => {
-			if (image?.url) {
-				imageUrls.add(image.url);
-			}
-		});
+		if (product.images?.nodes?.[0]?.url) {
+			imageUrls.add(product.images.nodes[0].url);
+		}
 	});
 
-	// Convert to array and process in batches
-	const urls = Array.from(imageUrls);
+	// Convert to array, limit the number of images, and process in batches
+	const urls = Array.from(imageUrls).slice(0, MAX_PREFETCH_IMAGES);
 
 	for (let i = 0; i < urls.length; i += PREFETCH_BATCH_SIZE) {
 		const batch = urls.slice(i, i + PREFETCH_BATCH_SIZE);
@@ -66,8 +65,9 @@ async function prefetchImages(products: ShopifyProduct[]): Promise<void> {
 		await Promise.all(
 			batch.map(async (url) => {
 				try {
-					// Use HEAD request to cache the image without downloading it fully
-					await fetch(url, { method: "HEAD" });
+					// Create a new Image object to prefetch
+					const img = new Image();
+					img.src = url;
 				} catch (error) {
 					// Silently fail on prefetch errors
 				}
@@ -95,7 +95,7 @@ const getTotalProductsCount = (collection?: ShopifyCollectionWithPagination | nu
 };
 
 // Update the useTotalProducts hook to use the helper function
-const useTotalProducts = (collection?: ShopifyCollectionWithPagination | null, initialTotalProducts?: number, rawProducts: ShopifyProduct[] = [], searchResults: ShopifyProduct[] = [], isSearching = false) => {
+const useTotalProducts = (collection?: ShopifyCollectionWithPagination | null, initialTotalProducts?: number, rawProducts: ShopifyProduct[] = [], searchResults: any[] = [], isSearching = false) => {
 	return useMemo(() => {
 		if (isSearching) {
 			return searchResults.length;
@@ -118,23 +118,31 @@ interface ProductsContentProps {
 }
 
 export function ProductsContent({ collection, products: initialProducts, title, description, currentPage = 1, defaultSort = "featured", onRemoveFromWishlist, totalProducts: initialTotalProducts, searchQuery }: ProductsContentProps) {
-	const { searchQuery: debouncedQuery, searchResults, isSearching, setAllProducts } = useSearch();
+	// Get search context but don't let it affect main content rendering
+	const searchContext = useSearch();
+	// Only extract what we need for the dropdown UI
+	const { setAllProducts } = searchContext;
+
+	// Don't use these values for main content rendering
+	// Instead, only use them for the dropdown UI
+	const debouncedQuery = searchContext.searchQuery;
+	const searchResults = searchContext.searchResults;
+	const isSearching = searchContext.isSearching;
+
 	const [mounted, setMounted] = useState(false);
 	const [randomProducts, setRandomProducts] = useState<ShopifyProduct[]>([]);
 	const [recommendedProducts, setRecommendedProducts] = useState<ShopifyProduct[]>([]);
 	const [recentPosts, setRecentPosts] = useState<ShopifyBlogArticle[]>([]);
 
-	// Get products from either collection, direct props, or search results
+	// Get products from collection or direct props, NOT search results for main content
 	const rawProducts = useMemo(() => {
-		if (isSearching) {
-			return searchResults.filter((result): result is { type: "product"; item: ShopifyProduct } => result.type === "product").map((result) => result.item);
-		}
-
+		// For the main collection content, never use search results
+		// This prevents the main content from changing during search
 		return collection ? collection.products.edges.map((edge) => edge.node) : initialProducts || [];
-	}, [collection, initialProducts, isSearching, searchResults]);
+	}, [collection, initialProducts]);
 
-	// Get total count
-	const totalProducts = useTotalProducts(collection, initialTotalProducts, rawProducts, searchResults, isSearching);
+	// Get total count without considering search results
+	const totalProductsCount = useTotalProducts(collection, initialTotalProducts, rawProducts, [], false);
 
 	// Apply filters to products
 	const { filteredProducts, filters, updateFilter } = useProductFilters(rawProducts);
@@ -151,19 +159,25 @@ export function ProductsContent({ collection, products: initialProducts, title, 
 			const productsToSet = [...rawProducts];
 			setAllProducts(productsToSet);
 
-			// Prefetch images in the background without blocking
-			const prefetchPromise = prefetchImages(productsToSet).catch((err) => {
-				// Silently handle prefetch errors
-				console.debug("Image prefetch error:", err);
-			});
+			// Check if this is the "All Products" page
+			const isAllProductsPage = title === "All Products";
 
-			// Return cleanup function
-			return () => {
-				// Cancel prefetch if component unmounts (though this isn't directly possible)
-				prefetchPromise.catch(() => {});
-			};
+			// Only prefetch images for non-All Products pages or if we have few products
+			if (!isAllProductsPage || rawProducts.length < 10) {
+				// Prefetch images in the background without blocking
+				const prefetchPromise = prefetchImages(productsToSet).catch((err) => {
+					// Silently handle prefetch errors
+					console.debug("Image prefetch error:", err);
+				});
+
+				// Return cleanup function
+				return () => {
+					// Cancel prefetch if component unmounts (though this isn't directly possible)
+					prefetchPromise.catch(() => {});
+				};
+			}
 		}
-	}, [rawProducts.length, mounted, setAllProducts]);
+	}, [rawProducts.length, mounted, setAllProducts, title]);
 
 	// Fetch additional data with stable dependencies
 	useEffect(() => {
@@ -172,32 +186,53 @@ export function ProductsContent({ collection, products: initialProducts, title, 
 		let isMounted = true;
 		const fetchData = async () => {
 			try {
-				const [allProducts, posts] = await Promise.all([getProducts(), getAllBlogPosts()]);
+				// Only fetch additional data if we have fewer than 10 products
+				// This avoids unnecessary API calls when we already have enough products
+				if (rawProducts.length < 10) {
+					const [allProducts, posts] = await Promise.all([getProducts(), getAllBlogPosts()]);
 
-				// Only update state if component is still mounted
-				if (!isMounted) return;
+					// Only update state if component is still mounted
+					if (!isMounted) return;
 
-				if (allProducts?.length) {
-					// Create a stable set of IDs for filtering
-					const currentIds = new Set(rawProducts.map((p) => p.id));
-					const availableForRandom = allProducts.filter((p) => !currentIds.has(p.id));
+					if (allProducts?.length) {
+						// Create a stable set of IDs for filtering
+						const currentIds = new Set(rawProducts.map((p) => p.id));
+						const availableForRandom = allProducts.filter((p) => !currentIds.has(p.id));
 
-					// Create stable arrays for state updates
-					const shuffled = [...availableForRandom].sort(() => 0.5 - Math.random()).slice(0, 20);
+						// Create stable arrays for state updates
+						const shuffled = [...availableForRandom].sort(() => 0.5 - Math.random()).slice(0, 12);
 
+						setRandomProducts(shuffled);
+						setRecommendedProducts(shuffled.slice(0, 6));
+					}
+
+					if (posts?.length) {
+						setRecentPosts(posts.slice(0, 3));
+					}
+				} else {
+					// If we have enough products, just use a subset of the existing ones
+					const shuffled = [...rawProducts].sort(() => 0.5 - Math.random()).slice(0, 12);
 					setRandomProducts(shuffled);
-					setRecommendedProducts(shuffled.slice(0, 8));
-				}
+					setRecommendedProducts(shuffled.slice(0, 6));
 
-				if (posts?.length) {
-					setRecentPosts(posts.slice(0, 3));
+					// Fetch blog posts separately as they're still needed
+					const posts = await getAllBlogPosts();
+					if (posts?.length && isMounted) {
+						setRecentPosts(posts.slice(0, 3));
+					}
 				}
 			} catch (error) {
 				console.error("Error fetching additional data:", error);
 			}
 		};
 
-		fetchData();
+		// Use requestIdleCallback to defer non-critical data fetching
+		if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+			(window as any).requestIdleCallback(() => fetchData());
+		} else {
+			// Fallback to setTimeout for browsers that don't support requestIdleCallback
+			setTimeout(fetchData, 200);
+		}
 
 		// Cleanup function
 		return () => {
@@ -205,61 +240,45 @@ export function ProductsContent({ collection, products: initialProducts, title, 
 		};
 	}, [mounted, rawProducts]);
 
-	// Handle empty search results
-	if (isSearching && filteredProducts.length === 0) {
-		return (
-			<main className="w-full" itemScope itemType="https://schema.org/SearchResultsPage">
-				<meta itemProp="name" content={`Search Results for "${debouncedQuery}" - Zugzology`} />
-				<meta itemProp="description" content={`No products found matching your search for "${debouncedQuery}"`} />
-				<ProductsHeader title={`Search Results for "${debouncedQuery}"`} description="No products found matching your search." defaultSort={defaultSort} />
-				<EmptyState title="No Search Results" description={`We couldn't find any products matching "${debouncedQuery}". Try adjusting your search terms or browse our collections.`} showCollectionCards={true} />
-			</main>
-		);
-	}
-
-	// Handle empty collection or no filtered results
-	if (!isSearching && filteredProducts.length === 0) {
-		return (
-			<main className="w-full" itemScope itemType="https://schema.org/CollectionPage">
-				<meta itemProp="name" content={`${title} - Zugzology`} />
-				<meta itemProp="description" content={description || "Browse our collection of products"} />
-				<ProductsHeader title={title} description={description} defaultSort={defaultSort} />
-				<EmptyState title={filters.sort !== "featured" ? "No Filtered Results" : "No Products Available"} description={filters.sort !== "featured" ? "No products match your current filters. Try adjusting your selection or browse all products." : "This collection is currently empty. Check out our other collections or browse all products."} showCollectionCards={true} />
-			</main>
-		);
-	}
-
-	// Determine description text
-	const displayDescription = useMemo(() => {
-		if (isSearching) {
-			return `Found ${filteredProducts.length} products matching your search`;
+	// Render content based on filter state only, NOT search state
+	const renderContent = () => {
+		// Handle empty collection or no filtered results
+		if (filteredProducts.length === 0) {
+			return (
+				<>
+					<ProductsHeader title={title} description={description} defaultSort={defaultSort} />
+					<EmptyState title={filters.sort !== "featured" ? "No Filtered Results" : "No Products Available"} description={filters.sort !== "featured" ? "No products match your current filters. Try adjusting your selection or browse all products." : "This collection is currently empty. Check out our other collections or browse all products."} showCollectionCards={true} />
+				</>
+			);
 		}
 
-		if (filters.sort !== "featured") {
-			return `Showing ${filteredProducts.length} filtered products`;
-		}
+		// Check if we should hide the count (for special collections)
+		const isSpecialCollection = title === "Today's Sale" || title === "Best Sellers" || title === "Todays Sale" || title === "Sale";
 
-		return description || `${totalProducts} products available`;
-	}, [description, filteredProducts.length, filters.sort, isSearching, totalProducts]);
+		// Determine description text based on filters only
+		const displayDescription = filters.sort !== "featured" ? `Showing ${filteredProducts.length} filtered products` : isSpecialCollection ? description || "" : description || `${totalProductsCount} products available`;
 
-	// Determine title text
-	const displayTitle = isSearching ? `Search Results for "${debouncedQuery}"` : title;
+		return (
+			<>
+				<ProductsHeader title={title} description={displayDescription} defaultSort={defaultSort} />
+				<ProductList
+					products={filteredProducts}
+					onRemoveFromWishlist={onRemoveFromWishlist}
+					totalProducts={totalProductsCount}
+					currentPage={currentPage || 1}
+					productsPerPage={20} // Match the value we're using in the collection page
+					collectionHandle={collection?.handle}
+				/>
+			</>
+		);
+	};
 
+	// Always return a consistent structure to avoid hook issues
 	return (
 		<main className="w-full" itemScope itemType="https://schema.org/CollectionPage">
-			<meta itemProp="name" content={`${displayTitle} - Zugzology`} />
-			<meta itemProp="description" content={displayDescription} />
-			<meta itemProp="numberOfItems" content={String(filteredProducts.length)} />
-
-			<div id="products-top" className="scroll-mt-16" />
-
-			<ProductsHeader title={displayTitle} description={displayDescription} defaultSort={defaultSort} />
-
-			<Suspense fallback={<ProductsLoading />}>
-				<section className="px-4 py-6" aria-label={isSearching ? "Search Results" : "Product Catalog"}>
-					<ProductList products={filteredProducts} totalProducts={totalProducts} currentPage={currentPage} productsPerPage={24} onRemoveFromWishlist={onRemoveFromWishlist} {...(collection?.handle ? { collectionHandle: collection.handle } : {})} />
-				</section>
-			</Suspense>
+			<meta itemProp="name" content={`${title} - Zugzology`} />
+			<meta itemProp="description" content={description || "Browse our collection of products"} />
+			{renderContent()}
 		</main>
 	);
 }

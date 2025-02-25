@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { formatPrice, cn } from "@/lib/utils";
 import type { ShopifyProduct } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -221,10 +221,10 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 							alt={productDetails.imageAlt}
 							fill
 							priority={isVisible}
-							unoptimized={true}
 							loading={isVisible ? "eager" : "lazy"}
 							className="object-cover hover:scale-105 transition-transform duration-300"
 							sizes={view === "grid" ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw" : "96px"}
+							fetchPriority={isVisible ? "high" : "low"}
 							onError={(e) => {
 								console.error(`Failed to load image: ${productDetails.imageUrl}`);
 								const target = e.target as HTMLImageElement;
