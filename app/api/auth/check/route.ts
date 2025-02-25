@@ -1,67 +1,120 @@
 import { cookies } from "next/headers";
-import { getCustomer } from "@/lib/services/shopify-customer";
-import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { AUTH_CONFIG, logAuthEvent } from "@/lib/config/auth";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { verifyAuthentication, getCustomerAccessToken, createErrorResponse } from "@/lib/server/api-utils";
 
 export async function GET() {
 	try {
-		// Force dynamic response
-		headers();
+		// Use our utility to verify authentication
+		const isAuthenticated = await verifyAuthentication();
 
+		// Get additional token values for the response
 		const cookieStore = await cookies();
-		const customerAccessToken = cookieStore.get(AUTH_CONFIG.cookies.customerAccessToken.name)?.value;
-		const accessToken = cookieStore.get(AUTH_CONFIG.cookies.accessToken.name)?.value;
-		const idToken = cookieStore.get(AUTH_CONFIG.cookies.idToken.name)?.value;
+		const csrfToken = await cookieStore.get(AUTH_CONFIG.cookies.csrfToken.name);
 
-		if (!customerAccessToken || !accessToken || !idToken) {
-			logAuthEvent("Auth check failed", {
-				hasCustomerToken: !!customerAccessToken,
-				hasAccessToken: !!accessToken,
-				hasIdToken: !!idToken,
-			});
-			return new NextResponse(JSON.stringify({ isAuthenticated: false }), {
-				status: 200,
-				headers: {
-					"Content-Type": "application/json",
-					"Cache-Control": "no-store, must-revalidate",
-					Pragma: "no-cache",
-				},
+		// Log auth check event
+		logAuthEvent("Authentication check", {
+			isAuthenticated,
+			hasCsrfToken: !!csrfToken,
+		});
+
+		if (!isAuthenticated) {
+			return Response.json({
+				authenticated: false,
+				message: "User not authenticated",
 			});
 		}
 
-		logAuthEvent("Verifying customer token", { timestamp: new Date().toISOString() });
-		const customer = await getCustomer(customerAccessToken);
-		const isAuthenticated = !!customer;
+		// Get the customer token to verify with Shopify
+		const customerAccessToken = await getCustomerAccessToken();
 
-		logAuthEvent("Auth check completed", {
-			isAuthenticated,
-			customerId: customer?.id,
-			email: customer?.email,
-		});
+		if (!customerAccessToken) {
+			return Response.json({
+				authenticated: false,
+				message: "Missing authentication token",
+			});
+		}
 
-		return new NextResponse(JSON.stringify({ isAuthenticated, customer }), {
-			status: 200,
+		// Verify the customer token with Shopify
+		const response = await fetch(`https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql`, {
+			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				"Cache-Control": "no-store, must-revalidate",
-				Pragma: "no-cache",
+				"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN as string,
 			},
+			body: JSON.stringify({
+				query: `
+					query {
+						customer(customerAccessToken: "${customerAccessToken}") {
+							id
+							email
+							firstName
+							lastName
+						}
+					}
+				`,
+			}),
+		});
+
+		const data = await response.json();
+
+		// Check for errors in the API response
+		if (data.errors) {
+			logAuthEvent("Auth check API error", {
+				errors: data.errors,
+			});
+
+			// Clear cookies on token failure
+			await cookieStore.delete(AUTH_CONFIG.cookies.customerAccessToken.name);
+			await cookieStore.delete(AUTH_CONFIG.cookies.accessToken.name);
+			await cookieStore.delete(AUTH_CONFIG.cookies.idToken.name);
+			await cookieStore.delete(AUTH_CONFIG.cookies.csrfToken.name);
+
+			return Response.json({
+				authenticated: false,
+				message: "Invalid authentication token",
+			});
+		}
+
+		// Check if customer exists in response
+		if (!data.data?.customer) {
+			logAuthEvent("Auth check failed - No customer data", {
+				response: data,
+			});
+
+			// Clear cookies if token is valid but returns no customer
+			await cookieStore.delete(AUTH_CONFIG.cookies.customerAccessToken.name);
+			await cookieStore.delete(AUTH_CONFIG.cookies.accessToken.name);
+			await cookieStore.delete(AUTH_CONFIG.cookies.idToken.name);
+			await cookieStore.delete(AUTH_CONFIG.cookies.csrfToken.name);
+
+			return Response.json({
+				authenticated: false,
+				message: "Customer not found",
+			});
+		}
+
+		// Successful authentication
+		logAuthEvent("Auth check successful", {
+			customerId: data.data.customer.id,
+			email: data.data.customer.email,
+		});
+
+		return Response.json({
+			authenticated: true,
+			user: {
+				id: data.data.customer.id,
+				email: data.data.customer.email,
+				firstName: data.data.customer.firstName,
+				lastName: data.data.customer.lastName,
+			},
+			csrfToken: csrfToken?.value,
 		});
 	} catch (error) {
 		logAuthEvent("Auth check error", {
 			error: error instanceof Error ? error.message : "Unknown error",
+			stack: error instanceof Error ? error.stack : undefined,
 		});
-		return new NextResponse(JSON.stringify({ isAuthenticated: false }), {
-			status: 200,
-			headers: {
-				"Content-Type": "application/json",
-				"Cache-Control": "no-store, must-revalidate",
-				Pragma: "no-cache",
-			},
-		});
+
+		return createErrorResponse("Authentication check failed", 500);
 	}
 }

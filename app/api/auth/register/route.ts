@@ -1,15 +1,30 @@
 import { cookies } from "next/headers";
-import { AUTH_CONFIG, logAuthEvent } from "@/lib/config/auth";
+import { AUTH_CONFIG, logAuthEvent, generateCsrfToken } from "@/lib/config/auth";
+import { createErrorResponse, parseRequestBody } from "@/lib/server/api-utils";
+
+interface RegisterData {
+	firstName: string;
+	lastName: string;
+	email: string;
+	password: string;
+}
 
 export async function POST(request: Request) {
 	try {
 		logAuthEvent("Registration started", { timestamp: new Date().toISOString() });
 
-		const { firstName, lastName, email, password } = await request.json();
+		// Parse request body
+		const registerData = await parseRequestBody<RegisterData>(request);
+
+		if (!registerData) {
+			return createErrorResponse("Invalid request body", 400);
+		}
+
+		const { firstName, lastName, email, password } = registerData;
 
 		if (!email || !firstName || !lastName || !password) {
 			logAuthEvent("Registration validation failed", { error: "Missing required fields" });
-			return Response.json({ message: "All fields are required" }, { status: 400 });
+			return createErrorResponse("All fields are required", 400);
 		}
 
 		// Log the request for debugging
@@ -20,14 +35,50 @@ export async function POST(request: Request) {
 			hasPassword: !!password,
 		});
 
-		// Create customer using Storefront API
-		const shopDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
-		const response = await fetch(`https://${shopDomain}/api/2024-01/graphql`, {
+		// First check if customer already exists
+		const checkResponse = await fetch(`https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 				"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN as string,
-				Accept: "application/json",
+			},
+			body: JSON.stringify({
+				query: `
+					mutation {
+						customerAccessTokenCreate(input: { email: "${email}", password: "temp-password" }) {
+							customerUserErrors {
+								code
+								message
+							}
+						}
+					}
+				`,
+			}),
+		});
+
+		const checkData = await checkResponse.json();
+		logAuthEvent("Customer existence check", { data: checkData });
+
+		const checkError = checkData.data?.customerAccessTokenCreate?.customerUserErrors[0];
+
+		// If error code is INVALID_CREDENTIALS, customer exists
+		if (checkError?.code === "INVALID_CREDENTIALS") {
+			logAuthEvent("Registration failed - Account exists", { email });
+			return Response.json(
+				{
+					message: "An account with this email already exists",
+					exists: true,
+				},
+				{ status: 400 }
+			);
+		}
+
+		// Create customer in Shopify
+		const response = await fetch(`https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN as string,
 			},
 			body: JSON.stringify({
 				query: `
@@ -35,9 +86,9 @@ export async function POST(request: Request) {
 						customerCreate(input: $input) {
 							customer {
 								id
+								email
 								firstName
 								lastName
-								email
 							}
 							customerUserErrors {
 								code
@@ -49,68 +100,60 @@ export async function POST(request: Request) {
 				`,
 				variables: {
 					input: {
-						firstName,
-						lastName,
 						email,
 						password,
+						firstName,
+						lastName,
 						acceptsMarketing: true,
 					},
 				},
 			}),
 		});
 
-		if (!response.ok) {
-			const errorText = await response.text();
-			logAuthEvent("API request failed", {
-				status: response.status,
-				statusText: response.statusText,
-				error: errorText,
-				headers: Object.fromEntries(response.headers.entries()),
-			});
-			return Response.json({ message: "Registration failed" }, { status: response.status });
-		}
-
 		const data = await response.json();
+		logAuthEvent("Registration response", { success: !data.errors, hasCustomer: !!data.data?.customerCreate?.customer });
 
-		// Log the full response for debugging
-		logAuthEvent("API response received", { data });
+		// Check for GraphQL errors
+		if (data.errors) {
+			logAuthEvent("GraphQL errors", { errors: data.errors });
+			return createErrorResponse(data.errors[0].message, 500);
+		}
 
 		if (!data.data) {
 			logAuthEvent("Invalid API response", { data });
-			return Response.json({ message: "Invalid response from registration service" }, { status: 500 });
+			return createErrorResponse("Invalid response from registration service", 500);
 		}
 
 		const { customerCreate } = data.data;
 
 		if (customerCreate.customerUserErrors?.length > 0) {
 			const error = customerCreate.customerUserErrors[0];
-			logAuthEvent("Customer creation error", {
+			logAuthEvent("Registration failed", {
 				error: error.message,
 				code: error.code,
 				field: error.field,
-				allErrors: customerCreate.customerUserErrors,
 			});
-			return Response.json({ message: error.message }, { status: 400 });
+
+			// Check if it's a duplicate email error
+			if (error.code === "CUSTOMER_ALREADY_EXISTS" || error.message.toLowerCase().includes("already exists")) {
+				return Response.json(
+					{
+						message: "An account with this email already exists",
+						exists: true,
+					},
+					{ status: 400 }
+				);
+			}
+
+			return Response.json({ message: error.message, field: error.field }, { status: 400 });
 		}
 
-		if (!customerCreate.customer) {
-			logAuthEvent("No customer in response", { data });
-			return Response.json({ message: "Failed to create customer" }, { status: 500 });
-		}
-
-		// Log successful customer creation
-		logAuthEvent("Customer created", {
-			customerId: customerCreate.customer.id,
-			email: customerCreate.customer.email,
-		});
-
-		// Now get a customer access token
-		const tokenResponse = await fetch(`https://${shopDomain}/api/2024-01/graphql`, {
+		// Account created, now create access token
+		const tokenResponse = await fetch(`https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 				"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN as string,
-				Accept: "application/json",
 			},
 			body: JSON.stringify({
 				query: `
@@ -138,52 +181,83 @@ export async function POST(request: Request) {
 		});
 
 		const tokenData = await tokenResponse.json();
+		logAuthEvent("Token creation response", { success: !tokenData.errors });
 
-		// Log token response for debugging
-		logAuthEvent("Token response received", { tokenData });
+		if (tokenData.errors) {
+			logAuthEvent("Token creation GraphQL errors", { errors: tokenData.errors });
+			// Still send success but without auto login
+			return Response.json({
+				success: true,
+				message: "Account created successfully. Please log in.",
+				autoLogin: false,
+			});
+		}
 
-		if (tokenData.data?.customerAccessTokenCreate?.customerUserErrors?.length > 0) {
-			const error = tokenData.data.customerAccessTokenCreate.customerUserErrors[0];
-			logAuthEvent("Token creation error", {
+		const { customerAccessTokenCreate } = tokenData.data;
+
+		if (customerAccessTokenCreate.customerUserErrors?.length > 0) {
+			const error = customerAccessTokenCreate.customerUserErrors[0];
+			logAuthEvent("Token creation failed", {
 				error: error.message,
 				code: error.code,
 				field: error.field,
-				allErrors: tokenData.data.customerAccessTokenCreate.customerUserErrors,
 			});
-			return Response.json({ message: error.message }, { status: 400 });
+			// Still send success but without auto login
+			return Response.json({
+				success: true,
+				message: "Account created successfully. Please log in.",
+				autoLogin: false,
+			});
 		}
 
-		const { accessToken, expiresAt } = tokenData.data.customerAccessTokenCreate.customerAccessToken;
+		if (!customerAccessTokenCreate.customerAccessToken) {
+			logAuthEvent("No access token in response", { tokenData });
+			// Still send success but without auto login
+			return Response.json({
+				success: true,
+				message: "Account created successfully. Please log in.",
+				autoLogin: false,
+			});
+		}
+
+		const { accessToken, expiresAt } = customerAccessTokenCreate.customerAccessToken;
 
 		// Set the customer access token in cookies
 		const cookieStore = await cookies();
+
+		// Set the main customer token from Shopify
 		await cookieStore.set(AUTH_CONFIG.cookies.customerAccessToken.name, accessToken, {
 			...AUTH_CONFIG.cookies.customerAccessToken.options,
 			expires: new Date(expiresAt),
 		});
 
-		logAuthEvent("Registration successful", {
-			customerId: customerCreate.customer.id,
-			email: customerCreate.customer.email,
-			tokenExpiresAt: expiresAt,
+		// Generate CSRF token for additional security
+		const csrfToken = generateCsrfToken();
+		await cookieStore.set(AUTH_CONFIG.cookies.csrfToken.name, csrfToken, AUTH_CONFIG.cookies.csrfToken.options);
+
+		// Set session identifier token
+		await cookieStore.set(AUTH_CONFIG.cookies.accessToken.name, `session_${Date.now()}`, AUTH_CONFIG.cookies.accessToken.options);
+
+		// Set user identity token (not revealing actual data but marking signed in state)
+		await cookieStore.set(AUTH_CONFIG.cookies.idToken.name, `user_${Date.now()}`, AUTH_CONFIG.cookies.idToken.options);
+
+		logAuthEvent("Registration and login successful", {
+			customerId: customerCreate.customer?.id,
+			email,
 		});
 
 		return Response.json({
 			success: true,
-			customer: customerCreate.customer,
+			autoLogin: true,
 			redirectUrl: "/account",
+			csrfToken, // Send CSRF token to client
 		});
 	} catch (error) {
 		logAuthEvent("Registration error", {
 			error: error instanceof Error ? error.message : "Unknown error",
 			stack: error instanceof Error ? error.stack : undefined,
-			type: error instanceof Error ? error.constructor.name : typeof error,
 		});
-		return Response.json(
-			{
-				message: "An unexpected error occurred during registration",
-			},
-			{ status: 500 }
-		);
+
+		return createErrorResponse("An unexpected error occurred during registration", 500);
 	}
 }

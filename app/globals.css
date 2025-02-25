@@ -254,3 +254,91 @@ body {
     transform: translateX(calc(-100% - var(--space)));
   }
 }
+/* Smooth scrolling and anchor targets - main declaration */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px;
+  /* Offset for fixed header */
+}
+
+/* Disable smooth scrolling during user-initiated scrolling */
+html.scrolling {
+  scroll-behavior: auto !important;
+}
+
+/* Better heading anchor targets */
+h1[id],
+h2[id],
+h3[id],
+h4[id],
+h5[id],
+h6[id] {
+  scroll-margin-top: 100px;
+  position: relative;
+}
+
+/* Additional padding only for blog content headings */
+.blog-content h1[id],
+.blog-content h2[id],
+.blog-content h3[id],
+.blog-content h4[id],
+.blog-content h5[id],
+.blog-content h6[id] {
+  padding-top: 15px;
+  margin-top: 5px;
+}
+
+/* Visual indicator for headings with IDs */
+.blog-content h2[id]:hover::before,
+.blog-content h3[id]:hover::before,
+.blog-content h4[id]:hover::before {
+  content: '#';
+  position: absolute;
+  left: -1.5rem;
+  opacity: 0.5;
+  font-weight: normal;
+  color: #6366f1;
+}
+
+/* Optimize TOC for mobile */
+@media (max-width: 768px) {
+  .blog-table-of-contents {
+    position: sticky;
+    top: 70px;
+    z-index: 20;
+    background-color: var(--background);
+    border-bottom: 1px solid var(--border);
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Improve TOC styling */
+.blog-table-of-contents {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  background-color: var(--background);
+  overflow: hidden;
+}
+
+.blog-table-of-contents button {
+  padding: 0.75rem 1rem;
+  width: 100%;
+  margin: 0;
+}
+
+.blog-table-of-contents h3 {
+  margin: 0;
+  padding: 0;
+}
+
+.blog-table-of-contents ul {
+  margin: 0;
+  padding: 0;
+}
+
+/* Make sure scrolling class always overrides other styles */
+html.scrolling {
+  scroll-behavior: auto !important;
+}

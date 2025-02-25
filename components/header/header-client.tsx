@@ -2,14 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Sun, Moon, Sprout, User, ShoppingCart, Menu, Sparkles, X, ChevronRight, Brain, TestTube, Leaf, BookOpen, ShoppingBag, Star, Tag, Package, HelpCircle, Clock, ArrowRight, Heart, LogIn, UserPlus, Keyboard } from "lucide-react";
+import { Search, Sun, Moon, Sprout, User, ShoppingCart, Menu, Sparkles, X, ChevronRight, Brain, TestTube, Leaf, BookOpen, ShoppingBag, Star, Tag, Package, HelpCircle, Clock, ArrowRight, Heart, LogIn, UserPlus, Keyboard, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from "react";
 import { useCart } from "@/lib/providers/cart-provider";
 import { useRouter } from "next/navigation";
@@ -24,6 +24,9 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import { usePromo } from "@/lib/providers/promo-provider";
 import { MenuSheet } from "./menu-sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useSession } from "next-auth/react";
+import { UserAccountButton } from "@/components/auth/next-auth-buttons";
+import { NextAuthLogout } from "@/components/auth/next-auth-logout";
 
 interface MenuItem {
 	id: string;
@@ -120,9 +123,12 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	const { showPromo, setShowPromo } = usePromo();
 	const router = useRouter();
 
+	// Replace auth context with Next Auth session
+	const { data: session, status } = useSession();
+	const isAuthenticatedNextAuth = status === "authenticated";
+
 	// 2. State hooks with stable initial values
 	const [mounted, setMounted] = useState<boolean>(false);
-	const [authState, setAuthState] = useState<boolean>(isAuthenticated);
 	const [inputValue, setInputValue] = useState<string>("");
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
@@ -207,8 +213,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	// 6. Effects with cleanup
 	useEffect(() => {
 		setMounted(true);
-		setAuthState(isAuthenticated);
-	}, [isAuthenticated]);
+	}, []);
 
 	// Add keyboard shortcut handler
 	useEffect(() => {
@@ -590,75 +595,96 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 
 						{/* Main Action Buttons */}
 						<div className="flex items-center gap-3">
-							{/* Account & Menu Button */}
+							{/* Affiliated Websites Button */}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button variant="outline" size="icon" className="h-10 w-10 rounded-full">
-										<Menu className="h-4 w-4" />
-										<span className="sr-only">Menu</span>
+										<Globe className="h-4 w-4" />
+										<span className="sr-only">Affiliated Websites</span>
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end" className="w-[200px]">
-									{/* Help Section */}
 									<DropdownMenuItem asChild>
-										<Link href="/help" className="w-full cursor-pointer">
-											<HelpCircle className="h-4 w-4 mr-2" />
-											Help Center
-										</Link>
+										<a href="https://zugzmagic.com" target="_blank" rel="noopener noreferrer" className="w-full cursor-pointer">
+											<Globe className="h-4 w-4 mr-2" />
+											zugzmagic.com
+										</a>
 									</DropdownMenuItem>
 									<DropdownMenuItem asChild>
-										<Link href="/wishlist" className="w-full cursor-pointer">
-											<Heart className="h-4 w-4 mr-2" />
-											Wishlist
-										</Link>
+										<a href="https://zugzbag.com" target="_blank" rel="noopener noreferrer" className="w-full cursor-pointer">
+											<Globe className="h-4 w-4 mr-2" />
+											zugzbag.com
+										</a>
 									</DropdownMenuItem>
-									{authState ? (
-										<>
-											<DropdownMenuItem asChild>
-												<Link href="/account" className="w-full cursor-pointer" prefetch={true}>
+									<DropdownMenuSeparator />
+									<div className="px-2 py-1.5 text-xs text-muted-foreground">Other Sites</div>
+									<DropdownMenuItem asChild>
+										<a href="https://tripsitter.com" target="_blank" rel="noopener noreferrer" className="w-full cursor-pointer">
+											<Globe className="h-4 w-4 mr-2" />
+											tripsitter.com
+										</a>
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+
+							{/* Account & Menu Button */}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline" size="icon" className="relative h-10 w-10 rounded-full">
+										<User className="h-4 w-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent className="w-56" align="end" forceMount>
+									<DropdownMenuLabel className="font-normal">
+										<div className="flex flex-col space-y-1">
+											<p className="text-sm font-medium leading-none">{session?.user?.name || "Account"}</p>
+											{session?.user?.email && <p className="text-xs leading-none text-muted-foreground">{session.user.email}</p>}
+										</div>
+									</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									<DropdownMenuGroup>
+										{isAuthenticatedNextAuth ? (
+											<>
+												<DropdownMenuItem onClick={() => router.push("/account")}>
 													<User className="h-4 w-4 mr-2" />
 													Account
-												</Link>
-											</DropdownMenuItem>
-											<DropdownMenuItem onClick={() => setShowKeyboardShortcuts(true)} className="hidden sm:flex cursor-pointer">
-												<Keyboard className="h-4 w-4 mr-2" />
-												Keyboard Shortcuts
-											</DropdownMenuItem>
-										</>
-									) : (
-										<>
-											<DropdownMenuItem asChild>
-												<Link href="/login" className="w-full cursor-pointer">
-													<LogIn className="h-4 w-4 mr-2" />
-													Login
-												</Link>
-											</DropdownMenuItem>
-											<DropdownMenuItem asChild>
-												<Link href="/register" className="w-full cursor-pointer">
-													<UserPlus className="h-4 w-4 mr-2" />
-													Register
-												</Link>
-											</DropdownMenuItem>
-										</>
-									)}
-									<DropdownMenuSeparator />
-									<DropdownMenuItem onClick={handleTheme} className="cursor-pointer">
-										{theme === "dark" ? (
-											<>
-												<Sun className="h-4 w-4 mr-2" />
-												Light Mode
+												</DropdownMenuItem>
 											</>
 										) : (
+											<>
+												<DropdownMenuItem onClick={() => router.push("/login")}>
+													<LogIn className="h-4 w-4 mr-2" />
+													Login
+												</DropdownMenuItem>
+												<DropdownMenuItem onClick={() => router.push("/register")}>
+													<UserPlus className="h-4 w-4 mr-2" />
+													Register
+												</DropdownMenuItem>
+											</>
+										)}
+									</DropdownMenuGroup>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem onClick={() => router.push("/keyboard-shortcuts")}>
+										<Keyboard className="h-4 w-4 mr-2" />
+										Keyboard Shortcuts
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
+										{theme === "light" ? (
 											<>
 												<Moon className="h-4 w-4 mr-2" />
 												Dark Mode
 											</>
+										) : (
+											<>
+												<Sun className="h-4 w-4 mr-2" />
+												Light Mode
+											</>
 										)}
 									</DropdownMenuItem>
-									{authState && (
+									{isAuthenticatedNextAuth && (
 										<>
 											<DropdownMenuSeparator />
-											<SignOutButton onSignOut={() => setAuthState(false)} />
+											<NextAuthLogout onSignOut={() => router.refresh()} />
 										</>
 									)}
 								</DropdownMenuContent>

@@ -1,130 +1,57 @@
-import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { LoginButton } from "@/components/auth/next-auth-buttons";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { Metadata } from "next";
-import { LoginForm } from "@/components/auth/login-form";
-import { jsonLdScriptProps } from "react-schemaorg";
-import type { WebPage, BreadcrumbList } from "schema-dts";
-import { WithContext } from "schema-dts";
-import { getSiteSettings } from "@/lib/actions/shopify";
 
-export async function generateMetadata(): Promise<Metadata> {
-	const siteSettings = await getSiteSettings();
-	const storeName = siteSettings?.name || "Zugzology";
-	const storeUrl = siteSettings?.url || "https://zugzology.com";
+export const metadata: Metadata = {
+	title: "Login | Zugzology",
+	description: "Sign in to your Zugzology account to manage your orders and profile",
+};
 
-	const title = `Login - Access Your Account | ${storeName}`;
-	const description = `Sign in to your ${storeName} account to manage your orders, track shipments, and access exclusive mushroom cultivation resources.`;
+export default async function LoginPage() {
+	const session = await auth();
 
-	return {
-		title,
-		description,
-		robots: {
-			index: false,
-			follow: true,
-			nocache: true,
-			googleBot: {
-				index: false,
-				follow: true,
-			},
-		},
-		openGraph: {
-			title: `Login to Your ${storeName} Account`,
-			description: "Access your account to manage orders and track shipments.",
-			type: "website",
-			images: siteSettings?.images || [
-				{
-					url: `${storeUrl}/login-og-image.jpg`,
-					width: 1200,
-					height: 630,
-					alt: `${storeName} Login`,
-				},
-			],
-		},
-		twitter: {
-			card: "summary_large_image",
-			title: `Login to Your ${storeName} Account`,
-			description: "Access your account to manage orders and track shipments.",
-			images: siteSettings?.images?.map((img) => img.url) || [`${storeUrl}/login-twitter-image.jpg`],
-		},
-	};
-}
-
-interface LoginPageProps {
-	searchParams: {
-		error?: string;
-		registered?: string;
-		callbackUrl?: string;
-	};
-}
-
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-	const nextSearchParams = await searchParams;
-	const siteSettings = await getSiteSettings();
-	const storeName = siteSettings?.name || "Zugzology";
-	const storeUrl = siteSettings?.url || "https://zugzology.com";
-
-	const params = {
-		error: nextSearchParams?.error,
-		registered: nextSearchParams?.registered === "true",
-		callbackUrl: nextSearchParams?.callbackUrl || "/account",
-	};
-
-	// Generate structured data
-	const pageStructuredData: WithContext<WebPage> = {
-		"@context": "https://schema.org",
-		"@type": "WebPage",
-		name: `Login to ${storeName}`,
-		description: `Sign in to your ${storeName} account to manage your orders and track shipments.`,
-		url: `${storeUrl}/login`,
-		publisher: {
-			"@type": "Organization",
-			name: storeName,
-			logo: {
-				"@type": "ImageObject",
-				url: `${storeUrl}/logo.png`,
-			},
-		},
-	};
-
-	const breadcrumbStructuredData: WithContext<BreadcrumbList> = {
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "Home",
-				item: storeUrl,
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "Login",
-				item: `${storeUrl}/login`,
-			},
-		],
-	};
+	// If already authenticated, redirect to account page
+	if (session) {
+		redirect("/account");
+	}
 
 	return (
-		<>
-			<script {...jsonLdScriptProps(pageStructuredData)} />
-			<script {...jsonLdScriptProps(breadcrumbStructuredData)} />
-			<Suspense
-				fallback={
-					<div className="container relative flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
-						<div className="animate-pulse space-y-4 p-4 lg:p-8">
-							<div className="h-8 w-48 bg-neutral-200 dark:bg-neutral-800 rounded" />
-							<div className="h-4 w-64 bg-neutral-200 dark:bg-neutral-800 rounded" />
-							<div className="space-y-2">
-								<div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded" />
-								<div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded" />
-								<div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded" />
-							</div>
+		<div className="container flex items-center justify-center min-h-[80vh] px-4 py-8">
+			<Card className="w-full max-w-md">
+				<CardHeader className="space-y-1">
+					<div className="flex items-center justify-between">
+						<CardTitle className="text-2xl font-bold">Login</CardTitle>
+						<Button asChild variant="ghost" size="sm">
+							<Link href="/">
+								<ArrowLeft className="h-4 w-4 mr-2" />
+								Back to home
+							</Link>
+						</Button>
+					</div>
+					<CardDescription>Sign in to your account to access your profile and orders</CardDescription>
+				</CardHeader>
+				<CardContent className="grid gap-6">
+					<div className="grid gap-4">
+						<LoginButton className="w-full" />
+						<div className="text-center text-sm text-muted-foreground">
+							By continuing, you agree to our{" "}
+							<Link href="/terms" className="underline underline-offset-4">
+								Terms of Service
+							</Link>{" "}
+							and{" "}
+							<Link href="/privacy" className="underline underline-offset-4">
+								Privacy Policy
+							</Link>
+							.
 						</div>
 					</div>
-				}
-			>
-				<LoginForm {...params} storeName={storeName} />
-			</Suspense>
-		</>
+				</CardContent>
+			</Card>
+		</div>
 	);
 }

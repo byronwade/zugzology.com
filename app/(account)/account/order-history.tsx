@@ -17,9 +17,12 @@ function classNames(...classes: string[]) {
 }
 
 interface OrderItem {
-	id: string;
 	title: string;
 	quantity: number;
+	originalTotalPrice: {
+		amount: string;
+		currencyCode: string;
+	};
 	variant: {
 		id: string;
 		title: string;
@@ -30,6 +33,23 @@ interface OrderItem {
 		image?: {
 			url: string;
 			altText: string | null;
+			width?: number;
+			height?: number;
+		};
+		product?: {
+			id: string;
+			title: string;
+			handle: string;
+			images: {
+				edges: Array<{
+					node: {
+						url: string;
+						altText: string | null;
+						width?: number;
+						height?: number;
+					};
+				}>;
+			};
 		};
 	};
 }
@@ -196,7 +216,7 @@ export default function OrderHistory({ orders: initialOrders }: OrderHistoryProp
 
 							<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
 								{order.lineItems.edges.slice(0, 4).map(({ node: item }, index) => (
-									<div key={`${order.id}-item-${item.id || index}`} className="group relative">
+									<div key={`${order.id}-item-${index}`} className="group relative">
 										<div className="aspect-h-1 aspect-w-1 overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-75">
 											<Image src={item.variant.image?.url || "/placeholder.svg"} alt={item.variant.image?.altText || item.title} width={500} height={500} className="h-full w-full object-cover object-center" />
 										</div>
@@ -261,7 +281,7 @@ export default function OrderHistory({ orders: initialOrders }: OrderHistoryProp
 											<Card>
 												<div className="divide-y">
 													{selectedOrder.lineItems.edges.map(({ node: item }, index) => (
-														<div key={`${selectedOrder.id}-detail-${item.id || index}`} className="flex items-center gap-4 p-4">
+														<div key={`${selectedOrder.id}-detail-${index}`} className="flex items-center gap-4 p-4">
 															<div className="relative h-16 w-16 overflow-hidden rounded-lg">
 																<Image src={item.variant.image?.url || "/placeholder.svg"} alt={item.variant.image?.altText || item.title} fill className="object-cover" />
 															</div>

@@ -112,8 +112,8 @@ export function Footer() {
 								<h2 className="text-base font-bold text-gray-900 dark:text-white">Support</h2>
 								<ul className="mt-4 md:mt-6">
 									{[
-										{ href: "/contact", text: "Customer Support" },
-										{ href: "/help", text: "Help Center" },
+										{ href: "/help/support", text: "Customer Support" },
+										{ href: "/help/center", text: "Help Center" },
 										{ href: "/shipping", text: "Shipping Information" },
 										{ href: "/returns", text: "Returns & Exchanges" },
 										{ href: "/faq", text: "FAQ" },

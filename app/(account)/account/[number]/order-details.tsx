@@ -511,7 +511,7 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 														)}
 													</Button>
 													<Button variant="outline" size="sm" asChild>
-														<Link href={`/contact?subject=Return or Refund - Order #${order.orderNumber}`}>Request Return/Refund</Link>
+														<Link href={`/help?subject=Return or Refund - Order #${order.orderNumber}`}>Request Return/Refund</Link>
 													</Button>
 												</div>
 											</div>

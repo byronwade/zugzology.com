@@ -15,7 +15,7 @@ export function ContactForm() {
 		"@type": "ContactPage",
 		name: "Contact Zugzology",
 		description: "Contact page for Zugzology - Premium mushroom cultivation supplies and equipment.",
-		url: "https://zugzology.com/contact",
+		url: "https://zugzology.com/help",
 		mainEntity: {
 			"@type": "Organization",
 			name: "Zugzology",
@@ -41,7 +41,7 @@ export function ContactForm() {
 				"@type": "ListItem",
 				position: 2,
 				name: "Contact",
-				item: "https://zugzology.com/contact",
+				item: "https://zugzology.com/help",
 			},
 		],
 	};

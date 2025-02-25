@@ -5,9 +5,9 @@ import { getMenuItems } from "./menu-items";
 import { HeaderClient } from "./header-client";
 import { getBlogs } from "@/lib/actions/shopify";
 import { cookies } from "next/headers";
-import { getCustomer } from "@/lib/services/shopify-customer";
 import { headers } from "next/headers";
 import { unstable_cache } from "next/cache";
+import { AUTH_CONFIG, logAuthEvent } from "@/lib/config/auth";
 
 // Check if we're in prerender mode
 function isPrerendering() {
@@ -48,35 +48,29 @@ const getHeaderData = unstable_cache(
 	}
 );
 
-// Get customer token outside of cache
-async function getCustomerToken() {
-	// Skip cookie check during prerendering
-	if (isPrerendering()) {
-		return null;
-	}
-
-	try {
-		const cookieStore = await cookies();
-		return cookieStore.get("customerAccessToken")?.value;
-	} catch (error) {
-		if (error instanceof Error && error.message.includes("prerendering")) {
-			return null;
-		}
-		console.error("❌ [Header Server] Cookie error:", error);
-		return null;
-	}
-}
-
-// Check authentication status with the token
-const checkAuth = unstable_cache(
-	async (customerAccessToken: string | null | undefined) => {
-		if (!customerAccessToken) {
+// Check authentication status from cookies
+const checkAuthStatus = unstable_cache(
+	async () => {
+		// Skip auth check during prerendering
+		if (isPrerendering()) {
 			return false;
 		}
 
 		try {
-			const customer = await getCustomer(customerAccessToken);
-			return !!customer;
+			const cookieStore = await cookies();
+			const customerAccessToken = await cookieStore.get(AUTH_CONFIG.cookies.customerAccessToken.name);
+			const sessionToken = await cookieStore.get(AUTH_CONFIG.cookies.accessToken.name);
+			const idToken = await cookieStore.get(AUTH_CONFIG.cookies.idToken.name);
+
+			// Log auth check for server component
+			logAuthEvent("Header server auth check", {
+				hasCustomerToken: !!customerAccessToken,
+				hasSessionToken: !!sessionToken,
+				hasIdToken: !!idToken,
+			});
+
+			// Basic check - all tokens must exist
+			return !!customerAccessToken && !!sessionToken && !!idToken;
 		} catch (error) {
 			if (error instanceof Error && error.message.includes("prerendering")) {
 				return false;
@@ -85,7 +79,7 @@ const checkAuth = unstable_cache(
 			return false;
 		}
 	},
-	["auth-check"],
+	["auth-status"],
 	{
 		revalidate: 60, // Revalidate every minute
 		tags: ["auth"],
@@ -95,10 +89,7 @@ const checkAuth = unstable_cache(
 // Server Component for header content
 async function HeaderContent() {
 	// Get data in parallel
-	const [headerData, customerAccessToken] = await Promise.all([getHeaderData(), getCustomerToken()]);
-
-	// Only check auth if we have a token
-	const isAuthenticated = customerAccessToken ? await checkAuth(customerAccessToken) : false;
+	const [headerData, isAuthenticated] = await Promise.all([getHeaderData(), checkAuthStatus()]);
 
 	return (
 		<>

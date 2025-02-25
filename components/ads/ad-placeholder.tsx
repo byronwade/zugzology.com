@@ -23,7 +23,7 @@ export function AdPlaceholder({ type = "display", className = "" }: AdPlaceholde
 					<h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-2">Advertise with Us</h3>
 					<p className="text-sm text-purple-700 dark:text-purple-300 mb-4">Reach thousands of mushroom enthusiasts and growers</p>
 					<Button asChild variant="outline" className="bg-white hover:bg-purple-50 border-purple-200 text-purple-700 hover:text-purple-800">
-						<Link href="/contact">Contact for Advertising</Link>
+						<Link href="/help">Contact for Advertising</Link>
 					</Button>
 				</div>
 			</div>

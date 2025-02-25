@@ -1,5 +1,9 @@
+"use server";
+
 import { shopifyFetch } from "@/lib/shopify";
 import type { ShopifyCustomer } from "@/lib/types";
+import { logAuthEvent } from "@/lib/config/auth";
+import { headers } from "next/headers";
 
 interface CustomerUserError {
 	code: string;
@@ -243,6 +247,267 @@ const customerQuery = `
 	}
 `;
 
+// Function to handle errors in a standardized way
+function handleShopifyError(error: unknown, context: string) {
+	const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+	logAuthEvent(`Error in ${context}`, { errorMessage });
+
+	// Check if prerendering
+	if (errorMessage.includes("prerendering")) {
+		return null;
+	}
+
+	// Rethrow as a more structured error
+	throw new Error(`Shopify customer API error (${context}): ${errorMessage}`);
+}
+
+/**
+ * Get customer data using their access token
+ */
+export async function getCustomer(customerAccessToken: string): Promise<ShopifyCustomer | null> {
+	try {
+		// Add headers() call to ensure this is not cached
+		headers();
+
+		logAuthEvent("Fetching customer data", { tokenExists: !!customerAccessToken });
+
+		if (!customerAccessToken) {
+			return null;
+		}
+
+		const { data, errors } = await shopifyFetch<{ customer: ShopifyCustomer }>({
+			query: `
+				query getCustomer($customerAccessToken: String!) {
+					customer(customerAccessToken: $customerAccessToken) {
+						id
+						firstName
+						lastName
+						displayName
+						email
+						phone
+						acceptsMarketing
+						createdAt
+						defaultAddress {
+							id
+							firstName
+							lastName
+							company
+							address1
+							address2
+							city
+							province
+							country
+							zip
+							phone
+						}
+						addresses(first: 10) {
+							edges {
+								node {
+									id
+									firstName
+									lastName
+									company
+									address1
+									address2
+									city
+									province
+									country
+									zip
+									phone
+								}
+							}
+						}
+						orders(first: 10, sortKey: PROCESSED_AT, reverse: true) {
+							edges {
+								node {
+									id
+									orderNumber
+									processedAt
+									financialStatus
+									fulfillmentStatus
+									statusUrl
+									cancelReason
+									canceledAt
+									currencyCode
+									totalPrice {
+										amount
+										currencyCode
+									}
+									subtotalPrice {
+										amount
+										currencyCode
+									}
+									totalShippingPrice {
+										amount
+										currencyCode
+									}
+									totalTax {
+										amount
+										currencyCode
+									}
+									lineItems(first: 10) {
+										edges {
+											node {
+												id
+												title
+												quantity
+												variant {
+													id
+													title
+													price {
+														amount
+														currencyCode
+													}
+													image {
+														url
+														altText
+													}
+													product {
+														id
+														handle
+														title
+													}
+												}
+											}
+										}
+									}
+									shippingAddress {
+										firstName
+										lastName
+										address1
+										address2
+										city
+										province
+										country
+										zip
+										phone
+									}
+								}
+							}
+						}
+					}
+				}
+			`,
+			variables: { customerAccessToken },
+			tags: ["customer"],
+		});
+
+		if (errors) {
+			const errorMessage = errors[0]?.message || "GraphQL error";
+
+			// Check if the token is invalid
+			if (errorMessage.includes("invalid") || errorMessage.includes("expired")) {
+				logAuthEvent("Invalid customer token", { error: errorMessage });
+				return null;
+			}
+
+			throw new Error(errorMessage);
+		}
+
+		if (!data?.customer) {
+			logAuthEvent("No customer data returned", { dataExists: !!data });
+			return null;
+		}
+
+		logAuthEvent("Customer data fetched successfully", {
+			customerId: data.customer.id,
+			email: data.customer.email,
+		});
+
+		return data.customer;
+	} catch (error) {
+		return handleShopifyError(error, "getCustomer");
+	}
+}
+
+/**
+ * Validate if a customer access token is still valid
+ */
+export async function validateCustomerToken(token: string): Promise<boolean> {
+	try {
+		headers();
+
+		if (!token) return false;
+
+		const customer = await getCustomer(token);
+		return !!customer;
+	} catch (error) {
+		logAuthEvent("Token validation failed", { error: String(error) });
+		return false;
+	}
+}
+
+/**
+ * Update customer information
+ */
+export async function updateCustomer(
+	customerAccessToken: string,
+	customerInput: {
+		firstName?: string;
+		lastName?: string;
+		email?: string;
+		phone?: string;
+		password?: string;
+		acceptsMarketing?: boolean;
+	}
+): Promise<{ success: boolean; customer?: ShopifyCustomer; errors?: any[] }> {
+	try {
+		const { data, errors } = await shopifyFetch<{
+			customerUpdate: {
+				customer: ShopifyCustomer;
+				customerUserErrors: Array<{ code: string; field: string; message: string }>;
+			};
+		}>({
+			query: `
+				mutation customerUpdate($customerAccessToken: String!, $customer: CustomerUpdateInput!) {
+					customerUpdate(customerAccessToken: $customerAccessToken, customer: $customer) {
+						customer {
+							id
+							firstName
+							lastName
+							displayName
+							email
+							phone
+						}
+						customerUserErrors {
+							code
+							field
+							message
+						}
+					}
+				}
+			`,
+			variables: {
+				customerAccessToken,
+				customer: customerInput,
+			},
+			tags: ["customer-update"],
+		});
+
+		if (errors) {
+			throw new Error(errors[0]?.message || "GraphQL error");
+		}
+
+		const { customerUpdate } = data;
+
+		if (customerUpdate.customerUserErrors?.length > 0) {
+			return {
+				success: false,
+				errors: customerUpdate.customerUserErrors,
+			};
+		}
+
+		return {
+			success: true,
+			customer: customerUpdate.customer,
+		};
+	} catch (error) {
+		handleShopifyError(error, "updateCustomer");
+		return { success: false };
+	}
+}
+
 export async function customerLogin(email: string, password: string) {
 	console.log("Starting customer login process for:", email);
 
@@ -336,69 +601,6 @@ export async function customerRegister(firstName: string, lastName: string, emai
 		return customer;
 	} catch (error) {
 		console.error("❌ [Shopify API] Error:", error);
-		throw error;
-	}
-}
-
-export async function getCustomer(customerAccessToken: string): Promise<ShopifyCustomer> {
-	try {
-		const response = await shopifyFetch<{
-			customer: ShopifyCustomer;
-		}>({
-			query: customerQuery,
-			variables: {
-				customerAccessToken,
-			},
-			headers: {
-				"X-Shopify-Storefront-Access-Token": process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN as string,
-			},
-		});
-
-		if (response.errors) {
-			console.error("❌ [Shopify API] Get customer error:", response.errors);
-			throw new Error(response.errors[0].message);
-		}
-
-		return response.data.customer;
-	} catch (error) {
-		console.error("❌ [Shopify API] Error:", error);
-		throw error;
-	}
-}
-
-export async function updateCustomer(customerAccessToken: string, customer: { firstName?: string; lastName?: string; email?: string }) {
-	try {
-		const response = await shopifyFetch<{
-			customerUpdate: {
-				customer: {
-					id: string;
-					firstName: string;
-					lastName: string;
-					email: string;
-				} | null;
-				customerUserErrors: CustomerUserError[];
-			};
-		}>({
-			query: CUSTOMER_UPDATE_MUTATION,
-			variables: {
-				customerAccessToken,
-				customer,
-			},
-		});
-
-		if (response.errors) {
-			throw new Error(response.errors[0].message);
-		}
-
-		const { customerUpdate } = response.data;
-
-		if (customerUpdate.customerUserErrors?.length > 0) {
-			throw new Error(customerUpdate.customerUserErrors[0].message);
-		}
-
-		return customerUpdate.customer;
-	} catch (error) {
-		console.error("❌ [Shopify API] Error updating customer:", error);
 		throw error;
 	}
 }

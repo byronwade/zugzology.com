@@ -1,39 +1,34 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCustomer } from "@/lib/services/shopify-customer";
+import { auth } from "@/auth";
+import { cookies } from "next/headers";
+import { AUTH_CONFIG } from "@/lib/config/auth";
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
-	const cookieStore = await cookies();
-	const customerAccessToken = cookieStore.get("customerAccessToken")?.value;
-
-	// Immediately redirect if no token is found
-	if (!customerAccessToken) {
-		cookieStore.delete("customerAccessToken");
-		redirect("/login?redirect=/account");
-	}
-
 	try {
-		// Verify the token by attempting to fetch customer data
-		const customer = await getCustomer(customerAccessToken);
+		// Check NextAuth session
+		const session = await auth();
 
-		// If no customer data is returned, the token is invalid
-		if (!customer) {
-			// Clear the invalid token
-			cookieStore.delete("customerAccessToken");
+		// Also check custom auth system
+		const cookieStore = await cookies();
+		const customerAccessToken = await cookieStore.get(AUTH_CONFIG.cookies.customerAccessToken.name);
+		const customAuthToken = customerAccessToken?.value;
+
+		console.log("🔍 [AccountLayout] Auth status:", {
+			nextAuthSession: !!session,
+			customAuthToken: !!customAuthToken,
+		});
+
+		// Redirect if not authenticated in either system
+		if (!session && !customAuthToken) {
+			console.log("❌ [AccountLayout] No authentication found, redirecting to login");
 			redirect("/login?redirect=/account");
 		}
 
-		return (
-			<div className="flex min-h-screen flex-col">
-				<main className="flex-1 bg-muted/50 w-full mx-auto">{children}</main>
-			</div>
-		);
+		return <>{children}</>;
 	} catch (error) {
-		console.error("❌ [Account Layout] Failed to verify authentication:", error);
-		// If there's any error verifying the token, redirect to login
-		cookieStore.delete("customerAccessToken");
+		console.error("❌ [AccountLayout] Error checking authentication:", error);
 		redirect("/login?redirect=/account");
 	}
 }

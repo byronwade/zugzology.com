@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, LogIn } from "lucide-react";
+import { useAuthContext } from "@/components/providers/auth-provider";
 
 interface LoginFormProps {
 	error?: string;
@@ -20,6 +21,7 @@ export function LoginForm({ error: initialError, registered, callbackUrl, storeN
 	const router = useRouter();
 	const [error, setError] = useState<string | null>(initialError || null);
 	const [loading, setLoading] = useState(false);
+	const { login } = useAuthContext();
 
 	async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -27,73 +29,22 @@ export function LoginForm({ error: initialError, registered, callbackUrl, storeN
 		setLoading(true);
 
 		const formData = new FormData(event.currentTarget);
-		const data = {
-			email: formData.get("email") as string,
-			password: formData.get("password") as string,
-		};
-
-		console.log("🔐 [Client] Login attempt started", {
-			email: data.email,
-			timestamp: new Date().toISOString(),
-		});
+		const email = formData.get("email") as string;
+		const password = formData.get("password") as string;
 
 		try {
-			console.log("🔐 [Client] Sending login request...");
-			const response = await fetch("/api/auth/login", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(data),
-				credentials: "include",
+			console.log("🔐 [Client] Login attempt started", {
+				email,
+				timestamp: new Date().toISOString(),
 			});
 
-			console.log("🔐 [Client] Login response received", {
-				status: response.status,
-				statusText: response.statusText,
-				headers: Object.fromEntries(response.headers.entries()),
-			});
+			// Use the auth context login method
+			await login(email, password);
 
-			// Get the response text first
-			const text = await response.text();
-			console.log("🔐 [Client] Response text:", text);
-
-			// Try to parse as JSON if there's content
-			let result;
-			try {
-				result = text ? JSON.parse(text) : {};
-				console.log("🔐 [Client] Parsed JSON response:", result);
-			} catch (e) {
-				console.error("🔐 [Client] Failed to parse response as JSON:", {
-					text,
-					error: e instanceof Error ? e.message : "Unknown error",
-				});
-				throw new Error("Invalid response from server");
-			}
-
-			// Handle error responses
-			if (!response.ok) {
-				console.error("🔐 [Client] Login request failed", {
-					status: response.status,
-					error: result.message,
-				});
-				throw new Error(result.message || "Login failed");
-			}
-
-			// If we got a redirect URL, use window.location.href
-			if (result.redirectUrl) {
-				console.log("🔐 [Client] Redirecting to auth URL:", result.redirectUrl);
-				window.location.href = result.redirectUrl;
-				return;
-			}
-
-			// Handle successful non-redirect response
-			if (result.success) {
-				console.log("🔐 [Client] Login successful, redirecting to:", callbackUrl || "/account");
-				router.push(callbackUrl || "/account");
-			} else {
-				console.error("🔐 [Client] Login response missing success flag");
-				throw new Error("Login failed");
+			// If login is successful, it will automatically redirect
+			// But we can also handle any custom redirect here
+			if (callbackUrl) {
+				router.push(callbackUrl);
 			}
 		} catch (err) {
 			console.error("🔐 [Client] Login error:", {
@@ -101,6 +52,7 @@ export function LoginForm({ error: initialError, registered, callbackUrl, storeN
 				timestamp: new Date().toISOString(),
 			});
 			setError(err instanceof Error ? err.message : "Login failed");
+		} finally {
 			setLoading(false);
 		}
 	}

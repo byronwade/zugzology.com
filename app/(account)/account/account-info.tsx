@@ -396,7 +396,7 @@ export default function AccountInfo({ customer }: AccountInfoProps) {
 								</div>
 								<div className="text-right">
 									<Button variant="outline" size="sm" asChild>
-										<Link href="/contact">Contact Support</Link>
+										<Link href="/help">Contact Support</Link>
 									</Button>
 								</div>
 							</div>

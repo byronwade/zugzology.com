@@ -72,12 +72,12 @@ export function Footer() {
 							<h2 className="text-base font-bold text-white">Support</h2>
 							<ul className="mt-4 md:mt-6">
 								<li>
-									<Link href="/contact" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="customer-support">
+									<Link href="/help/support" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="customer-support">
 										Customer Support
 									</Link>
 								</li>
 								<li>
-									<Link href="/help" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="help-center">
+									<Link href="/help/center" className="mt-2 block py-3 text-base font-semi-medium hover:underline md:py-0.5 text-[#E0E0E0] hover:text-white" data-component-name="help-center">
 										Help Center
 									</Link>
 								</li>

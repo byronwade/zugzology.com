@@ -3,30 +3,55 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShopifyProduct } from "@/lib/types";
+import { ShopifyProduct, ShopifyImage, ShopifyProductVariant } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/lib/providers/cart-provider";
 import { toast } from "sonner";
-import { Loader2, ShoppingCart, ArrowRight, Sparkles, Clock } from "lucide-react";
+import { Loader2, ShoppingCart, ArrowRight, Sparkles, Clock, Star } from "lucide-react";
+
+type ProductWithEdges = {
+	images: { edges: Array<{ node: ShopifyImage }> };
+	variants: { edges: Array<{ node: ShopifyProductVariant }> };
+};
+
+type ProductWithNodes = {
+	images: { nodes: ShopifyImage[] };
+	variants: { nodes: ShopifyProductVariant[] };
+};
 
 interface ProductAdProps {
-	products: ShopifyProduct[];
+	products: Array<ShopifyProduct & (ProductWithEdges | ProductWithNodes)>;
 }
 
 export function ProductAd({ products }: ProductAdProps) {
-	const { addItem, createNewCart } = useCart();
+	const { addItem } = useCart();
 	const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
 	const [buyingStates, setBuyingStates] = useState<{ [key: string]: boolean }>({});
 
 	if (!products.length) return null;
 
-	const handleAddToCart = async (e: React.MouseEvent, product: ShopifyProduct) => {
+	const getFirstVariant = (product: ShopifyProduct & (ProductWithEdges | ProductWithNodes)) => {
+		if ("edges" in product.variants) {
+			return product.variants.edges[0]?.node;
+		}
+		return product.variants.nodes[0];
+	};
+
+	const getFirstImage = (product: ShopifyProduct & (ProductWithEdges | ProductWithNodes)) => {
+		if ("edges" in product.images) {
+			return product.images.edges[0]?.node;
+		}
+		return product.images.nodes[0];
+	};
+
+	const handleAddToCart = async (e: React.MouseEvent, product: ShopifyProduct & (ProductWithEdges | ProductWithNodes)) => {
 		e.preventDefault();
 		e.stopPropagation();
 
-		const variantId = product.variants?.edges[0]?.node?.id;
+		const firstVariant = getFirstVariant(product);
+		const variantId = firstVariant?.id;
 		if (!variantId) {
 			toast.error("Product variant not found");
 			return;
@@ -50,11 +75,12 @@ export function ProductAd({ products }: ProductAdProps) {
 		}
 	};
 
-	const handleBuyNow = async (e: React.MouseEvent, product: ShopifyProduct) => {
+	const handleBuyNow = async (e: React.MouseEvent, product: ShopifyProduct & (ProductWithEdges | ProductWithNodes)) => {
 		e.preventDefault();
 		e.stopPropagation();
 
-		const variantId = product.variants?.edges[0]?.node?.id;
+		const firstVariant = getFirstVariant(product);
+		const variantId = firstVariant?.id;
 		if (!variantId) {
 			toast.error("Product variant not found");
 			return;
@@ -63,20 +89,7 @@ export function ProductAd({ products }: ProductAdProps) {
 		setBuyingStates((prev) => ({ ...prev, [product.id]: true }));
 		try {
 			const merchandiseId = variantId.includes("gid://shopify/ProductVariant/") ? variantId : `gid://shopify/ProductVariant/${variantId}`;
-
-			const cart = await createNewCart([
-				{
-					merchandiseId,
-					quantity: 1,
-					isPreOrder: !product.availableForSale,
-				},
-			]);
-
-			if (cart?.checkoutUrl) {
-				window.location.assign(cart.checkoutUrl);
-			} else {
-				throw new Error("No checkout URL available");
-			}
+			window.location.href = `/checkout?variant=${merchandiseId}&quantity=1`;
 		} catch (error) {
 			console.error("Error in handleBuyNow:", error);
 			toast.error("Failed to proceed to checkout");
@@ -86,57 +99,73 @@ export function ProductAd({ products }: ProductAdProps) {
 	};
 
 	return (
-		<aside className="w-full lg:w-80 xl:w-96 flex-shrink-0">
-			<div className="sticky top-[120px] bg-white dark:bg-neutral-900 rounded-xl border dark:border-neutral-800 p-6">
-				<div className="flex items-center justify-between mb-6">
-					<h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Featured Products</h2>
-					<Link href="/products" className="text-sm text-purple-600 dark:text-purple-400 hover:underline">
-						View all
-					</Link>
-				</div>
-				<div className="space-y-6">
-					{products.map((product) => {
-						const firstImage = product.images?.edges[0]?.node;
-						const price = product.priceRange?.minVariantPrice?.amount || "0";
-						const compareAtPrice = product.priceRange?.maxVariantPrice?.amount;
-						const isOnSale = compareAtPrice && parseFloat(compareAtPrice) > parseFloat(price);
-						const isLoading = loadingStates[product.id];
-						const isBuying = buyingStates[product.id];
+		<div className="space-y-4">
+			{products.map((product) => {
+				const firstImage = getFirstImage(product);
+				const firstVariant = getFirstVariant(product);
+				const price = product.priceRange?.minVariantPrice?.amount || "0";
+				const compareAtPrice = product.compareAtPriceRange?.minVariantPrice?.amount;
+				const isLoading = loadingStates[product.id] || false;
+				const isBuying = buyingStates[product.id] || false;
+				const hasDiscount = compareAtPrice && Number(compareAtPrice) > Number(price);
+				const discountPercentage = hasDiscount ? Math.round(100 - (Number(price) / Number(compareAtPrice)) * 100) : 0;
 
-						return (
-							<Link key={product.id} href={`/products/${product.handle}`} className="group flex gap-4 items-start relative">
-								{firstImage && (
-									<div className="relative w-20 h-20 flex-shrink-0">
-										<div className="relative bg-neutral-100 dark:bg-neutral-800 rounded-xl overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">
-											<Image src={firstImage.url} alt={firstImage.altText || product.title} fill className="object-cover hover:scale-105 transition-transform duration-300" sizes="80px" />
-											{isOnSale && (
-												<Badge variant="destructive" className="absolute top-1 left-1 text-[10px] px-1 py-0">
-													Sale
-												</Badge>
-											)}
-										</div>
+				return (
+					<div key={product.id} className="group">
+						<Link href={`/products/${product.handle}`} className="flex gap-3 p-2 rounded-lg hover:bg-accent/50 transition-colors">
+							{/* Product Image */}
+							<div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border">
+								{firstImage ? (
+									<Image src={firstImage.url} alt={firstImage.altText || product.title} className="object-cover transition-all group-hover:scale-110" fill sizes="64px" />
+								) : (
+									<div className="w-full h-full bg-muted flex items-center justify-center">
+										<ShoppingCart className="w-6 h-6 text-muted-foreground" />
 									</div>
 								)}
-								<div className="flex-1 min-w-0 space-y-1">
-									<h3 className="font-medium text-sm text-neutral-900 dark:text-neutral-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors line-clamp-2">{product.title}</h3>
-									<div className="flex items-center gap-2">
-										<span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{formatPrice(parseFloat(price))}</span>
-										{isOnSale && <span className="text-xs text-neutral-500 line-through">{formatPrice(parseFloat(compareAtPrice!))}</span>}
-									</div>
-									<div className="flex gap-2 mt-2">
-										<Button size="sm" variant="secondary" className="h-7 px-2 text-xs bg-secondary hover:bg-secondary/80 text-foreground border border-foreground/10 hover:border-foreground/20 shadow-none" onClick={(e) => handleAddToCart(e, product)} disabled={isLoading}>
-											{isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShoppingCart className="h-3 w-3" />}
-										</Button>
-										<Button size="sm" variant="default" className="h-7 px-2 text-xs" onClick={(e) => handleBuyNow(e, product)} disabled={isBuying}>
-											{isBuying ? <Loader2 className="h-3 w-3 animate-spin" /> : "Buy Now"}
-										</Button>
-									</div>
+								{hasDiscount && <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-medium px-1 rounded-bl">-{discountPercentage}%</div>}
+							</div>
+
+							{/* Product Info */}
+							<div className="flex-1 min-w-0">
+								<h4 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">{product.title}</h4>
+								<div className="flex items-center mt-1">
+									<p className="text-sm font-semibold">{formatPrice(price)}</p>
+									{hasDiscount && <p className="text-xs text-muted-foreground line-through ml-2">{formatPrice(compareAtPrice)}</p>}
 								</div>
-							</Link>
-						);
-					})}
-				</div>
-			</div>
-		</aside>
+								<div className="flex items-center gap-1 mt-1">
+									{!product.availableForSale ? (
+										<Badge variant="outline" className="text-[10px] py-0 h-4">
+											Pre-order
+										</Badge>
+									) : null}
+									{product.tags?.includes("new") ? (
+										<Badge variant="outline" className="text-[10px] py-0 h-4">
+											New
+										</Badge>
+									) : null}
+								</div>
+							</div>
+						</Link>
+
+						{/* Action Buttons */}
+						<div className="flex gap-2 mt-1 px-2">
+							<Button size="sm" variant="secondary" className="w-full h-7 text-xs" onClick={(e) => handleAddToCart(e, product)} disabled={isLoading || isBuying}>
+								{isLoading ? (
+									<Loader2 className="h-3 w-3 animate-spin" />
+								) : (
+									<>
+										<ShoppingCart className="mr-1 h-3 w-3" />
+										Add
+									</>
+								)}
+							</Button>
+							<Button size="sm" variant="outline" className="w-full h-7 text-xs" onClick={(e) => handleBuyNow(e, product)} disabled={isLoading || isBuying}>
+								{isBuying ? <Loader2 className="h-3 w-3 animate-spin" /> : "Buy Now"}
+							</Button>
+						</div>
+					</div>
+				);
+			})}
+		</div>
 	);
 }
