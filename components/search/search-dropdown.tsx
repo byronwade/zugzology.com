@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import Image from "next/image";
 import { useSearch } from "@/lib/providers/search-provider";
 import { formatPrice } from "@/lib/utils";
@@ -48,6 +48,24 @@ export function SearchDropdown() {
 	useEffect(() => {
 		setIsDropdownOpen(false);
 	}, [pathname, setIsDropdownOpen]);
+
+	// Ensure dropdown closes when clicking outside
+	useEffect(() => {
+		if (!isDropdownOpen) return;
+
+		const handleClickOutside = (event: MouseEvent) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+				setIsDropdownOpen(false);
+			}
+		};
+
+		// Add event listener with capture phase to ensure it fires before other handlers
+		document.addEventListener("mousedown", handleClickOutside, true);
+
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside, true);
+		};
+	}, [isDropdownOpen, setIsDropdownOpen]);
 
 	// Reset selected index when search results change
 	useEffect(() => {

@@ -2,21 +2,10 @@
 
 import { SHOPIFY_STOREFRONT_ACCESS_TOKEN, SHOPIFY_STORE_DOMAIN } from "@/lib/constants";
 import { CACHE_TIMES } from "./cache-config";
-import type { ShopifyFetchParams, ShopifyResponse } from "./types";
+import type { ShopifyFetchParams } from "./types";
 
 const MUTATION_REGEX = /^\s*mutation/i;
 const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`;
-
-interface ShopifyFetchParams<T> {
-	query: string;
-	variables?: Record<string, unknown>;
-	tags?: string[];
-	cache?: RequestCache;
-	next?: {
-		revalidate?: number;
-		tags?: string[];
-	};
-}
 
 export async function shopifyFetch<T>({ query, variables, tags, cache = "force-cache", next }: ShopifyFetchParams<T>): Promise<{ data: T }> {
 	try {

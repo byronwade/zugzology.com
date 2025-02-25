@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProducts, getCollection } from "@/lib/actions/shopify";
 import { ShopifyProduct, ShopifyImage } from "@/lib/types";
+import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-static";
 export const revalidate = 3600; // Cache for 1 hour
@@ -20,19 +21,49 @@ const coalescingRequests = new Map<
 	}
 >();
 
-// Helper to extract image URLs
+// Helper to extract image URLs with deduplication
 function extractImageUrls(products: ShopifyProduct[]): string[] {
-	return [
-		...new Set(
-			products.reduce((urls: string[], product) => {
-				product.images?.nodes?.forEach((image) => {
-					if (image?.url) urls.push(image.url);
-				});
-				return urls;
-			}, [])
-		),
-	];
+	const uniqueUrls = new Set<string>();
+
+	products.forEach((product) => {
+		// Add all product images
+		product.images?.nodes?.forEach((image) => {
+			if (image?.url) uniqueUrls.add(image.url);
+		});
+
+		// Add media images
+		product.media?.nodes?.forEach((media) => {
+			if (media.mediaContentType === "IMAGE" && media.image?.url) {
+				uniqueUrls.add(media.image.url);
+			} else if (media.previewImage?.url) {
+				uniqueUrls.add(media.previewImage.url);
+			}
+		});
+	});
+
+	return Array.from(uniqueUrls);
 }
+
+// Cache the image URLs extraction
+const getCachedImageUrls = unstable_cache(
+	async (type: string, handle: string) => {
+		let products: ShopifyProduct[] = [];
+
+		if (type === "products") {
+			products = await getProducts();
+		} else if (type === "collections" && handle) {
+			const collection = await getCollection(handle);
+			products = collection?.products?.edges?.map((edge) => edge.node) || [];
+		}
+
+		return extractImageUrls(products);
+	},
+	["image-urls"],
+	{
+		revalidate: 3600, // 1 hour
+		tags: ["images"],
+	}
+);
 
 export async function GET(request: Request, { params }: { params: { rest: string[] } }) {
 	try {
@@ -60,25 +91,9 @@ export async function GET(request: Request, { params }: { params: { rest: string
 
 		// Create new request promise
 		const requestPromise = (async () => {
-			let products: ShopifyProduct[] = [];
-
 			try {
-				if (type === "products") {
-					products = await getProducts();
-				} else if (type === "collections" && handle) {
-					const collection = await getCollection(handle);
-					products = collection?.products?.nodes || [];
-				} else {
-					return { error: "Invalid request" };
-				}
-
-				if (!products?.length) {
-					const emptyResult = { images: [] };
-					cache.set(cacheKey, { data: emptyResult, timestamp: now });
-					return emptyResult;
-				}
-
-				const imageUrls = extractImageUrls(products);
+				// Use the cached function to get image URLs
+				const imageUrls = await getCachedImageUrls(type, handle);
 				const result = { images: imageUrls };
 
 				// Cache successful results

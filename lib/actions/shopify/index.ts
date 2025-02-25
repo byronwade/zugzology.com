@@ -1,26 +1,2 @@
-// Re-export Shopify server actions
-export {
-	// Product and Collection actions
-	getProduct,
-	getProducts,
-	getCollection,
-	getAllCollections,
-	getCollectionDiscounts,
-	getSiteSettings,
-	getProductPageData,
-
-	// Blog actions
-	getBlogs,
-	getAllBlogPosts,
-	getBlogByHandle,
-
-	// Cart actions
-	createCart,
-	getCart,
-	addToCart,
-	updateCartLine,
-	removeFromCart,
-
-	// Header data
-	getHeaderData,
-} from "@/lib/api/shopify/actions";
+// Re-export all Shopify server actions from the main implementation
+export * from "@/lib/api/shopify/actions";

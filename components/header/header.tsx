@@ -3,8 +3,7 @@
 import { Suspense } from "react";
 import { getMenuItems } from "./menu-items";
 import { HeaderClient } from "./header-client";
-import { getBlogs, getProducts, getAllBlogPosts } from "@/lib/actions/shopify";
-import { InitializeSearch } from "@/components/search/initialize-search";
+import { getBlogs } from "@/lib/actions/shopify";
 import { cookies } from "next/headers";
 import { getCustomer } from "@/lib/services/shopify-customer";
 import { headers } from "next/headers";

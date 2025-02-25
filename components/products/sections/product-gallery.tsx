@@ -44,6 +44,7 @@ interface ModelViewerAttributes {
 	style?: React.CSSProperties;
 	className?: string;
 	ref?: React.RefObject<ModelViewerElement>;
+	children?: React.ReactNode;
 }
 
 interface ModelViewerElement extends HTMLElement {
@@ -80,8 +81,8 @@ declare global {
 }
 
 export interface ProductGalleryProps {
-	media: (ShopifyMediaImage | ShopifyMediaVideo)[];
-	title: string;
+	media?: MediaType[];
+	title?: string;
 	selectedIndex: number;
 	onMediaSelect: (index: number) => void;
 	product: ShopifyProduct;
@@ -121,6 +122,12 @@ function isModel3d(media: MediaType): media is ShopifyModel3d {
 function isValidModelFormat(media: ShopifyModel3d): boolean {
 	const validFormats = ["gltf", "glb", "usdz"];
 	return media.sources.some((source) => validFormats.includes(source.format.toLowerCase()) && source.url.toLowerCase().endsWith(source.format.toLowerCase()));
+}
+
+function getValidModelUrl(model: ShopifyModel3d): string {
+	const validFormats = ["gltf", "glb", "usdz"];
+	const validSource = model.sources.find((source) => validFormats.includes(source.format.toLowerCase()) && source.url.toLowerCase().endsWith(source.format.toLowerCase()));
+	return validSource?.url || "";
 }
 
 interface Model3DControlsProps {
@@ -176,7 +183,7 @@ function getYouTubeThumbnail(videoId: string, quality: "default" | "hqdefault" |
 	return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
 }
 
-export function ProductGallery({ media, title, selectedIndex, onMediaSelect, product }: ProductGalleryProps) {
+export function ProductGallery({ media: mediaProp, title: titleProp, selectedIndex, onMediaSelect, product }: ProductGalleryProps) {
 	const [selectedMediaIndex, setSelectedMediaIndex] = useState(selectedIndex || 0);
 	const [mounted, setMounted] = useState(false);
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -185,6 +192,9 @@ export function ProductGallery({ media, title, selectedIndex, onMediaSelect, pro
 	const [arEnabled, setAREnabled] = useState(false);
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const modelViewerRef = useRef<ModelViewerElement>(null);
+
+	// Use title from props or fallback to product title
+	const title = titleProp || product.title;
 
 	useEffect(() => {
 		if (modelViewerRef.current) {
@@ -244,8 +254,43 @@ export function ProductGallery({ media, title, selectedIndex, onMediaSelect, pro
 
 	// Get media items from product
 	const mediaItems = useMemo(() => {
-		const items: MediaType[] = media || [];
+		const items: MediaType[] = mediaProp || [];
 		console.log("Initial media items:", items);
+
+		// If no media prop is provided, extract media from product
+		if (items.length === 0 && product) {
+			console.log("Extracting media from product:", product);
+
+			// Add media items if they exist
+			if (product.media?.nodes) {
+				product.media.nodes.forEach((node) => {
+					if (node.mediaContentType === "IMAGE") {
+						items.push(node as ShopifyMediaImage);
+					} else if (node.mediaContentType === "VIDEO") {
+						items.push(node as ShopifyMediaVideo);
+					} else if (node.mediaContentType === "EXTERNAL_VIDEO") {
+						items.push(node as ShopifyExternalVideo);
+					} else if (node.mediaContentType === "MODEL_3D") {
+						items.push(node as ShopifyModel3d);
+					}
+				});
+			}
+
+			// Add any images that might not be in media
+			if (product.images?.nodes && (!product.media?.nodes || product.media.nodes.length === 0)) {
+				product.images.nodes.forEach((node) => {
+					// Only add if there isn't already media for this image
+					if (!items.some((media) => media.mediaContentType === "IMAGE" && (media as ShopifyMediaImage).image?.url === node.url)) {
+						items.push({
+							id: `image-${node.url}`,
+							mediaContentType: "IMAGE",
+							alt: node.altText || product.title,
+							image: node,
+						} as ShopifyMediaImage);
+					}
+				});
+			}
+		}
 
 		// Process YouTube videos from metafields
 		const youtubeMetafield = product?.metafields?.find((metafield) => metafield?.namespace === "custom" && metafield?.key === "youtube_videos");
@@ -303,7 +348,7 @@ export function ProductGallery({ media, title, selectedIndex, onMediaSelect, pro
 
 		console.log("No YouTube videos to process");
 		return items;
-	}, [media, title, product?.metafields]);
+	}, [mediaProp, title, product?.metafields]);
 
 	console.log("Final combined mediaItems:", mediaItems);
 
@@ -321,11 +366,96 @@ export function ProductGallery({ media, title, selectedIndex, onMediaSelect, pro
 	if (!mounted || !validMedia.length) {
 		console.log("ProductGallery - No media or not mounted yet. Mounted:", mounted, "Media length:", validMedia.length);
 		return (
-			<div className="w-full aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center">
-				<div className="text-center p-4">
-					<div className="text-4xl mb-2">🍄</div>
-					<p className="text-sm text-neutral-600 dark:text-neutral-400">No product images available</p>
-				</div>
+			<div className="w-full">
+				{mediaItems.length === 0 ? (
+					<div className="w-full aspect-square bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center rounded-lg border border-neutral-200 dark:border-neutral-700">
+						<div className="text-center p-4">
+							<div className="text-4xl mb-2">🍄</div>
+							<p className="text-sm text-neutral-600 dark:text-neutral-400">No product images available</p>
+						</div>
+					</div>
+				) : (
+					<>
+						{/* Main Image/Video Display */}
+						<div className="relative w-full aspect-square bg-neutral-100 dark:bg-neutral-800 mb-4 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
+							{validMedia[selectedMediaIndex] && isMediaImage(validMedia[selectedMediaIndex]) && <Image src={validMedia[selectedMediaIndex].image.url} alt={validMedia[selectedMediaIndex].image.altText ?? validMedia[selectedMediaIndex].alt ?? title} fill priority className="object-contain" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />}
+
+							{validMedia[selectedMediaIndex] && isMediaVideo(validMedia[selectedMediaIndex]) && (
+								<div className="relative w-full h-full">
+									{!isPlaying && (
+										<div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20">
+											<button onClick={handleVideoPlay} className="bg-white/90 hover:bg-white rounded-full p-3 transition-colors">
+												<Play className="h-8 w-8 text-primary" />
+											</button>
+										</div>
+									)}
+									<video ref={videoRef} src={validMedia[selectedMediaIndex].sources[0]?.url} poster={validMedia[selectedMediaIndex].previewImage?.url} controls={isPlaying} loop muted playsInline className="w-full h-full object-contain" />
+								</div>
+							)}
+
+							{validMedia[selectedMediaIndex] && isExternalVideo(validMedia[selectedMediaIndex]) && (
+								<div className="relative w-full h-full">
+									<iframe src={validMedia[selectedMediaIndex].embedUrl} title={validMedia[selectedMediaIndex].alt || "Product video"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="absolute inset-0 w-full h-full" />
+								</div>
+							)}
+
+							{validMedia[selectedMediaIndex] && isModel3d(validMedia[selectedMediaIndex]) && isValidModelFormat(validMedia[selectedMediaIndex] as ShopifyModel3d) && (
+								<div className="relative w-full h-full">
+									<Script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js" />
+									<model-viewer ref={modelViewerRef} src={getValidModelUrl(validMedia[selectedMediaIndex] as ShopifyModel3d)} poster={validMedia[selectedMediaIndex].previewImage?.url} camera-controls={cameraControls} auto-rotate={autoRotate} ar={arEnabled} ar-modes="webxr scene-viewer quick-look" environment-image="neutral" shadow-intensity="1" exposure="0.5" className="w-full h-full">
+										<div slot="progress-bar"></div>
+										<div slot="ar-button"></div>
+										<div slot="ar-prompt"></div>
+									</model-viewer>
+									<Model3DControls autoRotate={autoRotate} cameraControls={cameraControls} arEnabled={arEnabled} onAutoRotateChange={setAutoRotate} onCameraControlsChange={setCameraControls} onARChange={setAREnabled} />
+								</div>
+							)}
+						</div>
+
+						{/* Thumbnail Navigation */}
+						{validMedia.length > 1 && (
+							<div className="grid grid-cols-5 gap-2">
+								{validMedia.map((item, index) => (
+									<button
+										key={item.id}
+										onClick={() => {
+											setSelectedMediaIndex(index);
+											onMediaSelect(index);
+										}}
+										className={cn("relative aspect-square border rounded overflow-hidden transition-all", selectedMediaIndex === index ? "border-primary ring-1 ring-primary" : "border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600")}
+										aria-label={`View product image ${index + 1}`}
+									>
+										{isMediaImage(item) && <Image src={item.image.url} alt={item.alt || `${title} thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" />}
+										{isMediaVideo(item) && (
+											<div className="relative w-full h-full">
+												<Image src={item.previewImage?.url || ""} alt={item.alt || `${title} video thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" />
+												<div className="absolute inset-0 flex items-center justify-center">
+													<Play className="h-6 w-6 text-white drop-shadow-md" />
+												</div>
+											</div>
+										)}
+										{isExternalVideo(item) && (
+											<div className="relative w-full h-full">
+												<Image src={item.previewImage?.url || ""} alt={item.alt || `${title} video thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" />
+												<div className="absolute inset-0 flex items-center justify-center">
+													<Play className="h-6 w-6 text-white drop-shadow-md" />
+												</div>
+											</div>
+										)}
+										{isModel3d(item) && (
+											<div className="relative w-full h-full">
+												<Image src={item.previewImage?.url || ""} alt={item.alt || `${title} 3D model thumbnail ${index + 1}`} fill className="object-cover" sizes="(max-width: 768px) 20vw, 10vw" />
+												<div className="absolute inset-0 flex items-center justify-center">
+													<Box className="h-6 w-6 text-white drop-shadow-md" />
+												</div>
+											</div>
+										)}
+									</button>
+								))}
+							</div>
+						)}
+					</>
+				)}
 			</div>
 		);
 	}
@@ -423,11 +553,8 @@ export function ProductGallery({ media, title, selectedIndex, onMediaSelect, pro
 							)}
 						</div>
 					</div>
-				</div>;
-
-				{
-					/* Mobile Thumbnails Row */
-				}
+				</div>
+				;{/* Mobile Thumbnails Row */}
 				<div className="md:hidden -mx-4">
 					<div className="flex gap-3 overflow-x-auto py-2 pl-4 scrollbar-hide">
 						{validMedia.map((media, index) => {
@@ -462,7 +589,8 @@ export function ProductGallery({ media, title, selectedIndex, onMediaSelect, pro
 						})}
 						<div className="w-4 flex-shrink-0" aria-hidden="true" />
 					</div>
-				</div>;
+				</div>
+				;
 			</div>
 		</>
 	);

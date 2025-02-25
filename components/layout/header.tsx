@@ -5,7 +5,7 @@ import { MainNav } from "@/components/layout/main-nav";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Search } from "@/components/search";
 import { CartSheet } from "@/components/cart/cart-sheet";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { Logo } from "@/components/logo";
 
 interface HeaderProps {

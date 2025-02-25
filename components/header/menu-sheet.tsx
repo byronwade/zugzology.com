@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Menu, ChevronRight, Sprout, Package, Tag, Users, Star, ShoppingBag, Sparkles, Clock, TrendingUp, Flame, Microscope, Leaf, Beaker, ShoppingBasket, Percent, Zap, Heart } from "lucide-react";
+import { Menu, ChevronRight, Users, ShoppingBag, Sparkles, ShoppingBasket, Heart } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -25,11 +25,6 @@ interface MenuSheetProps {
 	items: MenuItem[];
 }
 
-interface CategoryGroup {
-	title: string;
-	collections: ShopifyCollection[];
-}
-
 interface CollectionMetafield {
 	id: string;
 	namespace: string;
@@ -41,7 +36,6 @@ interface CollectionMetafield {
 export function MenuSheet({ items }: MenuSheetProps) {
 	const router = useRouter();
 	const [isOpen, setIsOpen] = useState(false);
-	const [shouldOpenCart, setShouldOpenCart] = useState(false);
 	const [collections, setCollections] = useState<ShopifyCollection[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [touchStart, setTouchStart] = useState<number | null>(null);

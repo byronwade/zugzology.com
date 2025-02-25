@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, ArrowRight, Sprout, Leaf, Microscope } from "lucide-react";
 import Image from "next/image";

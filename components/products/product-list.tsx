@@ -1,33 +1,40 @@
 "use client";
 
-import { memo, useState, useEffect, useRef, useCallback, useMemo, useTransition } from "react";
+import { memo, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ProductCard } from "@/components/products/product-card";
 import type { ShopifyProduct } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useViewport } from "@/lib/hooks/use-viewport";
 import { useInView } from "react-intersection-observer";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useIntersectionObserver } from "../../lib/hooks/use-intersection-observer";
+import { useIntersectionObserver } from "@/lib/hooks/use-intersection-observer";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductListProps {
 	products: ShopifyProduct[];
-	preloadedProducts?: ShopifyProduct[];
+	totalProducts?: number;
+	currentPage?: number;
+	productsPerPage?: number;
 	onRemoveFromWishlist?: (handle: string) => void;
 	onAddToWishlist?: (handle: string) => void;
-	title?: string;
-	description?: string;
-	totalProducts: number;
-	currentPage: number;
-	productsPerPage: number;
+	collectionHandle?: string;
 }
 
-// Memoize individual product card to prevent unnecessary re-renders
-const MemoizedProductCard = memo(ProductCard, (prevProps, nextProps) => {
-	return prevProps.product.id === nextProps.product.id && prevProps.view === nextProps.view && prevProps.quantity === nextProps.quantity && prevProps.isAddingToCartProp === nextProps.isAddingToCartProp;
-});
-MemoizedProductCard.displayName = "MemoizedProductCard";
+// ProductSkeleton component for loading states
+const ProductSkeleton = memo(() => (
+	<div className="flex flex-col border border-foreground/10 rounded-lg animate-pulse">
+		<div className="aspect-square w-full bg-neutral-200 dark:bg-neutral-800 rounded-t-lg"></div>
+		<div className="p-4 space-y-3">
+			<div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/2"></div>
+			<div className="h-5 bg-neutral-200 dark:bg-neutral-800 rounded w-3/4"></div>
+			<div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/3"></div>
+			<div className="h-10 bg-neutral-200 dark:bg-neutral-800 rounded w-full mt-4"></div>
+		</div>
+	</div>
+));
+
+ProductSkeleton.displayName = "ProductSkeleton";
 
 // Memoized stock info calculator
 const useStockInfo = (product: ShopifyProduct) => {
@@ -48,135 +55,164 @@ const useStockInfo = (product: ShopifyProduct) => {
 	}, [product.variants?.nodes]);
 };
 
-// Memoized product grid component
-const ProductGrid = memo(function ProductGrid({ products, view, onRemoveFromWishlist, onAddToWishlist, onAddToCart, isLoading }: { products: ShopifyProduct[]; view: "grid" | "list"; onRemoveFromWishlist?: (handle: string) => void; onAddToWishlist?: (handle: string) => void; onAddToCart: (id: string) => void; isLoading: boolean }) {
-	const [visibleProducts, setVisibleProducts] = useState<string[]>([]);
-	const gridRef = useRef<HTMLDivElement>(null);
-
-	// Set up intersection observer for the grid
-	useIntersectionObserver(
-		gridRef,
-		(entries) => {
-			entries.forEach((entry) => {
-				if (entry.isIntersecting) {
-					const productId = entry.target.getAttribute("data-product-id");
-					if (productId && !visibleProducts.includes(productId)) {
-						setVisibleProducts((prev) => [...prev, productId]);
-					}
-				}
-			});
-		},
-		{
-			threshold: 0.1,
-			rootMargin: "50px",
-		}
-	);
-
+// Memoized ProductGrid component
+const ProductGrid = memo(({ products, visibleProducts, onRemoveFromWishlist, onAddToWishlist, collectionHandle }: { products: ShopifyProduct[]; visibleProducts: Set<string>; onRemoveFromWishlist?: (handle: string) => void; onAddToWishlist?: (handle: string) => void; collectionHandle?: string }) => {
 	return (
-		<div ref={gridRef} className={cn("flex flex-col divide-y divide-neutral-200 dark:divide-neutral-800", view === "list" ? "divide-y divide-neutral-200 dark:divide-neutral-800" : "", "sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 sm:gap-4 sm:divide-y-0")} role="region" aria-label="Products List" data-view={view}>
-			{products.map((product, index) => {
+		<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+			{products.map((product) => {
 				const stockInfo = useStockInfo(product);
-				const isVisible = visibleProducts.includes(product.id);
+				const isVisible = visibleProducts.has(product.id);
 
-				return (
-					<div key={product.id} className="group relative" role="listitem" itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" data-product-id={product.id}>
-						<meta itemProp="position" content={String(index + 1)} />
-						<MemoizedProductCard product={product} view={view} variantId={stockInfo.variantId} quantity={stockInfo.quantity} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} isAddingToCartProp={isLoading} onAddToCart={() => onAddToCart(product.id)} isVisible={isVisible} />
-					</div>
-				);
+				return <ProductCard key={product.id} product={product} view="grid" variantId={stockInfo.variantId} quantity={stockInfo.quantity} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} isVisible={isVisible} collectionHandle={collectionHandle} />;
 			})}
 		</div>
 	);
 });
 
-export function ProductList({ products, onRemoveFromWishlist, onAddToWishlist, title, description, totalProducts, currentPage = 1, productsPerPage = 50 }: ProductListProps) {
-	const { isMobile } = useViewport();
+ProductGrid.displayName = "ProductGrid";
+
+// Pagination component
+const Pagination = memo(({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) => {
+	if (totalPages <= 1) return null;
+
+	return (
+		<div className="flex items-center justify-center mt-8 space-x-2">
+			<Button variant="outline" size="icon" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1} aria-label="Previous page">
+				<ChevronLeft className="h-4 w-4" />
+			</Button>
+
+			<div className="flex items-center space-x-2">
+				{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+					<Button key={page} variant={currentPage === page ? "default" : "outline"} size="sm" onClick={() => onPageChange(page)} aria-label={`Page ${page}`} aria-current={currentPage === page ? "page" : undefined}>
+						{page}
+					</Button>
+				))}
+			</div>
+
+			<Button variant="outline" size="icon" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage >= totalPages} aria-label="Next page">
+				<ChevronRight className="h-4 w-4" />
+			</Button>
+		</div>
+	);
+});
+
+Pagination.displayName = "Pagination";
+
+// Main ProductList component
+export function ProductList({ products, totalProducts = 0, currentPage = 1, productsPerPage = 24, onRemoveFromWishlist, onAddToWishlist, collectionHandle }: ProductListProps) {
 	const router = useRouter();
-	const pathname = usePathname();
 	const searchParams = useSearchParams();
-	const [isLoading, setIsLoading] = useState(false);
+	const pathname = usePathname();
+	const [visibleProducts, setVisibleProducts] = useState<Set<string>>(new Set());
+	const observerRef = useRef<IntersectionObserver | null>(null);
+	const productRefs = useRef<Map<string, HTMLElement>>(new Map());
 
 	// Calculate total pages
-	const totalPages = Math.ceil(totalProducts / productsPerPage);
+	const totalPages = Math.max(1, Math.ceil((totalProducts || products.length) / productsPerPage));
 
 	// Handle page change
 	const handlePageChange = useCallback(
 		(page: number) => {
-			const current = new URLSearchParams(Array.from(searchParams.entries()));
-			current.set("page", page.toString());
-			const search = current.toString();
-			const query = search ? `?${search}` : "";
-
-			// Use replace to avoid adding to history stack
-			router.replace(`${pathname}${query}#products-top`, { scroll: false });
+			const params = new URLSearchParams(searchParams.toString());
+			params.set("page", page.toString());
+			router.push(`${pathname}?${params.toString()}#products-top`);
 		},
-		[searchParams, pathname, router]
+		[router, searchParams, pathname]
 	);
 
-	// Optimized add to cart handler
-	const handleAddToCart = useCallback(async (productId: string) => {
-		setIsLoading(true);
-		try {
-			// Your add to cart logic here
-		} finally {
-			setIsLoading(false);
+	// Setup intersection observer to track visible products
+	useEffect(() => {
+		// Cleanup previous observer
+		if (observerRef.current) {
+			observerRef.current.disconnect();
+		}
+
+		// Create new observer with a stable callback
+		const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+			const updatedVisibleProducts = new Set(visibleProducts);
+			let hasChanges = false;
+
+			entries.forEach((entry) => {
+				const productId = entry.target.getAttribute("data-product-id");
+				if (productId) {
+					if (entry.isIntersecting && !updatedVisibleProducts.has(productId)) {
+						updatedVisibleProducts.add(productId);
+						hasChanges = true;
+					}
+				}
+			});
+
+			// Only update state if there are changes
+			if (hasChanges) {
+				setVisibleProducts(updatedVisibleProducts);
+			}
+		};
+
+		observerRef.current = new IntersectionObserver(handleIntersection, {
+			rootMargin: "200px",
+			threshold: 0.1,
+		});
+
+		// Observe all product elements
+		productRefs.current.forEach((ref) => {
+			if (observerRef.current) {
+				observerRef.current.observe(ref);
+			}
+		});
+
+		return () => {
+			if (observerRef.current) {
+				observerRef.current.disconnect();
+			}
+		};
+	}, []); // Empty dependency array to ensure this only runs once
+
+	// Set up refs for each product with a stable callback
+	const setProductRef = useCallback((element: HTMLElement | null, productId: string) => {
+		if (element) {
+			element.setAttribute("data-product-id", productId);
+			productRefs.current.set(productId, element);
+
+			// Observe immediately if observer exists
+			if (observerRef.current) {
+				observerRef.current.observe(element);
+			}
+		} else if (productRefs.current.has(productId)) {
+			// Only delete if it exists to avoid unnecessary updates
+			productRefs.current.delete(productId);
 		}
 	}, []);
 
-	if (!products?.length) {
+	// If no products, show loading skeleton
+	if (!products.length) {
 		return (
-			<div className="w-full min-h-[50vh] flex items-center justify-center">
-				<div className="text-center">
-					<h2 className="text-xl font-semibold mb-2">No products found</h2>
-					<p className="text-muted-foreground">Try adjusting your filters or check back later</p>
-				</div>
+			<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+				{Array.from({ length: 12 }).map((_, i) => (
+					<ProductSkeleton key={i} />
+				))}
 			</div>
 		);
 	}
 
-	const view = isMobile ? "list" : "grid";
-
 	return (
-		<div className="w-full space-y-8">
-			<ProductGrid products={products} view={view} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} onAddToCart={handleAddToCart} isLoading={isLoading} />
+		<div className="space-y-8">
+			{/* Product Grid */}
+			<div className="relative">
+				<ProductGrid products={products} visibleProducts={visibleProducts} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} collectionHandle={collectionHandle} />
+
+				{/* Product Refs - Hidden elements for intersection observer */}
+				<div className="sr-only" aria-hidden="true">
+					{products.map((product) => (
+						<div key={`ref-${product.id}`} ref={(el) => setProductRef(el, product.id)} data-product-id={product.id} />
+					))}
+				</div>
+			</div>
 
 			{/* Pagination */}
-			{totalPages > 1 && (
-				<div className="flex justify-center items-center gap-2 py-8">
-					<Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1} className="h-8 w-8 p-0">
-						<ChevronLeft className="h-4 w-4" />
-						<span className="sr-only">Previous page</span>
-					</Button>
-
-					{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-						// Show first page, last page, current page, and pages around current
-						const shouldShow = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2;
-
-						if (!shouldShow) {
-							// Show ellipsis for skipped pages
-							if (page === 2 || page === totalPages - 1) {
-								return (
-									<span key={`ellipsis-${page}`} className="px-2">
-										...
-									</span>
-								);
-							}
-							return null;
-						}
-
-						return (
-							<Button key={page} variant={currentPage === page ? "default" : "outline"} size="sm" onClick={() => handlePageChange(page)} className="h-8 min-w-[2rem] px-3">
-								{page}
-							</Button>
-						);
-					})}
-
-					<Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages} className="h-8 w-8 p-0">
-						<ChevronRight className="h-4 w-4" />
-						<span className="sr-only">Next page</span>
-					</Button>
-				</div>
-			)}
+			{totalPages > 1 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
 		</div>
 	);
 }
+
+// Add display name
+ProductList.displayName = "ProductList";

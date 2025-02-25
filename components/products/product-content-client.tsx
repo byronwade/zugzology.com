@@ -415,7 +415,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 						{/* Product Gallery */}
 						<section aria-label="Product gallery" className="col-span-1">
 							<div className="sticky top-[126px]">
-								<ProductGallery product={product} selectedIndex={selectedImageIndex} onMediaSelect={handleImageSelect} />
+								<ProductGallery product={product} media={mediaItems} title={product.title} selectedIndex={selectedImageIndex} onMediaSelect={handleImageSelect} />
 							</div>
 						</section>
 

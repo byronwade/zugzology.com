@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { getBlogByHandle, getAllBlogPosts, getProducts } from "@/lib/actions/shopify";
 import { ArrowLeft, CalendarDays, Clock, Percent, ExternalLink } from "lucide-react";

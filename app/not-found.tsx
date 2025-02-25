@@ -1,6 +1,6 @@
 "use client";
 
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { jsonLdScriptProps } from "react-schemaorg";
 import type { WebPage, BreadcrumbList } from "schema-dts";
 import { WithContext } from "schema-dts";

@@ -1,7 +1,7 @@
 import { getProducts } from "@/lib/actions/shopify";
 import { ProductCard } from "@/components/products/product-card";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import type { ShopifyProduct } from "@/lib/types";
 
 export async function LatestProducts() {

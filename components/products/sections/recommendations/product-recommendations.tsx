@@ -6,7 +6,7 @@ import { ProductSection } from "@/components/products/sections/recommendations/p
 import type { ShopifyProduct, ShopifyBlogArticle, ShopifyMetafield, ShopifyProductVariant } from "@/lib/types";
 import { calculateTrendingScore } from "./utils/tracking";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { ProductSource, ProductWithSource } from "./types";
 
 interface ProductRecommendationsProps {

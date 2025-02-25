@@ -1,6 +1,6 @@
 "use client";
 
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { Facebook, Twitter, Youtube, Instagram, Linkedin, Globe } from "lucide-react";
 import Image from "next/image";
 

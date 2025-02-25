@@ -159,7 +159,7 @@ export interface ShopifyCollection {
 	image?: ShopifyImage;
 	products: {
 		nodes: ShopifyProduct[];
-		totalCount: number;
+		productsCount: number;
 	};
 	metafields?: {
 		nodes: Array<{

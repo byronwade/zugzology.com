@@ -1,4 +1,4 @@
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import Image from "next/image";
 import type { ShopifyBlogArticle } from "@/lib/types";
 

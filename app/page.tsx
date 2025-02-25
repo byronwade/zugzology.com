@@ -18,7 +18,7 @@ import { GrowingGuideShowcase } from "@/components/sections/growing-guide-showca
 import { BestSellersShowcase } from "@/components/sections/best-sellers-showcase";
 import { FeaturedBundle } from "@/components/sections/featured-bundle";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { ShoppingCart, Star, Shield, Truck, Package, ArrowRight, Clock, Sprout, Award, BarChart, Users, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

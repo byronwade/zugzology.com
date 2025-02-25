@@ -3,7 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import styles from "./promotional-section.module.css";
 
 export function PromotionalSection() {

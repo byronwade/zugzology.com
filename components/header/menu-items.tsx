@@ -19,7 +19,7 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
 	{
 		id: "products",
 		title: "All Products",
-		url: "/products",
+		url: "/collections/all",
 	},
 ];
 
@@ -29,11 +29,6 @@ function transformShopifyUrl(shopifyUrl: string): string {
 
 	// Remove domain if present
 	const url = shopifyUrl.replace(/^https?:\/\/[^\/]+/, "");
-
-	// Special case for "all products" collection
-	if (url.includes("/collections/all")) {
-		return "/products";
-	}
 
 	// Transform collection URLs
 	if (url.includes("/collections/")) {
@@ -86,7 +81,7 @@ export async function getMenuItems(): Promise<MenuItem[]> {
 					}
 				}
 			`,
-			cache: "force-cache",
+			variables: {},
 			tags: ["main-menu"],
 		});
 

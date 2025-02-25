@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCustomer } from "@/lib/services/shopify-customer";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

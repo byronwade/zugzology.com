@@ -2,7 +2,7 @@ import { shopifyFetch } from "@/lib/shopify";
 import type { ShopifyProduct, ShopifyCollection } from "@/lib/types";
 
 export const collectionQuery = `
-	query getCollection($handle: String!, $cursor: String) {
+	query getCollection($handle: String!, $first: Int!, $after: String, $sortKey: ProductCollectionSortKeys!, $reverse: Boolean!) {
 		collection(handle: $handle) {
 			id
 			handle
@@ -12,12 +12,13 @@ export const collectionQuery = `
 				title
 				description
 			}
-			products(first: 250, after: $cursor) {
+			products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
 				pageInfo {
 					hasNextPage
+					hasPreviousPage
+					startCursor
 					endCursor
 				}
-				totalCount
 				edges {
 					cursor
 					node {
@@ -79,9 +80,10 @@ export interface CollectionQueryResponse {
 		products: {
 			pageInfo: {
 				hasNextPage: boolean;
+				hasPreviousPage: boolean;
+				startCursor: string;
 				endCursor: string;
 			};
-			totalCount: number;
 			edges: Array<{
 				cursor: string;
 				node: ShopifyProduct;
@@ -101,7 +103,6 @@ export async function getCollection(handle: string): Promise<ShopifyCollection> 
 		let hasNextPage = true;
 		let cursor: string | null = null;
 		let collectionData: CollectionQueryResponse["collection"] | null = null;
-		let totalCount = 0;
 
 		// Fetch products recursively until we have all of them
 		while (hasNextPage) {
@@ -119,11 +120,6 @@ export async function getCollection(handle: string): Promise<ShopifyCollection> 
 
 			collectionData = response.data.collection;
 			if (collectionData) {
-				// Only set totalCount on first fetch
-				if (!cursor) {
-					totalCount = collectionData.products.totalCount;
-				}
-
 				const newProducts = collectionData.products.edges.map((edge) => edge.node);
 				allProducts = [...allProducts, ...newProducts];
 
@@ -142,13 +138,10 @@ export async function getCollection(handle: string): Promise<ShopifyCollection> 
 		}
 
 		return {
-			id: collectionData.id,
-			handle: collectionData.handle,
-			title: collectionData.title,
-			description: collectionData.description,
+			...collectionData,
 			products: {
 				nodes: allProducts,
-				totalCount: totalCount,
+				productsCount: allProducts.length,
 			},
 		};
 	} catch (error) {

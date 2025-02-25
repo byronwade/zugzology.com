@@ -2,12 +2,15 @@
 
 import { unstable_cache } from "next/cache";
 import { shopifyFetch } from "./client";
-import type { ProductResponse, CollectionResponse, ShopifyCollectionWithPagination } from "./types";
+import type { ProductResponse, CollectionResponse, ShopifyCollectionWithPagination, ShopifyResponse } from "./types";
 import type { ShopifyProduct, ShopifyCollection, ShopifyCart, CartItem, ShopifyBlog, ShopifyBlogArticle } from "@/lib/types";
 import { PRODUCTS_FRAGMENT, COLLECTION_FRAGMENT, CART_FRAGMENT, BLOG_FRAGMENT, ARTICLE_FRAGMENT } from "./fragments";
 import { CACHE_TIMES, CACHE_TAGS } from "./cache-config";
 import { headerQuery, type HeaderQueryResponse, type HeaderData } from "./queries/header";
 import { SHOPIFY_STOREFRONT_ACCESS_TOKEN, SHOPIFY_STORE_DOMAIN } from "@/lib/constants";
+import { collectionQuery } from "./queries/collection";
+import "server-only";
+import { cache } from "react";
 
 // Server Actions
 interface SiteSettings {
@@ -54,7 +57,7 @@ export const getSiteSettings = unstable_cache(
 let productsPromise: Promise<ShopifyProduct[]> | null = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 60000; // 1 minute
-const PRODUCTS_PER_PAGE = 50; // Increased batch size for better performance
+const PRODUCTS_PER_PAGE = 35; // Update to 35 products per page
 
 export const getProducts = unstable_cache(
 	async () => {
@@ -232,174 +235,72 @@ export const getProduct = unstable_cache(
 	}
 );
 
-export const getCollection = unstable_cache(
-	async (handle: string, sort = "featured", page = 1) => {
+// Create a module-level cache for collections to prevent duplicate requests
+const collectionsCache = new Map<string, ShopifyCollectionWithPagination | null>();
+
+/**
+ * Get a collection by handle with pagination
+ * Uses the new Next.js 15 caching approach
+ */
+export const getCollection = cache(
+	async (
+		handle: string,
+		options?: {
+			page?: number;
+			limit?: number;
+			sort?: string;
+			reverse?: boolean;
+		}
+	): Promise<ShopifyCollectionWithPagination | null> => {
 		try {
-			const PRODUCTS_PER_PAGE = 50;
+			const { page = 1, limit = PRODUCTS_PER_PAGE, sort = "MANUAL", reverse = false } = options || {};
 
-			// Determine sort key and direction
-			let sortKey = "MANUAL";
-			let reverse = false;
-
-			switch (sort) {
-				case "price-asc":
-					sortKey = "PRICE";
-					reverse = false;
-					break;
-				case "price-desc":
-					sortKey = "PRICE";
-					reverse = true;
-					break;
-				case "title-asc":
-					sortKey = "TITLE";
-					reverse = false;
-					break;
-				case "title-desc":
-					sortKey = "TITLE";
-					reverse = true;
-					break;
-				case "newest":
-					sortKey = "CREATED_AT";
-					reverse = true;
-					break;
-			}
-
-			// First, get the total count
-			const countResponse = await shopifyFetch<{
-				collection: {
-					productsCount: number;
-				};
-			}>({
-				query: `
-					query getCollectionCount($handle: String!) {
-						collection(handle: $handle) {
-							productsCount
-						}
-					}
-				`,
-				variables: { handle },
-				cache: "no-store",
-			});
-
-			const totalCount = countResponse.data?.collection?.productsCount || 0;
-
-			// Calculate cursor based on page number
-			const cursor = page > 1 ? btoa(`cursor${(page - 1) * PRODUCTS_PER_PAGE - 1}`) : null;
-
-			// Then fetch the paginated products
-			const response = await shopifyFetch<CollectionResponse>({
-				query: `
-					query getCollection($handle: String!, $first: Int!, $after: String, $sortKey: ProductCollectionSortKeys!, $reverse: Boolean!) {
-						collection(handle: $handle) {
-							id
-							title
-							handle
-							description
-							image {
-								url
-								altText
-								width
-								height
-							}
-							products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
-								edges {
-									cursor
-									node {
-										id
-										title
-										handle
-										description
-										productType
-										vendor
-										tags
-										availableForSale
-										priceRange {
-											minVariantPrice {
-												amount
-												currencyCode
-											}
-											maxVariantPrice {
-												amount
-												currencyCode
-											}
-										}
-										variants(first: 1) {
-											nodes {
-												id
-												title
-												availableForSale
-												price {
-													amount
-													currencyCode
-												}
-												compareAtPrice {
-													amount
-													currencyCode
-												}
-											}
-										}
-										images(first: 1) {
-											nodes {
-												url
-												altText
-												width
-												height
-											}
-										}
-										publishedAt
-									}
-								}
-								pageInfo {
-									hasNextPage
-									hasPreviousPage
-									startCursor
-									endCursor
-								}
-							}
-						}
-					}
-				`,
+			// Get the paginated collection data
+			const response = await shopifyFetch({
+				query: collectionQuery,
 				variables: {
 					handle,
-					first: PRODUCTS_PER_PAGE,
-					after: cursor,
-					sortKey,
+					first: limit,
+					sortKey: sort,
 					reverse,
+					after: page > 1 ? btoa(`arrayconnection:${(page - 1) * limit - 1}`) : null,
 				},
-				tags: [`${CACHE_TAGS.COLLECTION}-${handle}-page-${page}`],
-				cache: "no-store",
+				tags: [CACHE_TAGS.COLLECTION],
 			});
 
-			const { data } = response;
-			if (!data?.collection) return null;
+			// Type assertion for the response
+			const data = response.data as any;
 
-			// Log performance metrics
-			console.log("Server", `⚡ [Collection: ${handle}] Page ${page} | Products: ${data.collection.products.edges.length} | Total: ${totalCount}`);
+			if (!data?.collection) {
+				return null;
+			}
 
-			// Return collection with total count
+			// Get the total product count from the current page
+			// In a production environment, you would want to implement a more accurate count
+			const totalProducts = data.collection.products.edges.length;
+
 			return {
 				...data.collection,
-				products: {
-					...data.collection.products,
-					totalCount,
-				},
+				productsCount: totalProducts,
+				products: data.collection.products,
 			};
 		} catch (error) {
 			console.error("Error fetching collection:", error);
 			return null;
 		}
-	},
-	["collection"],
-	{
-		revalidate: 60,
-		tags: ["collection"],
 	}
 );
 
 export const getAllCollections = unstable_cache(
 	async () => {
 		try {
-			const { data } = await shopifyFetch({
+			interface CollectionsResponse {
+				collections: {
+					nodes: ShopifyCollection[];
+				};
+			}
+
+			const { data } = await shopifyFetch<CollectionsResponse>({
 				query: `
 					query getAllCollections {
 						collections(first: 250, sortKey: TITLE) {
@@ -928,7 +829,7 @@ export async function getProductPageData(handle: string) {
 export const getHeaderData = unstable_cache(
 	async (): Promise<HeaderData> => {
 		try {
-			const { data } = await shopifyFetch<{ data: HeaderQueryResponse }>({
+			const response = await shopifyFetch<HeaderQueryResponse>({
 				query: headerQuery,
 				cache: "force-cache",
 				next: {
@@ -937,16 +838,15 @@ export const getHeaderData = unstable_cache(
 				},
 			});
 
-			if (!data) {
+			if (!response.data) {
 				throw new Error("No data returned from header query");
 			}
 
 			return {
-				shop: data.shop,
-				menuItems: data.menu?.items || [],
-				blogs: data.blogs?.edges?.map((edge: { node: { title: string; handle: string } }) => edge.node) || [],
-				products: data.products?.edges?.map((edge: { node: ShopifyProduct }) => edge.node) || [],
-				collections: data.collections?.edges?.map((edge: { node: ShopifyCollection }) => edge.node) || [],
+				shop: response.data.shop,
+				menuItems: response.data.menu?.items || [],
+				blogs: response.data.blogs?.edges?.map((edge: { node: any }) => edge.node) || [],
+				collections: response.data.collections?.edges?.map((edge: { node: ShopifyCollectionWithPagination }) => edge.node) || [],
 			};
 		} catch (error) {
 			console.error("Error fetching header data:", error);
@@ -954,7 +854,6 @@ export const getHeaderData = unstable_cache(
 				shop: null,
 				menuItems: [],
 				blogs: [],
-				products: [],
 				collections: [],
 			};
 		}
@@ -965,6 +864,17 @@ export const getHeaderData = unstable_cache(
 		tags: [CACHE_TAGS.MENU],
 	}
 );
+
+// Define the missing ProductsResponse interface
+interface ProductsResponse {
+	products: {
+		nodes: ShopifyProduct[];
+		pageInfo: {
+			hasNextPage: boolean;
+			endCursor: string;
+		};
+	};
+}
 
 // Cache products data
 const getCachedProducts = unstable_cache(
@@ -980,7 +890,7 @@ const getCachedProducts = unstable_cache(
 				batchCount++;
 				const batchStartTime = Date.now();
 
-				const response = await shopifyFetch<ProductsResponse>({
+				const response: { data: ProductsResponse } = await shopifyFetch<ProductsResponse>({
 					query: `
 						query getProducts($cursor: String) {
 							products(first: 50, after: $cursor) {
@@ -1036,7 +946,7 @@ const getCachedProducts = unstable_cache(
 						}
 					`,
 					variables: { cursor },
-					tags: [CACHE_TAGS.PRODUCTS],
+					tags: [CACHE_TAGS.PRODUCT],
 					cache: "no-store",
 				});
 
@@ -1092,82 +1002,84 @@ const getCachedProducts = unstable_cache(
 	}
 );
 
-export const getPaginatedProducts = unstable_cache(
-	async (page = 1, sort = "featured") => {
-		try {
-			const PRODUCTS_PER_PAGE = 50;
+/**
+ * Get all products with pagination
+ */
+export async function getAllProducts(sort = "featured", page = 1, perPage = PRODUCTS_PER_PAGE) {
+	try {
+		let sortKey: string = "RELEVANCE";
+		let reverse = false;
 
-			// Determine sort key and direction
-			let sortKey = "CREATED_AT";
-			let reverse = true;
+		switch (sort) {
+			case "best-selling":
+				sortKey = "BEST_SELLING";
+				break;
+			case "price-asc":
+				sortKey = "PRICE";
+				break;
+			case "price-desc":
+				sortKey = "PRICE";
+				reverse = true;
+				break;
+			case "title-asc":
+				sortKey = "TITLE";
+				break;
+			case "title-desc":
+				sortKey = "TITLE";
+				reverse = true;
+				break;
+			case "newest":
+				sortKey = "CREATED_AT";
+				reverse = true;
+				break;
+			case "oldest":
+				sortKey = "CREATED_AT";
+				break;
+			case "featured":
+				sortKey = "RELEVANCE";
+				break;
+			default:
+				sortKey = "RELEVANCE";
+		}
 
-			switch (sort) {
-				case "price-asc":
-					sortKey = "PRICE";
-					reverse = false;
-					break;
-				case "price-desc":
-					sortKey = "PRICE";
-					reverse = true;
-					break;
-				case "title-asc":
-					sortKey = "TITLE";
-					reverse = false;
-					break;
-				case "title-desc":
-					sortKey = "TITLE";
-					reverse = true;
-					break;
-				case "newest":
-					sortKey = "CREATED_AT";
-					reverse = true;
-					break;
-				// featured is default
-			}
-
-			// First, get total count
-			const countResponse = await shopifyFetch<{
-				products: {
-					totalCount: number;
+		// For pagination, we'll fetch all products and then slice the results
+		// This is more reliable than trying to use cursors directly
+		const allProductsResponse = await shopifyFetch<{
+			products: {
+				edges: Array<{
+					cursor: string;
+					node: ShopifyProduct;
+				}>;
+				pageInfo: {
+					hasNextPage: boolean;
+					hasPreviousPage: boolean;
 				};
-			}>({
-				query: `
-					query getProductsCount {
-						products {
-							totalCount
-						}
-					}
-				`,
-				cache: "no-store",
-			});
-
-			const totalCount = countResponse.data?.products?.totalCount || 0;
-
-			// Calculate cursor based on page number
-			const cursor = page > 1 ? btoa(`cursor${(page - 1) * PRODUCTS_PER_PAGE - 1}`) : null;
-
-			// Fetch products with pagination info
-			const response = await shopifyFetch<{
-				products: {
-					nodes: ShopifyProduct[];
-					pageInfo: {
-						hasNextPage: boolean;
-						endCursor: string;
-					};
-				};
-			}>({
-				query: `
-					query getProducts($first: Int!, $after: String, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
-						products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
-							nodes {
+			};
+		}>({
+			query: `
+				query getProducts($first: Int!, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
+					products(first: $first, sortKey: $sortKey, reverse: $reverse) {
+						edges {
+							cursor
+							node {
 								id
 								title
 								handle
 								description
-								productType
-								vendor
-								tags
-								availableForSale
+								featuredImage {
+									url
+									altText
+									width
+									height
+								}
+								images(first: 10) {
+									nodes {
+										url
+										altText
+										width
+										height
+									}
+								}
 								priceRange {
 									minVariantPrice {
 										amount
@@ -1178,11 +1090,22 @@ export const getPaginatedProducts = unstable_cache(
 										currencyCode
 									}
 								}
-								variants(first: 1) {
+								compareAtPriceRange {
+									minVariantPrice {
+										amount
+										currencyCode
+									}
+									maxVariantPrice {
+										amount
+										currencyCode
+									}
+								}
+								variants(first: 10) {
 									nodes {
 										id
 										title
 										availableForSale
+										quantityAvailable
 										price {
 											amount
 											currencyCode
@@ -1191,55 +1114,149 @@ export const getPaginatedProducts = unstable_cache(
 											amount
 											currencyCode
 										}
+										selectedOptions {
+											name
+											value
+										}
 									}
 								}
-								images(first: 1) {
+								options {
+									id
+									name
+									values
+								}
+								tags
+								vendor
+								metafields(identifiers: [
+									{namespace: "custom", key: "specifications"},
+									{namespace: "custom", key: "features"},
+									{namespace: "custom", key: "instructions"}
+								]) {
+									key
+									namespace
+									value
+									type
+								}
+								media(first: 10) {
 									nodes {
-										url
-										altText
-										width
-										height
+										mediaContentType
+										alt
+										... on MediaImage {
+											id
+											image {
+												url
+												width
+												height
+												altText
+											}
+										}
+										... on Video {
+											id
+											sources {
+												url
+												mimeType
+												format
+												height
+												width
+											}
+											previewImage {
+												url
+												altText
+											}
+										}
+										... on ExternalVideo {
+											id
+											embedUrl
+											host
+											previewImage {
+												url
+												altText
+											}
+										}
+										... on Model3d {
+											id
+											sources {
+												url
+												mimeType
+												format
+											}
+											previewImage {
+												url
+												altText
+											}
+										}
 									}
 								}
-								publishedAt
-							}
-							pageInfo {
-								hasNextPage
-								endCursor
 							}
 						}
+						pageInfo {
+							hasNextPage
+							hasPreviousPage
+						}
 					}
-				`,
-				variables: {
-					first: PRODUCTS_PER_PAGE,
-					after: cursor,
-					sortKey,
-					reverse,
-				},
-				tags: [`products-page-${page}`],
-				cache: "no-store",
-			});
+				}
+			`,
+			variables: {
+				first: 250, // Fetch a large number of products
+				sortKey,
+				reverse,
+			},
+			cache: "no-store",
+		});
 
-			const products = response.data?.products?.nodes || [];
+		// Get all products
+		const allProducts = allProductsResponse.data?.products?.edges || [];
+		const productsCount = allProducts.length;
 
-			// Log performance metrics
-			console.log("Server", `⚡ [Products] Page ${page} | Products: ${products.length} | Total: ${totalCount}`);
+		// Calculate pagination
+		const startIndex = (page - 1) * perPage;
+		const endIndex = startIndex + perPage;
 
-			return {
-				products,
-				totalCount,
-			};
-		} catch (error) {
-			console.error("Error fetching paginated products:", error);
+		// Slice the products array to get the current page
+		const paginatedProducts = {
+			edges: allProducts.slice(startIndex, endIndex),
+			pageInfo: {
+				hasNextPage: endIndex < productsCount,
+				hasPreviousPage: page > 1,
+			},
+		};
+
+		return {
+			products: {
+				edges: paginatedProducts.edges,
+				pageInfo: paginatedProducts.pageInfo,
+			},
+			productsCount,
+		};
+	} catch (error) {
+		console.error("Error fetching all products:", error);
+		return null;
+	}
+}
+
+/**
+ * Get paginated products for the products page
+ */
+export async function getPaginatedProducts(page = 1, sort = "featured", perPage = PRODUCTS_PER_PAGE) {
+	try {
+		const allProducts = await getAllProducts(sort, page, perPage);
+
+		if (!allProducts) {
 			return {
 				products: [],
 				totalCount: 0,
 			};
 		}
-	},
-	["products-paginated"],
-	{
-		revalidate: CACHE_TIMES.PRODUCTS,
-		tags: ["products"],
+
+		return {
+			products: allProducts.products.edges.map((edge) => edge.node),
+			totalCount: allProducts.productsCount,
+		};
+	} catch (error) {
+		console.error("Error fetching paginated products:", error);
+		return {
+			products: [],
+			totalCount: 0,
+		};
 	}
-);
+}

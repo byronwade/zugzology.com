@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, Star } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 
 interface HeroSectionProps {

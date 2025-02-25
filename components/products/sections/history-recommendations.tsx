@@ -5,7 +5,7 @@ import { calculateTrendingScore } from "./recommendations/utils/tracking";
 import type { ProductWithSource, RecommendationSection } from "./recommendations/types";
 import { Button } from "@/components/ui/button";
 import { Package, ShoppingBag, ArrowRight } from "lucide-react";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
 
 interface HistoryRecommendationsProps {

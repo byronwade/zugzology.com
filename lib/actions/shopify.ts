@@ -1,1 +1,2 @@
-export { getProducts, getProduct, getCollection, getAllCollections, getCollectionDiscounts, createCart, getCart, addToCart, updateCartLine, removeFromCart, getBlogs, getAllBlogPosts, getBlogByHandle, getProductPageData, getHeaderData, getSiteSettings, getPaginatedProducts } from "@/lib/api/shopify/actions";
+// Re-export all Shopify server actions from the main implementation
+export * from "@/lib/api/shopify/actions";

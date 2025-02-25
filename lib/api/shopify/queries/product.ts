@@ -76,10 +76,13 @@ export const getProductQuery = `
           }
         }
       }
-      metafields(first: 10) {
-        id
-        namespace
+      metafields(identifiers: [
+        {namespace: "custom", key: "specifications"},
+        {namespace: "custom", key: "features"},
+        {namespace: "custom", key: "instructions"}
+      ]) {
         key
+        namespace
         value
         type
       }

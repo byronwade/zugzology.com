@@ -1,6 +1,6 @@
 import { Package, ShoppingBag, ArrowRight, Sparkles, Star, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 
 interface EmptyStateProps {
 	title?: string;

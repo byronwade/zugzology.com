@@ -1,6 +1,6 @@
 import { ProductCard } from "@/components/products/product-card";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Star, TrendingUp, Award } from "lucide-react";
 import type { ShopifyProduct } from "@/lib/types";

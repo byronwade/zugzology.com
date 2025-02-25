@@ -78,20 +78,19 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 			if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
 				setSearchState((prev) => ({
 					...prev,
-					query: "",
-					results: [],
 					isDropdownOpen: false,
 					isSearching: false,
 				}));
 			}
 		}
 
-		document.addEventListener("mousedown", handleClickOutside as EventListener);
-		document.addEventListener("touchstart", handleClickOutside as EventListener);
+		// Add event listeners with capture phase to ensure they fire before other handlers
+		document.addEventListener("mousedown", handleClickOutside as EventListener, true);
+		document.addEventListener("touchstart", handleClickOutside as EventListener, true);
 
 		return () => {
-			document.removeEventListener("mousedown", handleClickOutside as EventListener);
-			document.removeEventListener("touchstart", handleClickOutside as EventListener);
+			document.removeEventListener("mousedown", handleClickOutside as EventListener, true);
+			document.removeEventListener("touchstart", handleClickOutside as EventListener, true);
 		};
 	}, [searchState.isDropdownOpen]);
 
@@ -125,7 +124,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 		});
 	}, []);
 
-	// Memoize search function
+	// Improve search function to ensure products are properly filtered
 	const performSearch = useCallback(
 		(query: string) => {
 			const trimmedQuery = query?.trim() || "";
@@ -152,33 +151,41 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 				return;
 			}
 
-			setSearchState((prev) => ({ ...prev, isSearching: true }));
+			setSearchState((prev) => ({ ...prev, isSearching: true, isDropdownOpen: true }));
 
 			const searchTerms = trimmedQuery.toLowerCase().split(/\s+/);
 
-			// Search products
-			const productResults = data.products
-				.filter((product) => {
-					const searchableText = [product.title, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
-					return searchTerms.every((term) => searchableText.includes(term));
-				})
-				.slice(0, MAX_RESULTS.PRODUCTS)
-				.map((product) => ({
-					type: "product" as const,
-					item: product,
-				}));
+			// Search products - ensure we have products to search through
+			const productResults =
+				data.products && data.products.length > 0
+					? data.products
+							.filter((product) => {
+								if (!product) return false;
+								const searchableText = [product.title, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
+								return searchTerms.every((term) => searchableText.includes(term));
+							})
+							.slice(0, MAX_RESULTS.PRODUCTS)
+							.map((product) => ({
+								type: "product" as const,
+								item: product,
+							}))
+					: [];
 
 			// Search blog posts
-			const blogResults = data.blogPosts
-				.filter((post) => {
-					const searchableText = [post.title, post.excerpt, post.author.name].filter(Boolean).join(" ").toLowerCase();
-					return searchTerms.every((term) => searchableText.includes(term));
-				})
-				.slice(0, MAX_RESULTS.BLOGS)
-				.map((post) => ({
-					type: "blog" as const,
-					item: post,
-				}));
+			const blogResults =
+				data.blogPosts && data.blogPosts.length > 0
+					? data.blogPosts
+							.filter((post) => {
+								if (!post) return false;
+								const searchableText = [post.title, post.excerpt, post.author?.name].filter(Boolean).join(" ").toLowerCase();
+								return searchTerms.every((term) => searchableText.includes(term));
+							})
+							.slice(0, MAX_RESULTS.BLOGS)
+							.map((post) => ({
+								type: "blog" as const,
+								item: post,
+							}))
+					: [];
 
 			const results = [...productResults, ...blogResults];
 

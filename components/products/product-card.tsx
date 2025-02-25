@@ -9,7 +9,7 @@ import { ShoppingCart, Star, ShoppingBag, Loader2, Package, Clock, Users, Heart 
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/providers/cart-provider";
 import { toast } from "sonner";
-import { useState, useMemo, useCallback, memo } from "react";
+import { useState, useMemo, useCallback, memo, useRef, useEffect } from "react";
 import { useWishlist } from "@/lib/providers/wishlist-provider";
 
 export interface ProductCardProps {
@@ -37,7 +37,7 @@ const formatRecentPurchases = (count: number) => {
 };
 
 // Helper function to render star rating
-const StarRating = ({ rating, count }: { rating: number; count: number }) => {
+const StarRating = memo(({ rating, count }: { rating: number; count: number }) => {
 	if (!rating || !count) return null;
 	const fullStars = Math.floor(rating);
 	const hasHalfStar = rating % 1 >= 0.5;
@@ -62,7 +62,9 @@ const StarRating = ({ rating, count }: { rating: number; count: number }) => {
 			<span className="text-sm text-muted-foreground">({count})</span>
 		</div>
 	);
-};
+});
+
+StarRating.displayName = "StarRating";
 
 const formatDeliveryDate = () => {
 	const today = new Date();
@@ -77,7 +79,7 @@ const formatDeliveryDate = () => {
 	});
 };
 
-// Remove all console.log statements and optimize metafield checks
+// Optimized metafield checks
 const getRatingData = (product: ShopifyProduct) => {
 	const metafields = product.metafields || [];
 	return {
@@ -87,7 +89,7 @@ const getRatingData = (product: ShopifyProduct) => {
 	};
 };
 
-// Add this at the top level, outside the component
+// Calculate discount percentage
 const calculateDiscountPercentage = (compareAtPrice: string, price: string) => {
 	if (!compareAtPrice || !price) return 0;
 	return Math.round(((parseFloat(compareAtPrice) - parseFloat(price)) / parseFloat(compareAtPrice)) * 100);
@@ -98,6 +100,22 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 	const { addItem } = useCart();
 	const [isAddingToCartLocal, setIsAddingToCartLocal] = useState(false);
 	const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+
+	// Use refs for event handlers to maintain stable references
+	const handlersRef = useRef({
+		addToCart: onAddToCart,
+		addToWishlist: onAddToWishlist,
+		removeFromWishlist: onRemoveFromWishlist,
+	});
+
+	// Update refs when props change
+	useEffect(() => {
+		handlersRef.current = {
+			addToCart: onAddToCart,
+			addToWishlist: onAddToWishlist,
+			removeFromWishlist: onRemoveFromWishlist,
+		};
+	}, [onAddToCart, onAddToWishlist, onRemoveFromWishlist]);
 
 	// Memoize expensive calculations
 	const productDetails = useMemo(() => {
@@ -148,8 +166,8 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 					quantity: 1,
 				});
 
-				if (onAddToCart) {
-					onAddToCart();
+				if (handlersRef.current.addToCart) {
+					handlersRef.current.addToCart();
 				}
 
 				toast.success("Added to cart");
@@ -160,14 +178,20 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 				setIsAddingToCartLocal(false);
 			}
 		},
-		[variantId, addItem, onAddToCart]
+		[variantId, addItem]
 	);
 
 	const handleWishlistToggle = useCallback(() => {
 		if (isWishlisted) {
 			removeFromWishlist(product.handle);
+			if (handlersRef.current.removeFromWishlist) {
+				handlersRef.current.removeFromWishlist(product.handle);
+			}
 		} else {
 			addToWishlist(product.handle);
+			if (handlersRef.current.addToWishlist) {
+				handlersRef.current.addToWishlist(product.handle);
+			}
 		}
 	}, [isWishlisted, product.handle, removeFromWishlist, addToWishlist]);
 
@@ -196,22 +220,22 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 							src={productDetails.imageUrl}
 							alt={productDetails.imageAlt}
 							fill
+							priority={isVisible}
+							unoptimized={true}
 							loading={isVisible ? "eager" : "lazy"}
 							className="object-cover hover:scale-105 transition-transform duration-300"
 							sizes={view === "grid" ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw" : "96px"}
-							onLoadingComplete={(img) => {
-								if (isVisible) {
-									// Once the image loads, prefetch the product page
-									const link = document.createElement("link");
-									link.rel = "prefetch";
-									link.href = productUrl;
-									document.head.appendChild(link);
-								}
+							onError={(e) => {
+								console.error(`Failed to load image: ${productDetails.imageUrl}`);
+								const target = e.target as HTMLImageElement;
+								target.src = "/placeholder-product.png"; // Fallback image
 							}}
 						/>
 					) : (
-						<div className="absolute inset-0 flex items-center justify-center">
-							<Package className="h-8 w-8 text-neutral-400" />
+						// Placeholder when no image is available
+						<div className="absolute inset-0 flex items-center justify-center bg-neutral-200 dark:bg-neutral-800">
+							<ShoppingBag className="h-12 w-12 text-neutral-400" />
+							<span className="sr-only">No product image available</span>
 						</div>
 					)}
 				</div>
@@ -230,7 +254,6 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 					{hasRating ? (
 						<div className="mt-1 flex items-center gap-2">
 							<StarRating rating={rating} count={ratingCount} />
-							<span className="text-sm text-muted-foreground">({ratingCount})</span>
 						</div>
 					) : (
 						<div className="mt-1">
@@ -297,3 +320,5 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 		</div>
 	);
 });
+
+ProductCard.displayName = "ProductCard";

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 
 export function DetailsSection() {
 	return (

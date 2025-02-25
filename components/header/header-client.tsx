@@ -21,7 +21,6 @@ import { SearchDropdown } from "@/components/search/search-dropdown";
 import { useSearch } from "@/lib/providers/search-provider";
 import Cookies from "js-cookie";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { debounce } from "@/lib/utils/debounce";
 import { usePromo } from "@/lib/providers/promo-provider";
 import { MenuSheet } from "./menu-sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -37,19 +36,6 @@ interface HeaderClientProps {
 	initialMenuItems: MenuItem[];
 	blogs: ShopifyBlog[];
 	isAuthenticated: boolean;
-}
-
-interface MicroDosingCard {
-	title: string;
-	description: string;
-	href: string;
-	icon: "Brain" | "TestTube" | "Leaf" | "BookOpen";
-	tag: string;
-}
-
-interface DebouncedFunction<T extends (...args: any[]) => any> {
-	(...args: Parameters<T>): void;
-	cancel: () => void;
 }
 
 interface SearchHandlers {
@@ -130,7 +116,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	// 1. Context hooks first
 	const { theme, setTheme } = useTheme();
 	const { openCart, cart, isInitialized } = useCart();
-	const { setSearchQuery, isSearching, setIsDropdownOpen, isDropdownOpen } = useSearch();
+	const { searchQuery, setSearchQuery, isDropdownOpen, setIsDropdownOpen, addRecentSearch } = useSearch();
 	const { showPromo, setShowPromo } = usePromo();
 	const router = useRouter();
 
@@ -170,36 +156,32 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 		[cart?.totalQuantity, mounted, isInitialized]
 	);
 
-	// Throttle search to prevent excessive API calls
-	const throttledSearch = useCallback(
-		(value: string) => {
-			const now = Date.now();
-			if (now - lastSearchTime.current > 300) {
-				lastSearchTime.current = now;
-				setSearchQuery(value);
-				setIsDropdownOpen(!!value.trim());
-			}
-		},
-		[setSearchQuery, setIsDropdownOpen]
-	);
-
-	// Memoize the search handlers
-	const searchHandlers = useMemo(() => {
+	// Use setSearchQuery directly instead of throttling
+	const searchHandlers = useMemo<SearchHandlers>(() => {
 		return {
-			change: (e: React.ChangeEvent<HTMLInputElement>) => {
+			change: (e) => {
 				const value = e.target.value;
 				setInputValue(value);
-				throttledSearch(value);
+				setSearchQuery(value);
+
+				// Ensure dropdown opens when typing
+				if (value.trim().length > 0) {
+					setIsDropdownOpen(true);
+				} else {
+					setIsDropdownOpen(false);
+				}
 			},
-			submit: (e: React.FormEvent) => {
+			submit: (e) => {
 				e.preventDefault();
 				if (inputValue.trim()) {
-					router.push(`/search?q=${encodeURIComponent(inputValue.trim())}`);
+					addRecentSearch(inputValue);
+					router.push(`/search?q=${encodeURIComponent(inputValue)}`);
 					setIsDropdownOpen(false);
 				}
 			},
 			focus: () => {
-				if (inputValue.trim()) {
+				// Open dropdown on focus if there's a query
+				if (inputValue.trim().length > 0) {
 					setIsDropdownOpen(true);
 				}
 			},
@@ -207,12 +189,9 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 				setInputValue("");
 				setSearchQuery("");
 				setIsDropdownOpen(false);
-				if (document.activeElement instanceof HTMLElement) {
-					document.activeElement.blur();
-				}
 			},
 		};
-	}, [inputValue, router, setSearchQuery, setIsDropdownOpen, throttledSearch]);
+	}, [inputValue, setSearchQuery, setIsDropdownOpen, addRecentSearch, router]);
 
 	const handleTheme = useCallback(() => {
 		setTheme(theme === "dark" ? "light" : "dark");

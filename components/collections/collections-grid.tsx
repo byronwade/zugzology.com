@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import type { ShopifyCollection } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

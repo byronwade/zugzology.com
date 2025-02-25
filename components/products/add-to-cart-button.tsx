@@ -3,9 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/providers/cart-provider";
 import { Loader2, ShoppingCart, Clock } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface AddToCartButtonProps {
 	variantId: string;
@@ -14,26 +15,48 @@ interface AddToCartButtonProps {
 	className?: string;
 	hasVariants?: boolean;
 	productHandle?: string;
+	isPreOrder?: boolean;
+	onAddToCartSuccess?: () => void;
+	onAddToCartError?: (error: Error) => void;
 }
 
-export function AddToCartButton({ variantId, availableForSale, quantity, className = "", hasVariants = false, productHandle = "" }: AddToCartButtonProps) {
+export const AddToCartButton = memo(function AddToCartButton({ variantId, availableForSale, quantity, className = "", hasVariants = false, productHandle = "", isPreOrder: isPreOrderProp, onAddToCartSuccess, onAddToCartError }: AddToCartButtonProps) {
 	const { addItem } = useCart();
 	const [isLoading, setIsLoading] = useState(false);
-	const isPreOrder = quantity <= 0;
 	const router = useRouter();
 
+	// Determine if this is a pre-order item
+	const isPreOrder = isPreOrderProp || (!availableForSale && quantity <= 0);
+
+	// Use refs for callbacks to maintain stable references
+	const callbacksRef = useRef({
+		onSuccess: onAddToCartSuccess,
+		onError: onAddToCartError,
+	});
+
+	// Update refs when props change
+	useEffect(() => {
+		callbacksRef.current = {
+			onSuccess: onAddToCartSuccess,
+			onError: onAddToCartError,
+		};
+	}, [onAddToCartSuccess, onAddToCartError]);
+
 	const handleClick = useCallback(async () => {
+		// If product has variants, redirect to product page
 		if (hasVariants && productHandle) {
 			router.push(`/products/${productHandle}`);
 			return;
 		}
 
+		// Handle add to cart
 		if (!hasVariants) {
 			if (!variantId || isLoading) return;
 
 			setIsLoading(true);
 
 			try {
+				// Ensure variant ID is in the correct format
 				const merchandiseId = variantId.includes("gid://shopify/ProductVariant/") ? variantId : `gid://shopify/ProductVariant/${variantId}`;
 
 				await addItem({
@@ -41,15 +64,24 @@ export function AddToCartButton({ variantId, availableForSale, quantity, classNa
 					quantity: 1,
 					isPreOrder,
 				});
+
+				toast.success("Added to cart");
+				if (callbacksRef.current.onSuccess) {
+					callbacksRef.current.onSuccess();
+				}
 			} catch (error) {
 				console.error("Add to cart error:", error);
+				toast.error("Failed to add to cart");
+				if (callbacksRef.current.onError) {
+					callbacksRef.current.onError(error instanceof Error ? error : new Error("Failed to add to cart"));
+				}
 			} finally {
 				setIsLoading(false);
 			}
 		}
 	}, [variantId, addItem, isPreOrder, isLoading, hasVariants, productHandle, router]);
 
-	// Determine button variant and style based on type
+	// Determine button style based on type
 	const buttonStyle = cn(
 		"relative w-full transition-colors",
 		{
@@ -61,7 +93,7 @@ export function AddToCartButton({ variantId, availableForSale, quantity, classNa
 	);
 
 	return (
-		<Button onClick={handleClick} disabled={isLoading || (!availableForSale && !isPreOrder)} className={buttonStyle} size="lg">
+		<Button onClick={handleClick} disabled={isLoading || (!availableForSale && !isPreOrder)} className={buttonStyle} size="lg" aria-label={hasVariants ? "Select Options" : isPreOrder ? "Pre-Order Now" : "Add to Cart"}>
 			{isLoading ? (
 				<Loader2 className="h-4 w-4 animate-spin" />
 			) : (
@@ -72,5 +104,7 @@ export function AddToCartButton({ variantId, availableForSale, quantity, classNa
 			)}
 		</Button>
 	);
-}
+});
+
+AddToCartButton.displayName = "AddToCartButton";
 

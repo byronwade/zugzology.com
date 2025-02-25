@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Link } from "@/components/ui/link";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Package, Check, ArrowRight, Star, Plus, Minus, ShoppingCart, Percent, Loader2 } from "lucide-react";
 import Image from "next/image";
