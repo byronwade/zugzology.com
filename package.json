@@ -75,6 +75,7 @@
 		"recharts": "^2.13.3",
 		"schema-dts": "^1.1.2",
 		"sonner": "^1.7.4",
+		"swr": "^2.3.2",
 		"tailwind-merge": "^2.0.0",
 		"tailwindcss-animate": "^1.0.7",
 		"turbo": "^2.3.3",

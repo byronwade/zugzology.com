@@ -239,8 +239,8 @@ export default async function BlogCategoryPage({ params, searchParams }: { param
 		<>
 			<script {...jsonLdScriptProps(blogStructuredData)} />
 			<script {...jsonLdScriptProps(breadcrumbStructuredData)} />
-			<section className="w-full p-4">
-				<div className="max-w-[1800px] mx-auto">
+			<section className="w-full">
+				<div className="w-full px-4 sm:px-6 lg:px-8 py-8">
 					{/* Featured Posts Section - Only show if there are featured posts */}
 					{featuredPosts.length > 0 && (
 						<section className="mb-16">

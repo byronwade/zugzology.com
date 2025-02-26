@@ -209,7 +209,7 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 			<script {...jsonLdScriptProps(breadcrumbStructuredData)} />
 			{/* Main Article Section with Sidebar */}
 			<section className="w-full min-h-screen">
-				<div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+				<div className="w-full px-4 sm:px-6 lg:px-8 py-8">
 					<BlogPostClient featuredProducts={featuredProducts}>
 						<article>
 							<h1 className="mb-4 text-5xl font-black text-gray-900 dark:text-gray-100 sm:text-5xl">{article.title}</h1>
@@ -255,7 +255,7 @@ export default async function BlogPostPage({ params }: { params: { blog: string;
 							{/* Quick Actions */}
 							<div className="not-prose mb-8">
 								<div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-									<BlogQuickActions title={article.title} url={`https://zugzology.com/blogs/${nextParams.blog}/${nextParams.slug}`} />
+									<BlogQuickActions title={article.title} url={`https://zugzology.com/blogs/${nextParams.blog}/${nextParams.slug}`} content={article.contentHtml} image={article.image} />
 								</div>
 							</div>
 

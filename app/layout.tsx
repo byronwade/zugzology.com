@@ -13,6 +13,7 @@ import { jsonLdScriptProps } from "react-schemaorg";
 import { WithContext, Organization } from "schema-dts";
 import { DebugToggle } from "@/components/debug-toggle";
 import { ScrollToTop } from "@/components/scroll-to-top";
+import { SessionProvider } from "@/lib/providers/session-provider";
 
 // Loading components
 function HeaderLoading() {
@@ -204,15 +205,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 			</head>
 			<body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-					<WishlistProvider>
-						<Providers>
-							<AppContent>{children}</AppContent>
-							<DebugToggle />
-							<ScrollToTop />
-						</Providers>
-					</WishlistProvider>
+					<SessionProvider>
+						<WishlistProvider>
+							<Providers>
+								<AppContent>{children}</AppContent>
+								<DebugToggle />
+								<ScrollToTop />
+							</Providers>
+						</WishlistProvider>
+					</SessionProvider>
 				</ThemeProvider>
-				<Toaster richColors position="top-center" />
 			</body>
 		</html>
 	);

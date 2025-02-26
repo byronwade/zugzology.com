@@ -171,7 +171,7 @@ export default async function BlogsPage({ searchParams }: { searchParams?: { pag
 			<script {...jsonLdScriptProps(blogStructuredData)} />
 			<script {...jsonLdScriptProps(breadcrumbStructuredData)} />
 			<div className="min-h-screen w-full">
-				<div className="max-w-[1800px] mx-auto px-4 py-8">
+				<div className="w-full px-4 sm:px-6 lg:px-8 py-8">
 					{/* Featured Posts Section - Only show if there are featured posts */}
 					{featuredPosts.length > 0 && (
 						<section className="mb-16">
@@ -250,8 +250,8 @@ export default async function BlogsPage({ searchParams }: { searchParams?: { pag
 
 								{/* Pagination */}
 								{pagination.totalPages > 1 && (
-									<div className="mt-12 mb-8">
-										<PaginationControls currentPage={pagination.currentPage} totalPages={pagination.totalPages} baseUrl="/blogs" />
+									<div className="mt-12">
+										<PaginationControls {...pagination} />
 									</div>
 								)}
 							</Suspense>

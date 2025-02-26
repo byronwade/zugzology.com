@@ -143,15 +143,6 @@ export function ProductInfo({ product, selectedVariant, selectedOptions, onOptio
 										<span className="text-muted-foreground font-medium">SKU</span>
 										<span className="text-xs font-medium">{selectedVariant.id.split("/").pop()}</span>
 									</div>
-									{product.tags && product.tags.length > 0 && (
-										<div className="flex flex-wrap gap-1.5">
-											{product.tags.map((tag) => (
-												<Badge key={tag} variant="outline" className="text-xs">
-													{tag}
-												</Badge>
-											))}
-										</div>
-									)}
 								</div>
 							</div>
 						</div>
