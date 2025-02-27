@@ -98,7 +98,13 @@ function getRandomFeaturedPosts(posts: ShopifyBlogArticle[], count: number = 2) 
 // Constants for pagination
 const POSTS_PER_PAGE = 12;
 
-export default async function BlogsPage({ searchParams }: { searchParams?: { page?: string } }) {
+interface BlogsPageProps {
+	searchParams?: Promise<{
+		page?: string;
+	}>;
+}
+
+export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 	// Always await searchParams in Next.js 15
 	const nextjs15SearchParams = await searchParams;
 	const currentPage = nextjs15SearchParams?.page ? parseInt(nextjs15SearchParams.page) : 1;

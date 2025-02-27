@@ -14,15 +14,15 @@ export const revalidate = 3600; // Revalidate every hour
 export const fetchCache = "force-cache"; // Use force-cache for better performance
 
 interface CollectionPageProps {
-	params: {
+	params: Promise<{
 		handle: string;
-	};
-	searchParams?: {
+	}>;
+	searchParams?: Promise<{
 		sort?: string;
 		availability?: string;
 		price?: string;
 		page?: string;
-	};
+	}>;
 }
 
 // Cache collection data with the new React cache API

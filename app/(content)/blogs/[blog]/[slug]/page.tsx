@@ -37,7 +37,14 @@ interface ExtendedShopifyBlogArticle extends Omit<ShopifyBlogArticle, "image" | 
 	handle: string;
 }
 
-export async function generateMetadata({ params }: { params: { blog: string; slug: string } }): Promise<Metadata> {
+interface BlogPostPageProps {
+	params: Promise<{
+		blog: string;
+		slug: string;
+	}>;
+}
+
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
 	const nextParams = await params;
 	const blog = await getBlogByHandle(nextParams.blog);
 	const article = (await getArticleByHandle(nextParams.blog, nextParams.slug)) as ExtendedShopifyBlogArticle;
@@ -119,7 +126,7 @@ async function getArticleByHandle(blogHandle: string, articleHandle: string): Pr
 	return articles.find((article) => article.handle === articleHandle);
 }
 
-export default async function BlogPostPage({ params }: { params: { blog: string; slug: string } }) {
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
 	const nextParams = await params;
 	const blog = await getBlogByHandle(nextParams.blog);
 	const article = (await getArticleByHandle(nextParams.blog, nextParams.slug)) as ExtendedShopifyBlogArticle;

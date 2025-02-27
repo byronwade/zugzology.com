@@ -130,7 +130,16 @@ function getRandomFeaturedPosts(posts: ShopifyBlogArticle[], count: number = 3) 
 	return shuffled.slice(0, count);
 }
 
-export default async function BlogCategoryPage({ params, searchParams }: { params: { blog: string }; searchParams?: { page?: string } }) {
+interface BlogCategoryPageProps {
+	params: Promise<{
+		blog: string;
+	}>;
+	searchParams?: Promise<{
+		page?: string;
+	}>;
+}
+
+export default async function BlogCategoryPage({ params, searchParams }: BlogCategoryPageProps) {
 	const startTime = performance.now();
 
 	// Always await params and searchParams in Next.js 15
