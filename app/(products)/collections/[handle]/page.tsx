@@ -36,24 +36,7 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 			const allProducts = await getAllProducts(sort, page, 20); // Reduced from 24 to 20 products per page
 			if (!allProducts) {
 				console.log("Server", "⚡ [Collection] Failed to fetch all products, falling back to empty collection");
-				// Return a fallback collection with empty products
-				return {
-					id: "all",
-					handle: "all",
-					title: "All Products",
-					description: "Browse our complete collection of premium mushroom growing supplies and equipment.",
-					products: {
-						edges: [],
-						pageInfo: {
-							hasNextPage: false,
-							hasPreviousPage: false,
-							startCursor: "",
-							endCursor: "",
-						},
-					},
-					productsCount: 0,
-					image: null,
-				} as ShopifyCollectionWithPagination;
+				return null;
 			}
 
 			// Ensure the returned object matches ShopifyCollectionWithPagination
@@ -62,17 +45,9 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 				handle: "all",
 				title: "All Products",
 				description: "Browse our complete collection of premium mushroom growing supplies and equipment.",
-				products: {
-					edges: allProducts.products.edges,
-					pageInfo: {
-						hasNextPage: allProducts.products.pageInfo.hasNextPage,
-						hasPreviousPage: allProducts.products.pageInfo.hasPreviousPage,
-						startCursor: "",
-						endCursor: "",
-					},
-				},
+				products: allProducts.products,
 				productsCount: allProducts.productsCount,
-				image: null, // Add image field to match collection type
+				image: null,
 			} as ShopifyCollectionWithPagination;
 		}
 

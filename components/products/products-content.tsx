@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ShopifyProduct, ShopifyCollection, ShopifyBlogArticle } from "@/lib/types";
 import type { ShopifyCollectionWithPagination } from "@/lib/api/shopify/types";
 import { getProducts, getAllBlogPosts } from "@/lib/actions/shopify";
+import { PaginationControls } from "@/components/ui/pagination";
 
 // Loading component
 const ProductsLoading = () => (
@@ -144,6 +145,10 @@ export function ProductsContent({ collection, products: initialProducts, title, 
 	// Get total count without considering search results
 	const totalProductsCount = useTotalProducts(collection, initialTotalProducts, rawProducts, [], false);
 
+	// Calculate total pages
+	const PRODUCTS_PER_PAGE = 20; // Match the value used in the collection page
+	const totalPages = Math.ceil(totalProductsCount / PRODUCTS_PER_PAGE);
+
 	// Apply filters to products
 	const { filteredProducts, filters, updateFilter } = useProductFilters(rawProducts);
 
@@ -246,7 +251,7 @@ export function ProductsContent({ collection, products: initialProducts, title, 
 		if (filteredProducts.length === 0) {
 			return (
 				<>
-					<ProductsHeader title={title} description={description} defaultSort={defaultSort} />
+					<ProductsHeader title={title} description={description} defaultSort={defaultSort} count={0} />
 					<EmptyState title={filters.sort !== "featured" ? "No Filtered Results" : "No Products Available"} description={filters.sort !== "featured" ? "No products match your current filters. Try adjusting your selection or browse all products." : "This collection is currently empty. Check out our other collections or browse all products."} showCollectionCards={true} />
 				</>
 			);
@@ -260,15 +265,13 @@ export function ProductsContent({ collection, products: initialProducts, title, 
 
 		return (
 			<>
-				<ProductsHeader title={title} description={displayDescription} defaultSort={defaultSort} />
-				<ProductList
-					products={filteredProducts}
-					onRemoveFromWishlist={onRemoveFromWishlist}
-					totalProducts={totalProductsCount}
-					currentPage={currentPage || 1}
-					productsPerPage={20} // Match the value we're using in the collection page
-					collectionHandle={collection?.handle}
-				/>
+				<ProductsHeader title={title} description={displayDescription} defaultSort={defaultSort} count={totalProductsCount} />
+				<ProductList products={filteredProducts} onRemoveFromWishlist={onRemoveFromWishlist} />
+				{totalPages > 1 && (
+					<div className="mt-8">
+						<PaginationControls currentPage={currentPage} totalPages={totalPages} baseUrl={collection?.handle ? `/collections/${collection.handle}` : undefined} />
+					</div>
+				)}
 			</>
 		);
 	};

@@ -250,37 +250,121 @@ export const getCollection = cache(
 		}
 	): Promise<ShopifyCollectionWithPagination | null> => {
 		try {
-			const { page = 1, limit = PRODUCTS_PER_PAGE, sort = "MANUAL", reverse = false } = options || {};
+			const page = options?.page || 1;
+			const limit = options?.limit || 20;
+			const sort = options?.sort || "MANUAL";
+			const reverse = options?.reverse || false;
 
-			// Get the paginated collection data
-			const response = await shopifyFetch({
+			// First, get the total count using a separate query
+			const countResponse = await shopifyFetch<{
+				collection: {
+					products: {
+						edges: Array<{ cursor: string }>;
+					};
+				};
+			}>({
+				query: `
+					query getCollectionCount($handle: String!) {
+						collection(handle: $handle) {
+							products(first: 250) {
+								edges {
+									cursor
+								}
+							}
+						}
+					}
+				`,
+				variables: { handle },
+				tags: [`${CACHE_TAGS.COLLECTION}-${handle}-count`],
+			});
+
+			const totalProducts = countResponse.data?.collection?.products?.edges?.length || 0;
+			const totalPages = Math.ceil(totalProducts / limit);
+
+			// For cursor-based pagination, we need to fetch the cursor for the current page
+			let currentCursor = null;
+			if (page > 1) {
+				// Get the cursor for the previous page's last item
+				const previousPageResponse = await shopifyFetch<CollectionResponse>({
+					query: collectionQuery,
+					variables: {
+						handle,
+						first: limit,
+						after: null,
+						sortKey: sort,
+						reverse,
+					},
+					tags: [`${CACHE_TAGS.COLLECTION}-${handle}-cursor`],
+				});
+
+				if (previousPageResponse?.data?.collection?.products?.edges) {
+					const edges = previousPageResponse.data.collection.products.edges;
+					if (edges.length >= limit) {
+						// If we have enough products, use the last edge's cursor
+						currentCursor = edges[limit - 1].cursor;
+
+						// If we need to go further, keep fetching until we reach our target page
+						let currentPage = 2;
+						while (currentPage < page) {
+							const response = await shopifyFetch<CollectionResponse>({
+								query: collectionQuery,
+								variables: {
+									handle,
+									first: limit,
+									after: currentCursor,
+									sortKey: sort,
+									reverse,
+								},
+								tags: [`${CACHE_TAGS.COLLECTION}-${handle}-cursor-${currentPage}`],
+							});
+
+							const edges = response?.data?.collection?.products?.edges || [];
+							if (!edges.length) {
+								break;
+							}
+
+							currentCursor = edges[edges.length - 1].cursor;
+							currentPage++;
+						}
+					}
+				}
+			}
+
+			// Fetch the current page
+			const { data } = await shopifyFetch<CollectionResponse>({
 				query: collectionQuery,
 				variables: {
 					handle,
 					first: limit,
+					after: currentCursor,
 					sortKey: sort,
 					reverse,
-					after: page > 1 ? btoa(`arrayconnection:${(page - 1) * limit - 1}`) : null,
 				},
-				tags: [CACHE_TAGS.COLLECTION],
+				tags: [`${CACHE_TAGS.COLLECTION}-${handle}`],
 			});
-
-			// Type assertion for the response
-			const data = response.data as any;
 
 			if (!data?.collection) {
 				return null;
 			}
 
-			// Get the total product count from the current page
-			// In a production environment, you would want to implement a more accurate count
-			const totalProducts = data.collection.products.edges.length;
+			// Get the products for the current page
+			const products = data.collection.products;
 
-			return {
+			// Enhance the collection data with pagination info
+			const collection: ShopifyCollectionWithPagination = {
 				...data.collection,
 				productsCount: totalProducts,
-				products: data.collection.products,
+				products: {
+					...products,
+					pageInfo: {
+						...products.pageInfo,
+						hasNextPage: page < totalPages,
+						hasPreviousPage: page > 1,
+					},
+				},
 			};
+
+			return collection;
 		} catch (error) {
 			console.error("Error fetching collection:", error);
 			return null;
