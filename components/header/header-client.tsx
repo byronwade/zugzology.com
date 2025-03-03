@@ -2,14 +2,50 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Sun, Moon, Sprout, User, ShoppingCart, Menu, Sparkles, X, ChevronRight, Brain, TestTube, Leaf, BookOpen, ShoppingBag, Star, Tag, Package, HelpCircle, Clock, ArrowRight, Heart, LogIn, UserPlus, Keyboard, Globe } from "lucide-react";
+import {
+	Search,
+	Sun,
+	Moon,
+	Sprout,
+	User,
+	ShoppingCart,
+	Menu,
+	Sparkles,
+	X,
+	ChevronRight,
+	Brain,
+	TestTube,
+	Leaf,
+	BookOpen,
+	ShoppingBag,
+	Star,
+	Tag,
+	Package,
+	HelpCircle,
+	Clock,
+	ArrowRight,
+	Heart,
+	LogIn,
+	UserPlus,
+	Keyboard,
+	Globe,
+	MoreHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+	DropdownMenuSeparator,
+	DropdownMenuLabel,
+	DropdownMenuGroup,
+} from "@/components/ui/dropdown-menu";
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from "react";
 import { useCart } from "@/lib/providers/cart-provider";
 import { useRouter } from "next/navigation";
@@ -17,17 +53,17 @@ import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import type { ShopifyBlog } from "@/lib/types";
-import { SearchDropdown } from "@/components/search/search-dropdown";
 import { useSearch } from "@/lib/providers/search-provider";
 import Cookies from "js-cookie";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { usePromo } from "@/lib/providers/promo-provider";
-import { MenuSheet } from "./menu-sheet";
+import { MenuSheetFixed } from "./menu-sheet-fixed";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSession } from "next-auth/react";
 import { UserAccountButton } from "@/components/auth/next-auth-buttons";
 import { NextAuthLogout } from "@/components/auth/next-auth-logout";
-import { LearnAndGrowMenu } from "@/components/header/learn-and-grow-menu";
+import { LearnAndGrowMenuFixed } from "@/components/header/learn-and-grow-menu-fixed";
+import { SearchDropdown } from "@/components/search/search-dropdown";
 
 interface MenuItem {
 	id: string;
@@ -84,7 +120,21 @@ const Logo = memo(function Logo({ onClick }: { onClick: () => void }) {
 	);
 });
 
-const SearchBar = memo(function SearchBar({ placeholder, value, onChange, onFocus, onSubmit, onClear }: { placeholder: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; onFocus: () => void; onSubmit: (e: React.FormEvent) => void; onClear: () => void }) {
+const SearchBar = memo(function SearchBar({
+	placeholder,
+	value,
+	onChange,
+	onFocus,
+	onSubmit,
+	onClear,
+}: {
+	placeholder: string;
+	value: string;
+	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+	onFocus: () => void;
+	onSubmit: (e: React.FormEvent) => void;
+	onClear: () => void;
+}) {
 	return (
 		<div className="flex-1 relative min-w-0 ml-2 mr-3 sm:mr-4" data-search-container>
 			<form onSubmit={onSubmit} className="relative w-full">
@@ -104,14 +154,19 @@ const SearchBar = memo(function SearchBar({ placeholder, value, onChange, onFocu
 					/>
 					<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 					{value && (
-						<Button type="button" variant="ghost" size="icon" onClick={onClear} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8">
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							onClick={onClear}
+							className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+						>
 							<X className="h-4 w-4" />
 							<span className="sr-only">Clear search</span>
 						</Button>
 					)}
 				</div>
 			</form>
-			<SearchDropdown />
 		</div>
 	);
 });
@@ -305,7 +360,12 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	if (!mounted) return null;
 
 	return (
-		<header className={cn("bg-background border-b sticky top-0 z-50 flex flex-col", showPromo ? "h-[calc(var(--header-height)+32px)]" : "h-[var(--header-height)]")}>
+		<header
+			className={cn(
+				"bg-white border-b sticky top-0 z-50 flex flex-col",
+				showPromo ? "h-[calc(var(--header-height)+32px)]" : "h-[var(--header-height)]"
+			)}
+		>
 			{/* Promo Banner */}
 			{showPromo && (
 				<div className="bg-purple-50 dark:bg-purple-950/20 border-b border-purple-100 dark:border-purple-900 h-8">
@@ -316,7 +376,10 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 									<Sparkles className="h-3.5 w-3.5" />
 									<span className="font-medium whitespace-nowrap">Limited Time Offer</span>
 								</div>
-								<Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+								<Badge
+									variant="secondary"
+									className="bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800"
+								>
 									Save 20%
 								</Badge>
 								<span className="hidden xs:inline text-purple-400 dark:text-purple-600">|</span>
@@ -326,13 +389,21 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 								</span>
 							</div>
 							<div className="flex items-center gap-3 min-w-fit">
-								<Button variant="link" size="sm" className="h-auto p-0 text-xs text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 hover:no-underline" asChild>
+								<Button
+									variant="link"
+									size="sm"
+									className="h-auto p-0 text-xs text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 hover:no-underline"
+									asChild
+								>
 									<a href="/sale" className="hidden xs:inline-flex items-center">
 										View Deals
 										<ArrowRight className="h-3 w-3 ml-1" />
 									</a>
 								</Button>
-								<button onClick={() => setShowPromo(false)} className="text-purple-400 hover:text-purple-900 dark:hover:text-purple-100">
+								<button
+									onClick={() => setShowPromo(false)}
+									className="text-purple-400 hover:text-purple-900 dark:hover:text-purple-100"
+								>
 									<X className="h-3.5 w-3.5" />
 									<span className="sr-only">Dismiss</span>
 								</button>
@@ -342,135 +413,365 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 				</div>
 			)}
 
-			{/* Top Bar */}
-			<div className="px-2 sm:px-4 h-[var(--header-top-height)] flex-shrink-0 flex items-center">
+			{/* Top Bar - Shopify Admin Style */}
+			<div className="px-4 h-[var(--header-top-height)] flex-shrink-0 flex items-center bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
 				<div className="flex items-center justify-between w-full">
-					<Logo onClick={searchHandlers.clear} />
+					{/* Logo Section */}
+					<div className="flex items-center">
+						<Logo onClick={searchHandlers.clear} />
+					</div>
 
-					<SearchBar placeholder={searchPlaceholder} value={inputValue} onChange={searchHandlers.change} onFocus={searchHandlers.focus} onSubmit={searchHandlers.submit} onClear={searchHandlers.clear} />
+					{/* Search Section - Shopify Admin Style */}
+					<div className="flex-1 mx-4">
+						<div className="relative w-full">
+							<Input
+								type="text"
+								className="w-full pl-10 pr-4 h-9 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-purple-500 rounded-md text-sm"
+								placeholder={searchPlaceholder}
+								value={inputValue}
+								onChange={searchHandlers.change}
+								onFocus={searchHandlers.focus}
+								onSubmit={searchHandlers.submit}
+								autoComplete="off"
+								autoCorrect="off"
+								autoCapitalize="off"
+								spellCheck="false"
+								inputMode="search"
+							/>
+							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+							{inputValue && (
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={searchHandlers.clear}
+									className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 hover:bg-gray-200 dark:hover:bg-gray-700"
+								>
+									<X className="h-3.5 w-3.5" />
+									<span className="sr-only">Clear search</span>
+								</Button>
+							)}
+							<SearchDropdown />
+						</div>
+					</div>
 
-					{/* Action Buttons */}
-					<div className="flex items-center gap-3 flex-shrink-0">
-						{/* Learn & Grow Button */}
-						<LearnAndGrowMenu blogs={blogs} />
+					{/* Action Buttons - Shopify Admin Style */}
+					<div className="flex items-center gap-2 flex-shrink-0">
+						{/* Learn & Grow Button - Hidden on mobile */}
+						<div className="hidden sm:block">
+							<LearnAndGrowMenuFixed blogs={blogs} />
+						</div>
 
 						{/* Main Action Buttons */}
-						<div className="flex items-center gap-3">
-							{/* Affiliated Websites Button */}
+						<div className="flex items-center gap-2">
+							{/* Mobile More Menu - Only visible on small screens */}
 							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button variant="outline" size="icon" className="h-10 w-10 rounded-full">
-										<Globe className="h-4 w-4" />
-										<span className="sr-only">Affiliated Websites</span>
+								<DropdownMenuTrigger asChild className="sm:hidden">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+									>
+										<MoreHorizontal className="h-5 w-5" />
+										<span className="sr-only">More options</span>
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end" className="w-[200px]">
-									<DropdownMenuItem asChild>
-										<a href="https://zugzmagic.com" target="_blank" rel="noopener noreferrer" className="w-full cursor-pointer">
-											<Globe className="h-4 w-4 mr-2" />
+								<DropdownMenuContent
+									align="end"
+									className="w-[200px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-1 shadow-lg rounded-lg"
+								>
+									{/* Learn & Grow in dropdown on mobile */}
+									<DropdownMenuItem
+										onClick={() => router.push("/blogs")}
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										<BookOpen className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+										Learn & Grow
+									</DropdownMenuItem>
+
+									{/* Affiliated Websites */}
+									<DropdownMenuItem
+										asChild
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										<a
+											href="https://zugzmagic.com"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="w-full cursor-pointer"
+										>
+											<Globe className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 											zugzmagic.com
 										</a>
 									</DropdownMenuItem>
-									<DropdownMenuItem asChild>
-										<a href="https://zugzbag.com" target="_blank" rel="noopener noreferrer" className="w-full cursor-pointer">
-											<Globe className="h-4 w-4 mr-2" />
+									<DropdownMenuItem
+										asChild
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										<a
+											href="https://zugzbag.com"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="w-full cursor-pointer"
+										>
+											<Globe className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 											zugzbag.com
 										</a>
 									</DropdownMenuItem>
-									<DropdownMenuSeparator />
-									<div className="px-2 py-1.5 text-xs text-muted-foreground">Other Sites</div>
-									<DropdownMenuItem asChild>
-										<a href="https://tripsitter.com" target="_blank" rel="noopener noreferrer" className="w-full cursor-pointer">
-											<Globe className="h-4 w-4 mr-2" />
+
+									{/* Theme Toggle in dropdown on mobile */}
+									<DropdownMenuItem
+										onClick={handleTheme}
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										{theme === "light" ? (
+											<Moon className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+										) : (
+											<Sun className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+										)}
+										{theme === "light" ? "Dark Mode" : "Light Mode"}
+									</DropdownMenuItem>
+
+									{/* Wishlist in dropdown on mobile */}
+									<DropdownMenuItem
+										onClick={() => router.push("/wishlist")}
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										<Heart className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+										Wishlist
+									</DropdownMenuItem>
+
+									<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
+
+									{/* Account options */}
+									{isAuthenticatedNextAuth ? (
+										<>
+											<DropdownMenuItem
+												onClick={() => router.push("/account")}
+												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+											>
+												<User className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+												Account
+											</DropdownMenuItem>
+											<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
+											<NextAuthLogout onSignOut={() => router.refresh()} />
+										</>
+									) : (
+										<>
+											<DropdownMenuItem
+												onClick={() => router.push("/login")}
+												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+											>
+												<LogIn className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+												Login
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() => router.push("/register")}
+												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+											>
+												<UserPlus className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+												Register
+											</DropdownMenuItem>
+										</>
+									)}
+								</DropdownMenuContent>
+							</DropdownMenu>
+
+							{/* Affiliated Websites Button - Hidden on mobile */}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild className="hidden sm:flex">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+									>
+										<Globe className="h-5 w-5" />
+										<span className="sr-only">Affiliated Websites</span>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									className="w-[200px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-1 shadow-lg rounded-lg"
+								>
+									<DropdownMenuItem
+										asChild
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										<a
+											href="https://zugzmagic.com"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="w-full cursor-pointer"
+										>
+											<Globe className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+											zugzmagic.com
+										</a>
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										asChild
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										<a
+											href="https://zugzbag.com"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="w-full cursor-pointer"
+										>
+											<Globe className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+											zugzbag.com
+										</a>
+									</DropdownMenuItem>
+									<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
+									<div className="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400">Other Sites</div>
+									<DropdownMenuItem
+										asChild
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										<a
+											href="https://tripsitter.com"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="w-full cursor-pointer"
+										>
+											<Globe className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 											tripsitter.com
 										</a>
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
 
-							{/* Account & Menu Button */}
+							{/* Theme Toggle - Hidden on mobile */}
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={handleTheme}
+								className="hidden sm:flex h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+							>
+								{theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+								<span className="sr-only">Toggle theme</span>
+							</Button>
+
+							{/* Wishlist Button - Hidden on mobile */}
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={() => router.push("/wishlist")}
+								className="hidden sm:flex h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+							>
+								<Heart className="h-5 w-5" />
+								<span className="sr-only">Wishlist</span>
+							</Button>
+
+							{/* Account Button - Always visible */}
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
-									<Button variant="outline" size="icon" className="relative h-10 w-10 rounded-full">
-										<User className="h-4 w-4" />
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+									>
+										<User className="h-5 w-5" />
+										<span className="sr-only">Account</span>
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent className="w-56" align="end" forceMount>
-									<DropdownMenuLabel className="font-normal">
+								<DropdownMenuContent
+									className="w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-1 shadow-lg rounded-lg"
+									align="end"
+									forceMount
+								>
+									<DropdownMenuLabel className="font-normal px-3 py-2 text-gray-700 dark:text-gray-300">
 										<div className="flex flex-col space-y-1">
-											<p className="text-sm font-medium leading-none">{session?.user?.name || "Account"}</p>
-											{session?.user?.email && <p className="text-xs leading-none text-muted-foreground">{session.user.email}</p>}
+											<p className="text-sm font-medium leading-none text-gray-900 dark:text-gray-100">
+												{session?.user?.name || "Account"}
+											</p>
+											{session?.user?.email && (
+												<p className="text-xs leading-none text-gray-500 dark:text-gray-400">{session.user.email}</p>
+											)}
 										</div>
 									</DropdownMenuLabel>
-									<DropdownMenuSeparator />
+									<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
 									<DropdownMenuGroup>
 										{isAuthenticatedNextAuth ? (
 											<>
-												<DropdownMenuItem onClick={() => router.push("/account")}>
-													<User className="h-4 w-4 mr-2" />
+												<DropdownMenuItem
+													onClick={() => router.push("/account")}
+													className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+												>
+													<User className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 													Account
 												</DropdownMenuItem>
 											</>
 										) : (
 											<>
-												<DropdownMenuItem onClick={() => router.push("/login")}>
-													<LogIn className="h-4 w-4 mr-2" />
+												<DropdownMenuItem
+													onClick={() => router.push("/login")}
+													className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+												>
+													<LogIn className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 													Login
 												</DropdownMenuItem>
-												<DropdownMenuItem onClick={() => router.push("/register")}>
-													<UserPlus className="h-4 w-4 mr-2" />
+												<DropdownMenuItem
+													onClick={() => router.push("/register")}
+													className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+												>
+													<UserPlus className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 													Register
 												</DropdownMenuItem>
 											</>
 										)}
 									</DropdownMenuGroup>
-									<DropdownMenuSeparator />
-									<DropdownMenuItem onClick={() => router.push("/keyboard-shortcuts")}>
-										<Keyboard className="h-4 w-4 mr-2" />
+									<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
+									<DropdownMenuItem
+										onClick={() => router.push("/keyboard-shortcuts")}
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										<Keyboard className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 										Keyboard Shortcuts
-									</DropdownMenuItem>
-									<DropdownMenuItem onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
-										{theme === "light" ? (
-											<>
-												<Moon className="h-4 w-4 mr-2" />
-												Dark Mode
-											</>
-										) : (
-											<>
-												<Sun className="h-4 w-4 mr-2" />
-												Light Mode
-											</>
-										)}
 									</DropdownMenuItem>
 									{isAuthenticatedNextAuth && (
 										<>
-											<DropdownMenuSeparator />
+											<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
 											<NextAuthLogout onSignOut={() => router.refresh()} />
 										</>
 									)}
 								</DropdownMenuContent>
 							</DropdownMenu>
 
-							{/* Cart Button */}
-							<Button variant="outline" size="icon" onClick={openCart} className="relative h-10 w-10 rounded-full">
-								<ShoppingCart className="h-4 w-4" />
-								{cartState.show && <span className="absolute -top-2 -right-1.5 sm:-right-2 min-w-[20px] h-5 text-xs bg-purple-500 text-white rounded-full flex items-center justify-center px-1.5">{cartState.quantity}</span>}
+							{/* Cart Button - Always visible */}
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={openCart}
+								className="relative h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+							>
+								<ShoppingCart className="h-5 w-5" />
+								{cartState.show && (
+									<span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] text-xs bg-purple-600 text-white rounded-full flex items-center justify-center px-1 font-medium">
+										{cartState.quantity}
+									</span>
+								)}
+								<span className="sr-only">Cart</span>
 							</Button>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			{/* Navigation */}
-			<nav className="border-t h-[var(--header-nav-height)] flex-shrink-0">
-				<div className="px-2 sm:px-4 h-full">
+			{/* Navigation - Shopify Admin Style */}
+			<nav className="bg-white dark:bg-gray-900 h-[var(--header-nav-height)] flex-shrink-0 border-b border-gray-200 dark:border-gray-800">
+				<div className="px-4 h-full">
 					<div className="flex items-center h-full">
-						<MenuSheet items={initialMenuItems} />
+						<MenuSheetFixed items={initialMenuItems} />
 
 						<ScrollArea className="w-full whitespace-nowrap">
-							<div className="flex items-center space-x-4">
+							<div className="flex items-center space-x-6">
 								{menuItems.main.map((item) => (
-									<Link prefetch={true} key={item.id} href={item.url} className="text-sm text-muted-foreground hover:text-foreground py-1 shrink-0 transition-colors">
+									<Link
+										prefetch={true}
+										key={item.id}
+										href={item.url}
+										className="text-sm font-medium text-gray-600 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 py-1 shrink-0 transition-colors"
+									>
 										{item.title}
 									</Link>
 								))}

@@ -14,17 +14,35 @@ export function formatPrice(amount: string | number, currencyCode: string = "USD
 }
 
 /**
+ * Check if a product is intentionally free (price = $0)
+ * A product is considered intentionally free if:
+ * 1. It has a $0 price
+ * 2. OR it has a metafield marking it as intentionally free
+ */
+export function isIntentionallyFree(product: any): boolean {
+	// Check for zero price
+	const price = product.variants?.nodes?.[0]?.price?.amount || product.priceRange?.minVariantPrice?.amount || "0";
+	const isZeroPrice = parseFloat(price) === 0;
+	
+	// Check for the free product metafield
+	const hasFreeMeta = product.metafields?.some(
+		(field: any) => field?.namespace === "custom" && field?.key === "is_free" && field?.value === "true"
+	);
+	
+	// A product is intentionally free if it has zero price OR is marked as free
+	return isZeroPrice || hasFreeMeta;
+}
+
+/**
  * Debug logger utility that only logs when debugging is enabled
  * Enable by setting DEBUG_LOGGING=true in .env or localStorage.debug = 'true'
  */
 export const debugLog = (component: string, message: string, data?: any) => {
-	// Check if debugging is enabled via env or localStorage
-	const isDebugEnabled = 
-		process.env.NEXT_PUBLIC_DEBUG_LOGGING === 'true' || 
-		(typeof window !== 'undefined' && window.localStorage.getItem('debug') === 'true');
-	
+	// Debugging is disabled
+	const isDebugEnabled = false;
+
 	if (!isDebugEnabled) return;
-	
+
 	if (data) {
 		console.log(`[${component}] ${message}`, data);
 	} else {

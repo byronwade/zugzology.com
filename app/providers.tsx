@@ -9,8 +9,10 @@ import { SearchProvider } from "@/lib/providers/search-provider";
 import { PromoProvider } from "@/lib/providers/promo-provider";
 import { SessionProvider } from "next-auth/react";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { WishlistProvider } from "@/lib/providers/wishlist-provider";
 import { useTheme } from "next-themes";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { GlobalSearchInitializer } from "@/components/search/global-search-initializer";
 
 // Add padding to prevent layout shift when scrollbar disappears
 function preventLayoutShift() {
@@ -18,37 +20,40 @@ function preventLayoutShift() {
 	document.documentElement.style.setProperty("--removed-body-scroll-bar-size", `${scrollbarWidth}px`);
 }
 
+// Toaster component that adapts to theme
 function ToasterWithTheme() {
 	const { theme } = useTheme();
+	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
-		preventLayoutShift();
-		window.addEventListener("resize", preventLayoutShift);
-		return () => window.removeEventListener("resize", preventLayoutShift);
+		setMounted(true);
 	}, []);
+
+	if (!mounted) {
+		return null;
+	}
 
 	return (
 		<Toaster
-			position="top-center"
-			richColors
-			expand
-			closeButton
-			theme={theme === "dark" ? "dark" : "light"}
-			swipeDirections={["right"]}
-			visibleToasts={6}
+			position="bottom-right"
 			toastOptions={{
-				className: "group relative after:content-['Swipe_right_to_dismiss'] after:absolute after:bottom-1 after:left-0 after:right-0 after:text-[10px] after:text-center after:text-muted-foreground/60 after:block sm:after:hidden",
-				descriptionClassName: "group-hover:opacity-100 text-xs text-muted-foreground/80",
-				duration: 4000,
 				style: {
-					background: theme === "dark" ? "hsl(var(--background))" : "white",
-					color: theme === "dark" ? "white" : "black",
-					padding: "0.75rem",
+					background: theme === "dark" ? "#1a1a1a" : "#ffffff",
+					color: theme === "dark" ? "#e6e6e6" : "#242424",
+					border: `1px solid ${theme === "dark" ? "#2f2f2f" : "#e6e6e6"}`,
 				},
 			}}
-			className="toast-spacing"
 		/>
 	);
+}
+
+// Prevent layout shift when scrollbar appears/disappears
+if (typeof window !== "undefined") {
+	// Add resize listener
+	window.addEventListener("resize", preventLayoutShift);
+
+	// Initial call
+	preventLayoutShift();
 }
 
 export function Providers({ children, ...props }: ThemeProviderProps) {
@@ -56,15 +61,18 @@ export function Providers({ children, ...props }: ThemeProviderProps) {
 		<NextThemesProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange {...props}>
 			<SessionProvider>
 				<AuthProvider>
-					<PromoProvider>
-						<SearchProvider>
-							<CartProvider>
-								{children}
-								<CartSheet />
-								<ToasterWithTheme />
-							</CartProvider>
-						</SearchProvider>
-					</PromoProvider>
+					<WishlistProvider>
+						<PromoProvider>
+							<SearchProvider>
+								<GlobalSearchInitializer />
+								<CartProvider>
+									{children}
+									<CartSheet />
+									<ToasterWithTheme />
+								</CartProvider>
+							</SearchProvider>
+						</PromoProvider>
+					</WishlistProvider>
 				</AuthProvider>
 			</SessionProvider>
 		</NextThemesProvider>

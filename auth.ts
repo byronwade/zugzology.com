@@ -10,15 +10,6 @@ const shopifyConfig = {
 	clientSecret: process.env.SHOPIFY_CLIENT_SECRET,
 };
 
-// Log configuration for debugging
-console.log("🔐 [NextAuth] Shopify Auth Config:", {
-	shopId: shopifyConfig.shopId,
-	clientId: shopifyConfig.clientId?.substring(0, 10) + "...", // Only log part of the client ID for security
-	hasSecret: !!shopifyConfig.clientSecret,
-	nextAuthUrl: process.env.NEXTAUTH_URL,
-	environment: process.env.NODE_ENV,
-});
-
 // Validate required environment variables
 if (!shopifyConfig.shopId || !shopifyConfig.clientId || !shopifyConfig.clientSecret) {
 	throw new Error("Missing required environment variables for Shopify authentication. Check SHOPIFY_SHOP_ID, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET are set.");
@@ -30,7 +21,7 @@ const logAuthError = (message: string, error?: unknown) => {
 };
 
 export const authConfig: NextAuthConfig = {
-	debug: true, // Enable debug mode to help troubleshoot
+	debug: false, // Disable debug mode
 	providers: [
 		Shopify({
 			shopId: shopifyConfig.shopId,
@@ -44,15 +35,11 @@ export const authConfig: NextAuthConfig = {
 				// Add the shopify access token to the session
 				if (token?.shopifyAccessToken) {
 					session.shopifyAccessToken = token.shopifyAccessToken as string;
-					console.log("🔐 [NextAuth] Added Shopify access token to session");
-				} else {
-					console.log("⚠️ [NextAuth] No Shopify access token in token object");
 				}
 
 				// Add ID token if available
 				if (token?.idToken) {
 					session.idToken = token.idToken as string;
-					console.log("🔐 [NextAuth] Added ID token to session");
 				}
 
 				return session;
@@ -66,17 +53,11 @@ export const authConfig: NextAuthConfig = {
 				// Save the access token from the initial sign-in
 				if (account?.access_token) {
 					token.shopifyAccessToken = account.access_token;
-					console.log("🔐 [NextAuth] Saved Shopify access token to JWT");
-				} else if (token.shopifyAccessToken) {
-					console.log("🔐 [NextAuth] Using existing Shopify access token from JWT");
-				} else {
-					console.log("⚠️ [NextAuth] No access token available for JWT");
 				}
 
 				// Save the ID token if available
 				if (account?.id_token) {
 					token.idToken = account.id_token;
-					console.log("🔐 [NextAuth] Saved ID token to JWT");
 				}
 
 				return token;
@@ -87,7 +68,6 @@ export const authConfig: NextAuthConfig = {
 		},
 		async redirect({ url, baseUrl }) {
 			try {
-				console.log("🔐 [NextAuth] Redirect callback", { url, baseUrl });
 				// Ensure we always redirect to a valid URL
 				if (url.startsWith(baseUrl)) {
 					return url;
@@ -108,29 +88,21 @@ export const authConfig: NextAuthConfig = {
 	events: {
 		async signIn(message) {
 			try {
-				console.log("🔐 [NextAuth] User signed in", {
-					user: message.user.email,
-					account: message.account?.provider,
-					timestamp: new Date().toISOString(),
-				});
+				// Silent sign in
 			} catch (error) {
 				logAuthError("Error in signIn event", error);
 			}
 		},
 		async signOut(message) {
 			try {
-				console.log("🔐 [NextAuth] User signed out", {
-					timestamp: new Date().toISOString(),
-				});
+				// Silent sign out
 			} catch (error) {
 				logAuthError("Error in signOut event", error);
 			}
 		},
 		async session(message) {
 			try {
-				console.log("🔐 [NextAuth] Session updated", {
-					timestamp: new Date().toISOString(),
-				});
+				// Silent session update
 			} catch (error) {
 				logAuthError("Error in session event", error);
 			}
@@ -138,7 +110,11 @@ export const authConfig: NextAuthConfig = {
 	},
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+// Create and export the auth functions
+const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+
+// Export the auth functions individually
+export { handlers, auth, signIn, signOut };
 
 // Extend the Session type to include Shopify access token and ID token
 declare module "next-auth" {

@@ -1,7 +1,10 @@
 "use client";
 
+import { ReactNode } from "react";
+
 interface MarqueeProps {
 	className?: string;
+	children?: ReactNode;
 }
 
 const phrases = [
@@ -9,9 +12,23 @@ const phrases = [
 	{ text: "THINK ", highlight: "BIGGER" },
 ];
 
-export function Marquee({ className }: MarqueeProps) {
+export function Marquee({ className, children }: MarqueeProps) {
+	// If children are provided, use them instead of the default content
+	if (children) {
+		return (
+			<div className={`marquee-container bg-black ${className || ""}`}>
+				<div className="overflow-hidden py-4">{children}</div>
+			</div>
+		);
+	}
+
+	// Default marquee implementation
 	const content = phrases.map((phrase, index) => (
-		<span key={index} className="marquee-item marquee-text flex items-center" style={{ "--color": "#ffffff" } as React.CSSProperties}>
+		<span
+			key={index}
+			className="marquee-item marquee-text flex items-center"
+			style={{ "--color": "#ffffff" } as React.CSSProperties}
+		>
 			<span className="opacity-75">{phrase.text}</span>
 			<span
 				className="text-highlight font-extrabold tracking-tight text-blue-400"

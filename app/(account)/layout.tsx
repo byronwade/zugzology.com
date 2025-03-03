@@ -1,14 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import { cookies } from "next/headers";
 import { AUTH_CONFIG } from "@/lib/config/auth";
+import { getSession } from "@/lib/actions/session";
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
 	try {
-		// Check NextAuth session
-		const session = await auth();
+		// Use the custom session management instead of Next.js auth
+		const session = await getSession();
 
 		// Also check custom auth system
 		const cookieStore = await cookies();
@@ -16,12 +16,12 @@ export default async function AccountLayout({ children }: { children: React.Reac
 		const customAuthToken = customerAccessToken?.value;
 
 		console.log("🔍 [AccountLayout] Auth status:", {
-			nextAuthSession: !!session,
+			sessionUser: !!session?.user,
 			customAuthToken: !!customAuthToken,
 		});
 
 		// Redirect if not authenticated in either system
-		if (!session && !customAuthToken) {
+		if (!session?.user && !customAuthToken) {
 			console.log("❌ [AccountLayout] No authentication found, redirecting to login");
 			redirect("/login?redirect=/account");
 		}

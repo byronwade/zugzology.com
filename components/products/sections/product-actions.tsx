@@ -26,7 +26,7 @@ interface ProductActionsProps {
 }
 
 export function ProductActions({ selectedVariant, quantity, onQuantityChange, productHandle }: ProductActionsProps) {
-	const { addItem } = useCart();
+	const { addItem, isInitialized } = useCart();
 	const [isLoading, setIsLoading] = useState(false);
 	const [isBuyingNow, setIsBuyingNow] = useState(false);
 	const [isWishlisted, setIsWishlisted] = useState(false);
@@ -61,13 +61,27 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 
 		setIsLoading(true);
 		try {
-			const merchandiseId = selectedVariant.id.includes("gid://shopify/ProductVariant/") ? selectedVariant.id : `gid://shopify/ProductVariant/${selectedVariant.id}`;
+			// Check if cart is initialized
+			if (!isInitialized) {
+				// Wait a moment for cart to initialize
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+
+				// If still not initialized, show a helpful message
+				if (!isInitialized) {
+					toast.error("Cart is still initializing. Please try again in a moment.");
+					return;
+				}
+			}
+
+			const merchandiseId = selectedVariant.id.includes("gid://shopify/ProductVariant/")
+				? selectedVariant.id
+				: `gid://shopify/ProductVariant/${selectedVariant.id}`;
 
 			await addItem({
 				merchandiseId,
 				quantity,
 			});
-			toast.success("Added to cart");
+			// Toast message is already displayed by CartProvider
 		} catch (error) {
 			console.error("Error in handleAddToCart:", error);
 			toast.error("Failed to add to cart");
@@ -82,34 +96,39 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 			return;
 		}
 
+		setIsLoading(true);
 		setIsBuyingNow(true);
 		try {
-			// Create a new cart
-			const cart = await createCart();
-			if (!cart?.id) {
-				throw new Error("Failed to create cart");
+			// Check if cart is initialized
+			if (!isInitialized) {
+				// Wait a moment for cart to initialize
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+
+				// If still not initialized, show a helpful message
+				if (!isInitialized) {
+					toast.error("Cart is still initializing. Please try again in a moment.");
+					setIsBuyingNow(false);
+					return;
+				}
 			}
 
-			// Add the item to the cart
-			const merchandiseId = selectedVariant.id.includes("gid://shopify/ProductVariant/") ? selectedVariant.id : `gid://shopify/ProductVariant/${selectedVariant.id}`;
-			const updatedCart = await addToCart(cart.id, [
-				{
-					merchandiseId,
-					quantity,
-				},
-			]);
+			const merchandiseId = selectedVariant.id.includes("gid://shopify/ProductVariant/")
+				? selectedVariant.id
+				: `gid://shopify/ProductVariant/${selectedVariant.id}`;
 
-			if (!updatedCart?.checkoutUrl) {
-				throw new Error("Failed to get checkout URL");
-			}
+			// Create a direct checkout URL for Shopify
+			const variantId = merchandiseId.split("/").pop();
+			const shopifyCheckoutUrl = `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/cart/${variantId}:${quantity}`;
 
 			// Redirect to checkout
-			window.location.href = updatedCart.checkoutUrl;
+			window.location.href = shopifyCheckoutUrl;
 		} catch (error) {
 			console.error("Error in handleBuyNow:", error);
 			toast.error("Failed to proceed to checkout");
+		} finally {
+			setIsLoading(false);
+			setIsBuyingNow(false);
 		}
-		setIsBuyingNow(false);
 	};
 
 	const handleQuantityChange = (event: React.ChangeEvent<HTMLInputElement> | string) => {
@@ -177,50 +196,70 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 				window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}`, "_blank");
 				break;
 			case "twitter":
-				window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(productUrl)}&text=${encodeURIComponent(productTitle)}`, "_blank");
+				window.open(
+					`https://twitter.com/intent/tweet?url=${encodeURIComponent(productUrl)}&text=${encodeURIComponent(
+						productTitle
+					)}`,
+					"_blank"
+				);
 				break;
 			case "pinterest":
-				window.open(`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(productUrl)}&description=${encodeURIComponent(productTitle)}`, "_blank");
+				window.open(
+					`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(
+						productUrl
+					)}&description=${encodeURIComponent(productTitle)}`,
+					"_blank"
+				);
 				break;
 			case "whatsapp":
 				window.open(`https://wa.me/?text=${encodeURIComponent(productTitle + " " + productUrl)}`, "_blank");
 				break;
 			case "email":
-				window.open(`mailto:?subject=${encodeURIComponent(productTitle)}&body=${encodeURIComponent(productUrl)}`, "_blank");
+				window.open(
+					`mailto:?subject=${encodeURIComponent(productTitle)}&body=${encodeURIComponent(productUrl)}`,
+					"_blank"
+				);
 				break;
 		}
 	};
 
 	// Add a helper function to format the quantity display
-	const formatQuantityAvailable = (variant: { quantityAvailable?: number; title?: string }) => {
-		if (!variant || typeof variant.quantityAvailable !== "number") {
-			return { display: "Available", showMax: false };
-		}
+	const formatQuantityAvailable = (variant: {
+		quantityAvailable?: number;
+		title?: string;
+		availableForSale?: boolean;
+	}) => {
+		let quantity = variant.quantityAvailable ?? 0;
 
-		const quantity = variant.quantityAvailable;
+		// Log the actual quantity for debugging
+		console.log(
+			`[Stock Debug] Product variant "${variant.title}": quantityAvailable=${quantity}, availableForSale=${variant.availableForSale}`
+		);
 
-		// Handle digital products
-		if (variant.title?.toLowerCase().includes("digital")) {
-			return { display: "Digital Product - Unlimited", showMax: false };
-		}
-
-		// Format based on quantity ranges - never show as out of stock
-		if (quantity <= 0) {
-			return { display: "Available (Backorder)", showMax: false };
+		// Only show as backorder if quantity is 0 AND product is NOT available for sale
+		if (quantity === 0 && !variant.availableForSale) {
+			return "Backorder";
+		} else if (quantity === 0 && variant.availableForSale) {
+			// If quantity is 0 but product is available for sale, it means inventory tracking is disabled in Shopify
+			return "In Stock";
 		} else if (quantity === 1) {
-			return { display: "Last One!", showMax: true };
+			return "Last One";
 		} else if (quantity <= 5) {
-			return { display: `Only ${quantity} left!`, showMax: true };
+			return `Last ${quantity} In Stock`;
 		} else if (quantity <= 10) {
-			return { display: `${quantity} available`, showMax: true };
+			return `${quantity} available`;
 		} else if (quantity <= 20) {
-			return { display: "10+ available", showMax: true };
+			return "10+";
 		} else if (quantity <= 50) {
-			return { display: "20+ available", showMax: false };
+			return "20+";
 		} else if (quantity <= 100) {
-			return { display: "50+ available", showMax: false };
+			return "50+";
+		} else if (quantity <= 500) {
+			return "100+";
+		} else if (quantity <= 1000) {
+			return "500+";
 		} else {
-			return { display: "100+ available", showMax: false };
+			return "1000+";
 		}
 	};
 
@@ -232,51 +271,84 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 					<div className="space-y-1.5">
 						<div className="flex items-center justify-between">
 							<div className="flex items-center gap-2">
-								<div className="text-3xl font-bold text-primary">{formatPrice(parseFloat(selectedVariant?.price?.amount || "0"))}</div>
-								{selectedVariant?.compareAtPrice && parseFloat(selectedVariant.compareAtPrice.amount) > parseFloat(selectedVariant.price.amount) && (
-									<>
-										<div className="text-xl text-muted-foreground line-through">{formatPrice(parseFloat(selectedVariant.compareAtPrice.amount))}</div>
-										<Badge variant="destructive" className="text-xs font-semibold">
-											{Math.round(((parseFloat(selectedVariant.compareAtPrice.amount) - parseFloat(selectedVariant.price.amount)) / parseFloat(selectedVariant.compareAtPrice.amount)) * 100)}% OFF
-										</Badge>
-									</>
-								)}
+								<div className="text-3xl font-bold text-primary">
+									{parseFloat(selectedVariant?.price?.amount || "0") === 0
+										? "Free"
+										: formatPrice(parseFloat(selectedVariant?.price?.amount || "0"))}
+								</div>
+								{selectedVariant?.compareAtPrice &&
+									parseFloat(selectedVariant.compareAtPrice.amount) > parseFloat(selectedVariant.price.amount) && (
+										<>
+											<div className="text-xl text-muted-foreground line-through">
+												{formatPrice(parseFloat(selectedVariant.compareAtPrice.amount))}
+											</div>
+											<Badge variant="destructive" className="text-xs font-semibold">
+												{Math.round(
+													((parseFloat(selectedVariant.compareAtPrice.amount) -
+														parseFloat(selectedVariant.price.amount)) /
+														parseFloat(selectedVariant.compareAtPrice.amount)) *
+														100
+												)}
+												% OFF
+											</Badge>
+										</>
+									)}
 							</div>
 						</div>
 						{/* Stock and Shipping Info */}
 						<div className="space-y-2">
 							{/* Stock Status */}
 							<div className="flex items-center justify-between">
-								<div className="text-green-600 flex items-center gap-1.5">
-									<span className="text-sm font-medium">Available</span>
-									{selectedVariant.quantityAvailable <= 0 && (
-										<Badge variant="outline" className="ml-1.5 text-xs">
+								<div className="flex items-center">
+									<h3 className="font-medium text-base">Stock Status</h3>
+									{selectedVariant.quantityAvailable === 0 && selectedVariant.availableForSale === false ? (
+										<Badge
+											variant="secondary"
+											className="ml-2 px-2 py-0 h-5 bg-orange-100 hover:bg-orange-100 text-orange-700 hover:text-orange-700"
+										>
 											Backorder
+										</Badge>
+									) : selectedVariant.quantityAvailable <= 3 && selectedVariant.quantityAvailable > 0 ? (
+										<Badge
+											variant="secondary"
+											className="ml-2 px-2 py-0 h-5 bg-red-100 hover:bg-red-100 text-red-700 hover:text-red-700"
+										>
+											Low Stock
+										</Badge>
+									) : (
+										<Badge
+											variant="secondary"
+											className="ml-2 px-2 py-0 h-5 bg-green-100 hover:bg-green-100 text-green-700 hover:text-green-700"
+										>
+											In Stock
 										</Badge>
 									)}
 								</div>
-								<TooltipProvider>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<span className="text-xs text-muted-foreground cursor-help">{formatQuantityAvailable(selectedVariant).display}</span>
-										</TooltipTrigger>
-										<TooltipContent>
-											<p>{selectedVariant.title?.toLowerCase().includes("digital") ? "Digital products have unlimited inventory" : selectedVariant.quantityAvailable && selectedVariant.quantityAvailable > 0 ? `${selectedVariant.quantityAvailable} units currently in stock` : "This item can be backordered and will ship when inventory is replenished"}</p>
-										</TooltipContent>
-									</Tooltip>
-								</TooltipProvider>
+								<span className="text-sm text-muted-foreground">{formatQuantityAvailable(selectedVariant)}</span>
 							</div>
 
 							{/* Shipping Info - Adjusted for backordered items */}
 							<div className="flex items-center justify-between">
-								<div className="flex items-center gap-1.5 text-primary">
-									<span className="text-sm">FREE Shipping</span>
+								<div className="flex items-center gap-1.5 text-purple-600">
+									<span className="text-sm">
+										{parseFloat(selectedVariant?.price?.amount || "0") === 0 ? "FREE Product" : "FREE Shipping"}
+									</span>
 								</div>
-								<span className="text-xs text-muted-foreground">{selectedVariant.quantityAvailable > 0 ? `Delivery by ${formatDeliveryDate()}` : `Ships within 1-2 weeks`}</span>
+								<span className="text-xs text-muted-foreground">
+									{selectedVariant.quantityAvailable <= 0 && !selectedVariant.availableForSale
+										? `Ships within 1-2 weeks`
+										: `Delivery in 3-8 business days`}
+								</span>
 							</div>
 
 							{/* Additional Info */}
-							<p className="text-xs text-muted-foreground">{selectedVariant.quantityAvailable > 0 ? "Orders placed before 2 PM EST ship same day" : "Backordered items are prioritized for restocking"}</p>
+							<div className="text-xs text-muted-foreground">
+								{selectedVariant.quantityAvailable <= 0 && !selectedVariant.availableForSale ? (
+									<p>Backordered items are prioritized for restocking</p>
+								) : (
+									<p>Orders placed before 2 PM EST ship same day</p>
+								)}
+							</div>
 						</div>
 					</div>
 
@@ -286,14 +358,29 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 							Quantity
 						</Label>
 						<div className="flex items-center space-x-2">
-							<Input id="quantity" type="number" min="1" max={selectedVariant.quantityAvailable || 9999} value={quantity} onChange={handleQuantityChange} className="w-24" />
-							{formatQuantityAvailable(selectedVariant).showMax && selectedVariant.quantityAvailable > 0 && <span className="text-sm text-muted-foreground">Max: {selectedVariant.quantityAvailable}</span>}
+							<Input
+								id="quantity"
+								type="number"
+								min="1"
+								max={selectedVariant.quantityAvailable || 9999}
+								value={quantity}
+								onChange={handleQuantityChange}
+								className="w-24"
+							/>
+							{selectedVariant.quantityAvailable > 0 && (
+								<span className="text-sm text-muted-foreground">Max: {selectedVariant.quantityAvailable}</span>
+							)}
 						</div>
 					</div>
 
 					{/* Action Buttons */}
 					<div className="space-y-3">
-						<Button variant="secondary" onClick={handleAddToCart} disabled={isLoading} className="w-full bg-secondary hover:bg-secondary/80 text-foreground border border-foreground/10 hover:border-foreground/20 shadow-none">
+						<Button
+							variant="secondary"
+							onClick={handleAddToCart}
+							disabled={isLoading}
+							className="w-full bg-purple-600 hover:bg-purple-700 text-white border border-foreground/10 hover:border-foreground/20 shadow-none"
+						>
 							{isLoading ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -302,11 +389,16 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 							) : (
 								<>
 									<ShoppingCart className="mr-2 h-4 w-4" />
-									Add to Cart
+									{parseFloat(selectedVariant?.price?.amount || "0") === 0 ? "Claim Free" : "Add to Cart"}
 								</>
 							)}
 						</Button>
-						<Button variant="default" onClick={handleBuyNow} disabled={isBuyingNow} className="w-full">
+						<Button
+							variant="default"
+							onClick={handleBuyNow}
+							disabled={isBuyingNow}
+							className="w-full bg-gray-900 hover:bg-gray-800 text-white"
+						>
 							{isBuyingNow ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -322,7 +414,11 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 
 						{/* Wishlist and Share Buttons */}
 						<div className="flex gap-2 mt-4">
-							<Button variant="outline" onClick={handleWishlist} className={cn("flex-1", isWishlisted && "bg-primary/5 border-primary text-primary")}>
+							<Button
+								variant="outline"
+								onClick={handleWishlist}
+								className={cn("flex-1", isWishlisted && "bg-primary/5 border-primary text-primary")}
+							>
 								<Heart className={cn("mr-2 h-4 w-4", isWishlisted && "fill-primary")} />
 								{isWishlisted ? "Saved" : "Save for Later"}
 							</Button>
@@ -356,12 +452,35 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						</div>
 					</div>
 
-					<Separator className="my-4" />
+					{/* Trust Badges */}
+					<div className="pt-4 border-t border-gray-200">
+						<div className="grid grid-cols-2 gap-3">
+							<div className="flex items-center gap-2 text-sm text-gray-600">
+								<Shield className="h-4 w-4 text-purple-600" />
+								<span>Secure Checkout</span>
+							</div>
+							<div className="flex items-center gap-2 text-sm text-gray-600">
+								<TruckIcon className="h-4 w-4 text-purple-600" />
+								<span>Fast Shipping</span>
+							</div>
+							<div className="flex items-center gap-2 text-sm text-gray-600">
+								<HeartHandshake className="h-4 w-4 text-purple-600" />
+								<span>Satisfaction Guaranteed</span>
+							</div>
+							<div className="flex items-center gap-2 text-sm text-gray-600">
+								<Headphones className="h-4 w-4 text-purple-600" />
+								<span>24/7 Support</span>
+							</div>
+						</div>
+					</div>
 
 					{/* Collapsible Information Sections */}
 					<Accordion type="single" collapsible className="w-full space-y-2">
 						{/* Secure Transaction */}
-						<AccordionItem value="secure-transaction" className="border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
+						<AccordionItem
+							value="secure-transaction"
+							className="border rounded-lg bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20"
+						>
 							<AccordionTrigger className="px-4 py-2 hover:no-underline">
 								<div className="flex items-center">
 									<Shield className="h-5 w-5 mr-2 text-primary" />
@@ -466,7 +585,10 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 										<span>Neutral shipping label</span>
 									</li>
 								</ul>
-								<p className="mt-2 text-sm text-muted-foreground">We prioritize your privacy. Our discreet packaging ensures your purchase remains confidential from shipment to delivery.</p>
+								<p className="mt-2 text-sm text-muted-foreground">
+									We prioritize your privacy. Our discreet packaging ensures your purchase remains confidential from
+									shipment to delivery.
+								</p>
 							</AccordionContent>
 						</AccordionItem>
 
@@ -513,7 +635,10 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 											<div className="flex items-center">
 												<Percent className="h-5 w-5 mr-2 text-primary" />
 												<span className="font-semibold">Volume Discounts</span>
-												<Badge variant="secondary" className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+												<Badge
+													variant="secondary"
+													className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+												>
 													Save up to 40%
 												</Badge>
 											</div>
@@ -548,12 +673,17 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 													</li>
 													<li className="flex items-center justify-between pt-2">
 														<span>50+ Bags</span>
-														<Badge variant="outline" className="text-green-600 font-semibold bg-green-50 dark:bg-green-950/20">
+														<Badge
+															variant="outline"
+															className="text-green-600 font-semibold bg-green-50 dark:bg-green-950/20"
+														>
 															40% OFF
 														</Badge>
 													</li>
 												</ul>
-												<p className="text-xs text-muted-foreground mt-2">✨ Bulk discounts automatically applied at checkout</p>
+												<p className="text-xs text-muted-foreground mt-2">
+													✨ Bulk discounts automatically applied at checkout
+												</p>
 											</div>
 										</AccordionContent>
 									</AccordionItem>

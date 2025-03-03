@@ -19,6 +19,7 @@ interface ProductListProps {
 	onRemoveFromWishlist?: (handle: string) => void;
 	onAddToWishlist?: (handle: string) => void;
 	collectionHandle?: string;
+	showPagination?: boolean;
 }
 
 // ProductSkeleton component for loading states
@@ -112,7 +113,7 @@ const ProductGrid = memo(({ products, visibleProducts, onRemoveFromWishlist, onA
 ProductGrid.displayName = "ProductGrid";
 
 // Main ProductList component
-export function ProductList({ products, totalProducts = 0, currentPage = 1, productsPerPage = 24, onRemoveFromWishlist, onAddToWishlist, collectionHandle }: ProductListProps) {
+export function ProductList({ products, totalProducts = 0, currentPage = 1, productsPerPage = 24, onRemoveFromWishlist, onAddToWishlist, collectionHandle, showPagination = false }: ProductListProps) {
 	const [visibleProducts, setVisibleProducts] = useState<Set<string>>(new Set());
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -165,9 +166,11 @@ export function ProductList({ products, totalProducts = 0, currentPage = 1, prod
 		<div ref={containerRef}>
 			<ProductGrid products={products} visibleProducts={visibleProducts} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} collectionHandle={collectionHandle} />
 
-			<div className="mt-12 mb-8">
-				<PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
-			</div>
+			{showPagination && (
+				<div className="mt-12 mb-8">
+					<PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+				</div>
+			)}
 		</div>
 	);
 }

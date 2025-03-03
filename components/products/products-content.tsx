@@ -269,7 +269,7 @@ export function ProductsContent({ collection, products: initialProducts, title, 
 				<ProductList products={filteredProducts} onRemoveFromWishlist={onRemoveFromWishlist} />
 				{totalPages > 1 && (
 					<div className="mt-8">
-						<PaginationControls currentPage={currentPage} totalPages={totalPages} baseUrl={collection?.handle ? `/collections/${collection.handle}` : undefined} />
+						<PaginationControls currentPage={currentPage} totalPages={totalPages} baseUrl={searchQuery ? "/search" : collection?.handle ? `/collections/${collection.handle}` : undefined} />
 					</div>
 				)}
 			</>
@@ -278,7 +278,7 @@ export function ProductsContent({ collection, products: initialProducts, title, 
 
 	// Always return a consistent structure to avoid hook issues
 	return (
-		<main className="w-full" itemScope itemType="https://schema.org/CollectionPage">
+		<main className="w-full px-4" itemScope itemType="https://schema.org/CollectionPage">
 			<meta itemProp="name" content={`${title} - Zugzology`} />
 			<meta itemProp="description" content={description || "Browse our collection of products"} />
 			{renderContent()}

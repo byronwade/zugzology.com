@@ -27,21 +27,27 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 
 async function fetchSession(): Promise<Session> {
-	const response = await fetch("/api/auth/session", {
-		method: "GET",
-		headers: {
-			"Content-Type": "application/json",
-			"Cache-Control": "no-store, max-age=0",
-		},
-		credentials: "include",
-	});
+	try {
+		const response = await fetch("/api/auth/session", {
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+				"Cache-Control": "no-store, max-age=0",
+			},
+			credentials: "include",
+		});
 
-	if (!response.ok) {
-		const error = await response.text();
-		throw new Error(error || "Failed to fetch session");
+		if (!response.ok) {
+			const error = await response.text();
+			throw new Error(error || "Failed to fetch session");
+		}
+
+		const data = await response.json();
+		return data;
+	} catch (error) {
+		console.error("[Session Provider] Fetch error:", error);
+		throw error;
 	}
-
-	return response.json();
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
@@ -58,7 +64,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 			retryCount.current = 0; // Reset retry count on success
 			return data;
 		} catch (err) {
-			console.error(`Session fetch error (attempt ${retryAttempt + 1}/${MAX_RETRIES}):`, err);
+			console.error(`[Session Provider] Fetch error (attempt ${retryAttempt + 1}/${MAX_RETRIES}):`, err);
 
 			if (retryAttempt < MAX_RETRIES - 1) {
 				await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
@@ -78,10 +84,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 				const data = await fetchSessionWithRetry();
 				if (mounted.current) {
 					setSession(data);
+					setError(null);
 				}
 			} catch (err) {
 				if (mounted.current) {
 					setError(err instanceof Error ? err : new Error("Failed to fetch session"));
+					setSession(null);
 				}
 			} finally {
 				if (mounted.current) {
@@ -106,9 +114,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 				const data = await fetchSessionWithRetry();
 				if (mounted.current) {
 					setSession(data);
+					setError(null);
 				}
 			} catch (err) {
-				console.error("Session refresh error:", err);
+				console.error("[Session Provider] Refresh error:", err);
+				if (mounted.current) {
+					setError(err instanceof Error ? err : new Error("Failed to refresh session"));
+				}
 			}
 		}, 5 * 60 * 1000);
 
@@ -133,9 +145,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 					const data = await fetchSessionWithRetry();
 					if (mounted.current) {
 						setSession(data);
+						setError(null);
 					}
 				} catch (err) {
-					console.error("Session focus refresh error:", err);
+					console.error("[Session Provider] Focus refresh error:", err);
+					if (mounted.current) {
+						setError(err instanceof Error ? err : new Error("Failed to refresh session"));
+					}
 				}
 			}, 100);
 		};
@@ -159,10 +175,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 				const data = await fetchSessionWithRetry();
 				if (mounted.current) {
 					setSession(data);
+					setError(null);
 				}
 			} catch (err) {
 				if (mounted.current) {
 					setError(err instanceof Error ? err : new Error("Failed to fetch session"));
+					setSession(null);
 				}
 			} finally {
 				if (mounted.current) {

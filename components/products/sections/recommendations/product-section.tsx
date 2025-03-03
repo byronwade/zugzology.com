@@ -48,6 +48,7 @@ export function ProductSection({ title, description, products, sectionId, curren
 		const variants = product.variants?.nodes || [];
 		let totalQuantity = 0;
 		let isAnyVariantAvailable = false;
+		let firstVariantId: string | null = null;
 
 		variants.forEach((variant: ShopifyProductVariant) => {
 			if (variant.availableForSale) {
@@ -56,14 +57,19 @@ export function ProductSection({ title, description, products, sectionId, curren
 			if (typeof variant.quantityAvailable === "number") {
 				totalQuantity += variant.quantityAvailable;
 			}
+			// Store the first variant ID
+			if (!firstVariantId && variant.id) {
+				firstVariantId = variant.id;
+			}
 		});
 
 		// Get the first variant as default
 		const firstVariant = variants[0];
 
 		return {
-			variantId: firstVariant?.id,
+			variantId: firstVariantId || firstVariant?.id,
 			quantity: totalQuantity,
+			isAvailable: isAnyVariantAvailable,
 		};
 	};
 

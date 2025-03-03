@@ -7,7 +7,7 @@ import { ProductInfo } from "@/components/products/sections/product-info";
 import { ProductActions } from "@/components/products/sections/product-actions";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { getProducts, getAllBlogPosts, getProductsByIds } from "@/lib/actions/shopify";
+import { getProducts, getAllBlogPosts, getProductsByIds } from "@/lib/api/shopify/actions";
 import { RelatedProducts } from "./sections/related-products";
 import { RecentPosts } from "@/components/blog/recent-posts";
 import { HistoryRecommendations } from "./sections/history-recommendations";
@@ -18,10 +18,24 @@ import Link from "next/link";
 import Image from "next/image";
 import { Package } from "lucide-react";
 import { debugLog } from "@/lib/utils";
+import { TrustooReviews } from "./sections/trustoo-reviews";
+import { ProductRecommendations } from "./sections/recommendations/product-recommendations";
+import { ProductSection } from "./sections/recommendations/product-section";
+import { ProductSource } from "./sections/recommendations/types";
+import { ChevronRight, ArrowRight } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 
 interface ProductWithRecommendations extends ShopifyProduct {
 	recommendations?: {
 		nodes: ShopifyProduct[];
+	};
+	collections?: {
+		edges: Array<{
+			node: {
+				handle: string;
+				title: string;
+			};
+		}>;
 	};
 }
 
@@ -48,8 +62,13 @@ const getInitialSelectedOptions = (variant: ShopifyProductVariant | null): Selec
 	);
 };
 
-const findMatchingVariant = (variants: ShopifyProductVariant[], selectedOptions: SelectedOptions): ShopifyProductVariant | undefined => {
-	return variants.find((variant) => variant.selectedOptions?.every((option) => selectedOptions[option.name] === option.value));
+const findMatchingVariant = (
+	variants: ShopifyProductVariant[],
+	selectedOptions: SelectedOptions
+): ShopifyProductVariant | undefined => {
+	return variants.find((variant) =>
+		variant.selectedOptions?.every((option) => selectedOptions[option.name] === option.value)
+	);
 };
 
 // Memoized Breadcrumb component
@@ -76,6 +95,34 @@ const Breadcrumb = memo(({ title }: { title: string }) => (
 ));
 
 Breadcrumb.displayName = "Breadcrumb";
+
+// Helper function to get media URL safely
+const getMediaUrl = (media: MediaNode): string => {
+	if (media.mediaContentType === "IMAGE" && (media as ShopifyMediaImage).image) {
+		return (media as ShopifyMediaImage).image.url;
+	} else if (
+		media.mediaContentType === "VIDEO" &&
+		(media as ShopifyMediaVideo).sources &&
+		(media as ShopifyMediaVideo).sources.length > 0
+	) {
+		return (media as ShopifyMediaVideo).sources[0].url;
+	} else if (media.previewImage) {
+		return media.previewImage.url;
+	}
+	return "";
+};
+
+// Helper function to get media alt text safely
+const getMediaAltText = (media: MediaNode): string => {
+	if (media.mediaContentType === "IMAGE" && (media as ShopifyMediaImage).image) {
+		return (media as ShopifyMediaImage).image.altText || "";
+	} else if (media.alt) {
+		return media.alt;
+	} else if (media.previewImage && media.previewImage.altText) {
+		return media.previewImage.altText;
+	}
+	return "";
+};
 
 export const ProductContentClient = ({ product }: ProductContentClientProps) => {
 	// Debug log the incoming product data
@@ -152,7 +199,11 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 			if (product.images?.nodes) {
 				product.images.nodes.forEach((node) => {
 					// Only add if there isn't already media for this image
-					if (!items.some((media) => media.mediaContentType === "IMAGE" && (media as ShopifyMediaImage).image?.url === node.url)) {
+					if (
+						!items.some(
+							(media) => media.mediaContentType === "IMAGE" && (media as ShopifyMediaImage).image?.url === node.url
+						)
+					) {
 						items.push({
 							id: `image-${node.url}`,
 							mediaContentType: "IMAGE",
@@ -183,12 +234,53 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 				if (Array.isArray(posts) && posts.length > 0) {
 					debugLog("ProductContentClient", "Using pre-fetched blog posts", posts.length);
 					setRecentPosts(posts);
+				} else {
+					// If no blog posts from server, fetch them directly
+					fetchBlogPosts();
 				}
+			} else {
+				// No blog posts element, fetch directly
+				fetchBlogPosts();
 			}
 		} catch (error) {
 			console.error("Error parsing pre-fetched blog posts:", error);
+			// Attempt to fetch directly after error
+			fetchBlogPosts();
 		}
 	}, []);
+
+	// Helper function to fetch blog posts
+	const fetchBlogPosts = async () => {
+		try {
+			console.log("📚 [Product] Fetching recent blog posts");
+			const posts = await getAllBlogPosts();
+			if (Array.isArray(posts) && posts.length > 0) {
+				// Sort posts by date (newest first)
+				const sortedPosts = [...posts].sort(
+					(a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+				);
+
+				// Take only the three most recent posts
+				const recentThreePosts = sortedPosts.slice(0, 3);
+
+				// Make sure each post has the blog handle set
+				const postsWithBlogHandle = recentThreePosts.map((post) => ({
+					...post,
+					// Use blog.handle if available, otherwise fallback to blogHandle
+					blogHandle: post.blog?.handle || post.blogHandle || "blog",
+				}));
+
+				setRecentPosts(postsWithBlogHandle);
+				console.log(`📚 [Product] Fetched ${postsWithBlogHandle.length} recent blog posts`);
+			} else {
+				console.log("📚 [Product] No blog posts found");
+				setRecentPosts([]);
+			}
+		} catch (error) {
+			console.error("Error fetching blog posts:", error);
+			setRecentPosts([]);
+		}
+	};
 
 	useEffect(() => {
 		if (!mounted) return;
@@ -207,14 +299,23 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 				try {
 					// Check if we already have recommendations from the server
 					if (product.recommendations?.nodes && product.recommendations.nodes.length > 0) {
-						debugLog("ProductContentClient", "Using server-provided recommendations", product.recommendations.nodes.length);
+						debugLog(
+							"ProductContentClient",
+							"Using server-provided recommendations",
+							product.recommendations.nodes.length
+						);
 						setComplementaryProducts(product.recommendations.nodes);
 						setRecommendedProducts(product.recommendations.nodes.slice(0, 8));
 						return;
 					}
 
 					// Find the complementary_products metafield
-					const complementaryMetafield = product.metafields.find((metafield) => metafield && metafield.namespace === "shopify--discovery--product_recommendation" && metafield.key === "complementary_products");
+					const complementaryMetafield = product.metafields.find(
+						(metafield) =>
+							metafield &&
+							metafield.namespace === "shopify--discovery--product_recommendation" &&
+							metafield.key === "complementary_products"
+					);
 
 					debugLog("ProductContentClient", "Found complementary metafield:", complementaryMetafield);
 
@@ -320,61 +421,142 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 			if (product.recommendations?.nodes && product.recommendations.nodes.length > 0) {
 				debugLog("ProductContentClient", "Using server-provided recommendations for random products");
 				setRandomProducts(product.recommendations.nodes);
+				setRecommendedProducts(product.recommendations.nodes.slice(0, 8));
 				return;
 			}
 
-			try {
-				// Only fetch if we don't already have recommendations
-				if (randomProducts.length === 0) {
-					debugLog("ProductContentClient", "Fetching random products from API");
+			// If we've already fetched products, don't fetch again
+			if (randomProducts.length > 0) {
+				return;
+			}
 
-					// Add timeout to prevent hanging requests
-					const controller = new AbortController();
-					const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+			// Try up to 2 attempts for fetching random products
+			let success = false;
+			let attempts = 0;
+			const MAX_ATTEMPTS = 2;
 
-					try {
-						const randomProductsResponse = await fetch(`/api/random-products-new?exclude=${encodeURIComponent(product.id)}`, { signal: controller.signal });
+			while (!success && attempts < MAX_ATTEMPTS) {
+				attempts++;
+				const controller = new AbortController();
+				let timeoutId: NodeJS.Timeout | null = null;
 
-						clearTimeout(timeoutId);
+				try {
+					debugLog("ProductContentClient", `Fetching random products from API (attempt ${attempts}/${MAX_ATTEMPTS})`);
 
-						if (!randomProductsResponse.ok) {
-							throw new Error(`API returned ${randomProductsResponse.status}`);
+					// Set a longer timeout for the first attempt, shorter for retry
+					const timeoutMs = attempts === 1 ? 8000 : 4000;
+
+					// Set up the timeout after controller is created
+					timeoutId = setTimeout(() => {
+						controller.abort("Timeout exceeded");
+					}, timeoutMs);
+
+					// Use a cache-busting parameter only on retry attempts
+					const cacheBuster = attempts > 1 ? `&_cacheBust=${Date.now()}` : "";
+
+					// Try to use cached response if available on first attempt
+					const cacheMode = attempts === 1 ? "force-cache" : "no-store";
+
+					const randomProductsResponse = await fetch(
+						`/api/random-products-new?exclude=${encodeURIComponent(product.id)}${cacheBuster}`,
+						{
+							signal: controller.signal,
+							cache: cacheMode as RequestCache,
+							// Use shorter timeout on second attempt
+							next: { revalidate: attempts === 1 ? 3600 : 0 },
 						}
+					);
 
-						const randomProducts = await randomProductsResponse.json();
-
-						if (randomProducts?.length) {
-							debugLog("ProductContentClient", "Successfully fetched random products", randomProducts.length);
-							setRandomProducts(randomProducts);
-							setRecommendedProducts(randomProducts.slice(0, 8));
-						} else {
-							throw new Error("No products returned from API");
-						}
-					} catch (fetchError) {
+					// Clear timeout as soon as the fetch completes
+					if (timeoutId) {
 						clearTimeout(timeoutId);
-						throw fetchError;
+						timeoutId = null;
 					}
-				}
-			} catch (error) {
-				console.error("Error fetching random products:", error);
 
-				// Fallback to empty arrays or server-provided recommendations
-				if (!randomProducts.length) {
-					if (product.recommendations?.nodes?.length) {
-						setRandomProducts(product.recommendations.nodes);
-						setRecommendedProducts(product.recommendations.nodes.slice(0, 8));
+					if (!randomProductsResponse.ok) {
+						throw new Error(`API returned ${randomProductsResponse.status}`);
+					}
+
+					const responseData = await randomProductsResponse.json();
+
+					// Check if the response is an error message or has an error property
+					if (responseData && responseData.error) {
+						debugLog("ProductContentClient", "API returned an error", responseData);
+
+						// If this is our last attempt, use fallbacks
+						if (attempts >= MAX_ATTEMPTS) {
+							useFallbackRecommendations();
+							return;
+						}
+
+						// Otherwise continue to next attempt
+						continue;
+					}
+
+					// Check if the response is a valid array of products
+					if (Array.isArray(responseData) && responseData.length > 0) {
+						debugLog("ProductContentClient", "Successfully fetched random products", responseData.length);
+						setRandomProducts(responseData);
+						setRecommendedProducts(responseData.slice(0, 8));
+						success = true;
+						return;
 					} else {
-						setRandomProducts([]);
-						setRecommendedProducts([]);
+						debugLog("ProductContentClient", "No products returned from API");
+
+						// If this is our last attempt, use fallbacks
+						if (attempts >= MAX_ATTEMPTS) {
+							useFallbackRecommendations();
+							return;
+						}
+
+						// Otherwise continue to next attempt
+						continue;
 					}
+				} catch (fetchError) {
+					// Always clear the timeout to prevent memory leaks
+					if (timeoutId) {
+						clearTimeout(timeoutId);
+						timeoutId = null;
+					}
+
+					// Log the error but don't show to user
+					console.warn(
+						`Random products fetch failed (attempt ${attempts}/${MAX_ATTEMPTS}):`,
+						fetchError instanceof Error ? fetchError.message : fetchError
+					);
+
+					// If we've tried enough times, give up and use fallbacks
+					if (attempts >= MAX_ATTEMPTS) {
+						useFallbackRecommendations();
+						return;
+					}
+
+					// Small delay before next attempt
+					await new Promise((resolve) => setTimeout(resolve, 500));
 				}
 			}
 		};
 
+		// Helper function to use fallback recommendations
+		const useFallbackRecommendations = () => {
+			// Try to use server-provided recommendations if available
+			if (product.recommendations?.nodes?.length) {
+				debugLog("ProductContentClient", "Using server recommendations as fallback");
+				setRandomProducts(product.recommendations.nodes);
+				setRecommendedProducts(product.recommendations.nodes.slice(0, 8));
+			} else {
+				// Last resort - empty arrays
+				debugLog("ProductContentClient", "No fallback options available, using empty arrays");
+				setRandomProducts([]);
+				setRecommendedProducts([]);
+			}
+		};
+
+		// Only fetch if we're mounted
 		if (mounted) {
 			fetchRandomProducts();
 		}
-	}, [product.id, product.recommendations?.nodes, mounted, randomProducts.length]);
+	}, [mounted, product, randomProducts.length]);
 
 	if (!mounted) {
 		debugLog("ProductContentClient", "Not mounted yet");
@@ -445,7 +627,13 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 						{/* Product Gallery */}
 						<section aria-label="Product gallery" className="col-span-1">
 							<div className="sticky top-[126px]">
-								<ProductGallery product={product} media={mediaItems} title={product.title} selectedIndex={selectedImageIndex} onMediaSelect={handleImageSelect} />
+								<ProductGallery
+									product={product}
+									media={mediaItems}
+									title={product.title}
+									selectedIndex={selectedImageIndex}
+									onMediaSelect={handleImageSelect}
+								/>
 							</div>
 						</section>
 
@@ -454,29 +642,52 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 							<div className="space-y-4">
 								{/* Product Title and Badges */}
 								<div className="space-y-4">
-									<h1 className="text-3xl font-bold tracking-tight" itemProp="name">
+									<h1 className="text-3xl font-bold tracking-tight text-gray-900" itemProp="name">
 										{product.title}
 									</h1>
-									<meta itemProp="description" content={product.description || `${product.title} - Available at Zugzology`} />
+									<meta
+										itemProp="description"
+										content={product.description || `${product.title} - Available at Zugzology`}
+									/>
 									<meta itemProp="brand" content={product.vendor || "Zugzology"} />
 									<meta itemProp="category" content={product.productType || ""} />
-									{product.tags && <meta itemProp="keywords" content={Array.isArray(product.tags) ? product.tags.join(", ") : product.tags} />}
+									{product.tags && (
+										<meta
+											itemProp="keywords"
+											content={Array.isArray(product.tags) ? product.tags.join(", ") : product.tags}
+										/>
+									)}
 
 									{/* Ratings Section */}
-									<div className="flex items-center gap-2" itemProp="aggregateRating" itemScope itemType="https://schema.org/AggregateRating">
+									<div
+										className="flex items-center gap-2"
+										itemProp="aggregateRating"
+										itemScope
+										itemType="https://schema.org/AggregateRating"
+									>
 										<div className="flex items-center">
 											{[1, 2, 3, 4, 5].map((star) => (
-												<Star key={star} className={cn("w-5 h-5", parseFloat(ratingValue) >= star ? "fill-yellow-400 text-yellow-400" : parseFloat(ratingValue) >= star - 0.5 ? "fill-yellow-400/50 text-yellow-400" : "fill-muted text-muted-foreground")} />
+												<Star
+													key={star}
+													className={cn(
+														"w-5 h-5",
+														parseFloat(ratingValue) >= star
+															? "fill-yellow-400 text-yellow-400"
+															: parseFloat(ratingValue) >= star - 0.5
+															? "fill-yellow-400/50 text-yellow-400"
+															: "fill-muted text-muted-foreground"
+													)}
+												/>
 											))}
 										</div>
 										<div className="flex items-center gap-1.5">
 											<span className="text-sm font-medium" itemProp="ratingValue">
 												{parseFloat(ratingValue).toFixed(1)}
 											</span>
-											<span className="text-sm text-muted-foreground">
+											<span className="text-sm text-gray-500">
 												({reviewCount} {parseInt(reviewCount) === 1 ? "review" : "reviews"})
 											</span>
-											<button className="text-sm text-primary hover:underline ml-2">View all reviews</button>
+											<button className="text-sm text-purple-600 hover:underline ml-2">View all reviews</button>
 										</div>
 										<meta itemProp="bestRating" content="5" />
 										<meta itemProp="worstRating" content="1" />
@@ -486,13 +697,19 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 									{/* Badges */}
 									<div className="flex flex-wrap gap-2" aria-label="Product badges">
 										{/* Brand Badge - Always show with fallback to vendor */}
-										<Badge variant="secondary" className="text-xs font-semibold bg-purple-100 text-purple-800 hover:bg-purple-200">
+										<Badge
+											variant="secondary"
+											className="text-xs font-semibold bg-purple-100 text-purple-800 hover:bg-purple-200"
+										>
 											{product.vendor || "Zugzology"}
 										</Badge>
 
 										{/* Category Badge */}
 										{product.productType && (
-											<Badge variant="secondary" className="text-xs font-semibold bg-neutral-100 text-neutral-800 hover:bg-neutral-200">
+											<Badge
+												variant="secondary"
+												className="text-xs font-semibold bg-neutral-100 text-neutral-800 hover:bg-neutral-200"
+											>
 												{product.productType}
 											</Badge>
 										)}
@@ -517,7 +734,13 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 								</div>
 
 								{/* Product Info Component */}
-								<ProductInfo product={product} selectedVariant={selectedVariant} selectedOptions={selectedOptions} onOptionChange={handleOptionChange} complementaryProducts={recommendedProducts} />
+								<ProductInfo
+									product={product}
+									selectedVariant={selectedVariant}
+									selectedOptions={selectedOptions}
+									onOptionChange={handleOptionChange}
+									complementaryProducts={recommendedProducts}
+								/>
 							</div>
 						</section>
 					</div>
@@ -525,19 +748,44 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 					{/* Product Actions */}
 					<section aria-label="Purchase options" className="col-span-1 w-full lg:max-w-[400px] justify-self-end">
 						<div className="sticky top-[126px]">
-							<ProductActions selectedVariant={selectedVariant} quantity={quantity} onQuantityChange={handleQuantityChange} productHandle={product.handle} />
+							<ProductActions
+								selectedVariant={selectedVariant}
+								quantity={quantity}
+								onQuantityChange={handleQuantityChange}
+								productHandle={product.handle}
+							/>
 						</div>
 					</section>
 				</div>
 
 				{/* Additional Sections */}
-				{/* History & Recommendations */}
-				<section className="mt-16">
-					<HistoryRecommendations products={historyProducts} recommendedProducts={recommendedProducts} randomProducts={randomProducts} currentProductId={product.id} />
-				</section>
 
-				{/* Related Products */}
-				{recommendedProducts.length > 0 && (
+				{/* History & Recommendations - Most likely to convert (personalized to user) */}
+				{mounted && (
+					<section className="mt-16">
+						<HistoryRecommendations
+							products={historyProducts}
+							recommendedProducts={recommendedProducts}
+							randomProducts={randomProducts}
+							currentProductId={product.id}
+						/>
+					</section>
+				)}
+
+				{/* Frequently Bought Together - High conversion rate (complementary products) */}
+				{mounted && (
+					<section className="mt-16">
+						<FrequentlyBoughtTogether
+							mainProduct={product}
+							complementaryProducts={
+								complementaryProducts.length > 0 ? complementaryProducts : randomProducts.slice(0, 3)
+							}
+						/>
+					</section>
+				)}
+
+				{/* Related Products - Good conversion (product-specific recommendations) */}
+				{mounted && recommendedProducts.length > 0 && (
 					<section className="mt-16" itemScope itemType="https://schema.org/ItemList">
 						<meta itemProp="name" content="Related Products" />
 						<meta itemProp="description" content={`Products related to ${product.title}`} />
@@ -545,18 +793,47 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 					</section>
 				)}
 
-				{/* Recent Blog Posts */}
-				{recentPosts.length > 0 && (
-					<section className="mt-16" itemScope itemType="https://schema.org/Blog">
-						<meta itemProp="name" content="Latest Blog Posts" />
-						<RecentPosts posts={recentPosts} />
+				{/* Additional Product Section - General interest recommendations */}
+				{mounted && randomProducts.length > 0 && (
+					<section className="mt-16">
+						<ProductSection
+							title="You Might Also Like"
+							description="Products you might be interested in"
+							products={randomProducts.map((product) => ({
+								product,
+								source: "recommendation" as ProductSource,
+								sectionId: "you-might-also-like",
+							}))}
+							sectionId="you-might-also-like"
+							currentProductId={product.id}
+						/>
 					</section>
 				)}
 
-				{/* Frequently Bought Together */}
-				{complementaryProducts.length > 0 && (
-					<section className="mt-16">
-						<FrequentlyBoughtTogether mainProduct={product} complementaryProducts={complementaryProducts} />
+				{/* Recent Blog Posts - Always at the bottom of the list */}
+				{mounted && (
+					<section className="mt-16 mb-16" itemScope itemType="https://schema.org/Blog">
+						<meta itemProp="name" content="Latest Blog Posts" />
+						{recentPosts.length > 0 ? (
+							<RecentPosts posts={recentPosts} />
+						) : (
+							<div className="border-t dark:border-neutral-800 pt-16">
+								<h2 className="text-2xl font-bold mb-8 text-gray-900">Latest from Our Blog</h2>
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+									{Array.from({ length: 3 }).map((_, i) => (
+										<div key={i} className="space-y-4 animate-pulse">
+											<div className="aspect-[16/9] bg-neutral-200 dark:bg-neutral-800 rounded-xl"></div>
+											<div className="space-y-2">
+												<div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/3"></div>
+												<div className="h-5 bg-neutral-200 dark:bg-neutral-800 rounded w-2/3"></div>
+												<div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-full"></div>
+												<div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/2"></div>
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+						)}
 					</section>
 				)}
 			</section>

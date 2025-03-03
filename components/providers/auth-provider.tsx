@@ -10,8 +10,8 @@ interface User {
 	email: string;
 	firstName: string;
 	lastName: string;
-	provider?: string;
-	hasToken?: boolean;
+	provider: string;
+	hasToken: boolean;
 }
 
 interface AuthContextType {
@@ -21,26 +21,32 @@ interface AuthContextType {
 	csrfToken: string | null;
 	login: (email: string, password: string) => Promise<void>;
 	logout: () => Promise<void>;
-	register: (firstName: string, lastName: string, email: string, password: string) => Promise<any>;
-	checkAuth: (silent?: boolean) => Promise<boolean>;
+	register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+	checkAuth: () => Promise<void>;
 }
-
-// Create the context with default values
-const AuthContext = createContext<AuthContextType>({
-	user: null,
-	isAuthenticated: false,
-	isLoading: false,
-	csrfToken: null,
-	login: async () => {},
-	logout: async () => {},
-	register: async () => ({}),
-	checkAuth: async () => false,
-});
-
-export const useAuthContext = () => useContext(AuthContext);
 
 interface AuthProviderProps {
 	children: React.ReactNode;
+}
+
+interface ExtendedSession {
+	user?: {
+		id?: string;
+		name?: string | null;
+		email?: string | null;
+		image?: string | null;
+	};
+	shopifyAccessToken?: string;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function useAuthContext() {
+	const context = useContext(AuthContext);
+	if (context === undefined) {
+		throw new Error("useAuthContext must be used within an AuthProvider");
+	}
+	return context;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -64,7 +70,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	} = useAuth({
 		onAuthStateChange: (isAuthenticated, user) => {
 			// This will be called whenever auth state changes
-			console.log("🔒 [AuthProvider] Custom auth state changed:", { isAuthenticated, user });
+			console.log("[Auth Provider] Auth state changed:", { isAuthenticated, user });
 		},
 	});
 
@@ -73,48 +79,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const isLoading = nextAuthLoading || customAuthLoading || !isReady;
 
 	// Enhanced user object with Shopify token information
-	const user = session?.user
+	const user: User | null = session
 		? {
-				id: session.user.id || "nextauth-user",
-				email: session.user.email || "",
-				firstName: session.user.name?.split(" ")[0] || "",
-				lastName: session.user.name?.split(" ").slice(1).join(" ") || "",
+				id: (session as ExtendedSession).user?.id || "nextauth-user",
+				email: (session as ExtendedSession).user?.email || "",
+				firstName: (session as ExtendedSession).user?.name?.split(" ")[0] || "",
+				lastName: (session as ExtendedSession).user?.name?.split(" ").slice(1).join(" ") || "",
 				provider: "shopify",
-				hasToken: !!session.shopifyAccessToken,
+				hasToken: !!(session as ExtendedSession).shopifyAccessToken,
 		  }
-		: customUser;
-
-	// Log combined auth state with token information
-	useEffect(() => {
-		console.log("🔒 [AuthProvider] Auth state:", {
-			nextAuth: {
-				authenticated: nextAuthAuthenticated,
-				loading: nextAuthLoading,
-				hasToken: !!session?.shopifyAccessToken,
-				user: session?.user
-					? {
-							email: session.user.email,
-							name: session.user.name,
-					  }
-					: null,
-			},
-			customAuth: {
-				authenticated: customAuthenticated,
-				loading: customAuthLoading,
-			},
-			combined: {
-				authenticated: isAuthenticated,
-				loading: isLoading,
-			},
-		});
-	}, [nextAuthAuthenticated, customAuthenticated, nextAuthLoading, customAuthLoading, session, isAuthenticated, isLoading]);
-
-	// Check for token expiration or issues
-	useEffect(() => {
-		if (session && !session.shopifyAccessToken && nextAuthAuthenticated) {
-			console.warn("⚠️ [AuthProvider] Session exists but no Shopify access token found");
-		}
-	}, [session, nextAuthAuthenticated]);
+		: (customUser as User | null);
 
 	// Set up ready state after initial check
 	useEffect(() => {
@@ -124,6 +98,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 		return () => clearTimeout(timer);
 	}, []);
+
+	// Log auth state changes
+	useEffect(() => {
+		console.log("[Auth Provider] Auth state:", {
+			isAuthenticated,
+			isLoading,
+			user: user?.email,
+			provider: user?.provider,
+			hasToken: user?.hasToken,
+		});
+	}, [isAuthenticated, isLoading, user]);
 
 	// Provide the auth context to the rest of the app
 	return (
@@ -136,7 +121,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				login,
 				logout,
 				register,
-				checkAuth,
+				checkAuth: async () => {
+					await checkAuth(true);
+					return;
+				},
 			}}
 		>
 			{children}

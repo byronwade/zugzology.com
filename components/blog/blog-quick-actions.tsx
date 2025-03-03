@@ -6,6 +6,7 @@ import { Share2, Printer, Bookmark, Facebook, Twitter, Linkedin, Mail, Copy, Dow
 import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/lib/providers/cart-provider";
 
 interface BlogQuickActionsProps {
 	title: string;
@@ -26,6 +27,7 @@ export function BlogQuickActions({ title, url, content, image }: BlogQuickAction
 	const [isCopied, setIsCopied] = useState(false);
 	const [isPrinting, setIsPrinting] = useState(false);
 	const hiddenInputRef = useRef<HTMLInputElement>(null);
+	const { isOpen: isCartOpen } = useCart();
 
 	// Create hidden input once on mount
 	useEffect(() => {
@@ -183,6 +185,11 @@ export function BlogQuickActions({ title, url, content, image }: BlogQuickAction
 			toast.success("Reading mode disabled");
 		}
 	};
+
+	// Don't render the toolbar if cart is open
+	if (isCartOpen) {
+		return null;
+	}
 
 	return (
 		<>

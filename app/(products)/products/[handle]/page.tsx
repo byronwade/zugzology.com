@@ -3,19 +3,15 @@ import { notFound } from "next/navigation";
 import { getProductPageData } from "@/lib/actions/shopify";
 import { ProductServerWrapper } from "@/components/products/product-server-wrapper";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { getEnhancedProductMetadata } from "@/lib/seo/standardized-jsonld";
+import { SEOProductWrapper } from "@/components/products/seo-product-wrapper";
 
 // Tell Next.js this is a dynamic route that shouldn't be prerendered
-export async function generateStaticParams() {
-	return [];
-}
+export const dynamic = "force-dynamic";
 
-// Tell Next.js to fetch fresh data on every request
-export const fetchCache = "force-no-store";
-
-interface ProductPageProps {
-	params: Promise<{
-		handle: string;
-	}>;
+// Define the props for the page
+export interface ProductPageProps {
+	params: { handle: string };
 }
 
 // Generate metadata for the product
@@ -29,33 +25,18 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 			return {
 				title: "Product Not Found",
 				description: "The requested product could not be found.",
+				robots: { index: false, follow: true },
 			};
 		}
 
-		return {
-			title: product.title,
-			description: product.description || `${product.title} - Available at Zugzology`,
-			openGraph: {
-				type: "website",
-				title: product.title,
-				description: product.description || `${product.title} - Available at Zugzology`,
-				images: product.images?.nodes?.[0]?.url
-					? [
-							{
-								url: product.images.nodes[0].url,
-								width: product.images.nodes[0].width || 1200,
-								height: product.images.nodes[0].height || 630,
-								alt: product.images.nodes[0].altText || product.title,
-							},
-					  ]
-					: [],
-			},
-		};
+		// Get enhanced metadata for better conversions
+		return getEnhancedProductMetadata(product);
 	} catch (error) {
 		console.error("Error generating metadata:", error);
 		return {
 			title: "Product - Zugzology",
 			description: "View our premium mushroom cultivation supplies.",
+			robots: { index: true, follow: true },
 		};
 	}
 }
@@ -77,7 +58,6 @@ function ProductError() {
 
 export default async function ProductPage({ params }: ProductPageProps) {
 	try {
-		// In Next.js 15, we need to await params
 		const { handle } = await params;
 		const { product, relatedProducts } = await getProductPageData(handle);
 
@@ -87,7 +67,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
 		return (
 			<ErrorBoundary fallback={<ProductError />}>
-				<ProductServerWrapper product={product} relatedProducts={relatedProducts} />
+				<SEOProductWrapper product={product}>
+					<ProductServerWrapper product={product} relatedProducts={relatedProducts} />
+				</SEOProductWrapper>
 			</ErrorBoundary>
 		);
 	} catch (error) {

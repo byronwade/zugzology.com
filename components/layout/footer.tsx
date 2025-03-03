@@ -50,7 +50,7 @@ export function Footer() {
 		<footer className="w-full">
 			{/* Features Section */}
 			<div className="w-full border-t border-gray-100 bg-gray-50 dark:bg-gray-950 dark:border-gray-800">
-				<div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8">
+				<div className="w-full px-4 py-24">
 					<div className="grid grid-cols-1 gap-y-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-8">
 						{shopFeatures.map((feature, index) => (
 							<div key={index} className="text-center md:flex md:items-start md:text-left lg:block lg:text-center">

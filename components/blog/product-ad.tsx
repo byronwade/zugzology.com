@@ -26,7 +26,7 @@ interface ProductAdProps {
 }
 
 export function ProductAd({ products }: ProductAdProps) {
-	const { addItem } = useCart();
+	const { addItem, cart } = useCart();
 	const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
 	const [buyingStates, setBuyingStates] = useState<{ [key: string]: boolean }>({});
 
@@ -89,7 +89,11 @@ export function ProductAd({ products }: ProductAdProps) {
 		setBuyingStates((prev) => ({ ...prev, [product.id]: true }));
 		try {
 			const merchandiseId = variantId.includes("gid://shopify/ProductVariant/") ? variantId : `gid://shopify/ProductVariant/${variantId}`;
-			window.location.href = `/checkout?variant=${merchandiseId}&quantity=1`;
+
+			// For "Buy Now", we want to create a checkout with just this item
+			// We can construct a direct product checkout URL for Shopify
+			const shopifyCheckoutUrl = `https://${process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN}/cart/${merchandiseId.split("/").pop()}:1`;
+			window.location.href = shopifyCheckoutUrl;
 		} catch (error) {
 			console.error("Error in handleBuyNow:", error);
 			toast.error("Failed to proceed to checkout");
@@ -159,7 +163,7 @@ export function ProductAd({ products }: ProductAdProps) {
 									</>
 								)}
 							</Button>
-							<Button size="sm" variant="outline" className="w-full h-7 text-xs" onClick={(e) => handleBuyNow(e, product)} disabled={isLoading || isBuying}>
+							<Button size="sm" variant="default" className="w-full h-7 text-xs" onClick={(e) => handleBuyNow(e, product)} disabled={isLoading || isBuying}>
 								{isBuying ? <Loader2 className="h-3 w-3 animate-spin" /> : "Buy Now"}
 							</Button>
 						</div>

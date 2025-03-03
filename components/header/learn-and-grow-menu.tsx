@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { BookOpen, Brain, Leaf, Sprout, TestTube, Sparkles, GraduationCap, Microscope, Lightbulb, Coffee } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { BookOpen, Brain, Leaf, Sprout, TestTube, Sparkles, GraduationCap, Microscope, Lightbulb, Coffee, ChevronRight } from "lucide-react";
 import type { ShopifyBlog } from "@/lib/types";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface LearnAndGrowMenuProps {
 	blogs: ShopifyBlog[];
@@ -17,6 +16,23 @@ interface LearnAndGrowMenuProps {
 
 export function LearnAndGrowMenu({ blogs }: LearnAndGrowMenuProps) {
 	const [isOpen, setIsOpen] = useState(false);
+	const [isMobile, setIsMobile] = useState(false);
+
+	// Check if we're on mobile when component mounts
+	useEffect(() => {
+		const checkIfMobile = () => {
+			setIsMobile(window.innerWidth < 640);
+		};
+
+		// Initial check
+		checkIfMobile();
+
+		// Add event listener for window resize
+		window.addEventListener("resize", checkIfMobile);
+
+		// Cleanup
+		return () => window.removeEventListener("resize", checkIfMobile);
+	}, []);
 
 	const categoryStyles = {
 		guide: { icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
@@ -56,142 +72,79 @@ export function LearnAndGrowMenu({ blogs }: LearnAndGrowMenuProps) {
 		},
 	];
 
-	// Mobile menu
-	if (typeof window !== "undefined" && window.innerWidth < 640) {
+	// Render mobile menu if on mobile, otherwise render desktop menu
+	if (isMobile) {
 		return (
 			<Sheet>
 				<SheetTrigger asChild>
-					<Button variant="outline" size="sm" className="h-10 px-3">
-						<Sprout className="h-4 w-4" />
+					<Button variant="ghost" size="sm" className="h-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1.5">
+						<BookOpen className="h-4 w-4" />
+						<span>Learn</span>
 					</Button>
 				</SheetTrigger>
-				<SheetContent side="bottom" className="h-[80vh] p-0">
-					<ScrollArea className="h-full">
-						<div className="p-6 space-y-6">
-							{/* Featured Categories */}
-							<div className="space-y-4">
-								<h3 className="text-lg font-semibold">Featured Categories</h3>
-								<div className="grid grid-cols-2 gap-3">
-									{featuredCategories.map((category) => {
-										const Icon = category.icon;
-										return (
-											<div key={category.title} className={cn("group p-4 rounded-lg transition-all duration-200", category.bg, "hover:opacity-90")}>
-												<Icon className={cn("h-6 w-6 mb-2", category.color)} />
-												<h4 className="font-medium">{category.title}</h4>
-												<p className="text-sm text-muted-foreground">{category.description}</p>
+				<SheetContent side="right" className="w-full sm:max-w-md p-0 border-l border-gray-200 dark:border-gray-800 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-900">
+					<SheetHeader className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+						<div className="flex items-center justify-between">
+							<SheetTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+								<GraduationCap className="h-5 w-5 text-purple-600" />
+								Learn & Grow
+							</SheetTitle>
+							<Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800">
+								Resources
+							</Badge>
+						</div>
+					</SheetHeader>
+					<div className="overflow-y-auto h-full">
+						{/* Featured Categories */}
+						<div className="px-6 py-5">
+							<h3 className="text-sm font-semibold text-purple-700 dark:text-purple-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+								<Sparkles className="h-4 w-4" />
+								Featured Categories
+							</h3>
+							<div className="grid grid-cols-2 gap-3">
+								{featuredCategories.map((category) => {
+									const CategoryIcon = category.icon;
+									return (
+										<Link key={category.title} href={`/blogs/${category.title.toLowerCase().replace(/\s+/g, "-")}`} className="flex flex-col items-center p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 hover:border-purple-200 dark:hover:border-purple-800 group">
+											<div className={cn("w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors", category.bg, "group-hover:opacity-90")}>
+												<CategoryIcon className={cn("h-6 w-6", category.color)} />
 											</div>
-										);
-									})}
-								</div>
-							</div>
-
-							{/* Learning Paths */}
-							<div className="space-y-4">
-								<h3 className="text-lg font-semibold">Learning Paths</h3>
-								<div className="grid gap-2">
-									{blogs?.map((blog) => {
-										const style = blog.handle.includes("guide") ? categoryStyles.guide : blog.handle.includes("tutorial") ? categoryStyles.tutorial : blog.handle.includes("tip") ? categoryStyles.tip : categoryStyles.default;
-
-										const Icon = style.icon;
-
-										return (
-											<Link key={blog.id} href={`/blogs/${blog.handle}`} className={cn("flex items-center gap-3 p-3 rounded-lg", style.bg, "transition-all duration-200 hover:opacity-90")}>
-												<Icon className={cn("h-5 w-5", style.color)} />
-												<div>
-													<h4 className="font-medium">{blog.title}</h4>
-													<p className="text-sm text-muted-foreground">{blog.articles?.edges?.length || 0} articles</p>
-												</div>
-											</Link>
-										);
-									})}
-								</div>
-							</div>
-
-							{/* Latest Articles */}
-							<div className="space-y-4">
-								<div className="flex items-center justify-between">
-									<h3 className="text-lg font-semibold">Latest Articles</h3>
-									<Link href="/blogs" className="text-sm text-primary hover:underline">
-										View All →
-									</Link>
-								</div>
-								<div className="space-y-3">
-									{blogs?.slice(0, 2).map((blog) =>
-										blog.articles?.edges?.slice(0, 2).map((article) => (
-											<Link key={article.node.id} href={`/blogs/${blog.handle}/${article.node.handle}`} className="group flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-all duration-200">
-												<div className={cn("p-2 rounded-lg", categoryStyles.default.bg)}>
-													<Leaf className={cn("h-4 w-4", categoryStyles.default.color)} />
-												</div>
-												<div>
-													<h4 className="font-medium group-hover:text-primary transition-colors">{article.node.title}</h4>
-													<p className="text-sm text-muted-foreground">
-														{new Date(article.node.publishedAt).toLocaleDateString("en-US", {
-															month: "short",
-															day: "numeric",
-														})}
-													</p>
-												</div>
-											</Link>
-										))
-									)}
-								</div>
+											<span className="text-sm font-medium text-gray-900 dark:text-gray-100 text-center group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">{category.title}</span>
+										</Link>
+									);
+								})}
 							</div>
 						</div>
-					</ScrollArea>
-				</SheetContent>
-			</Sheet>
-		);
-	}
 
-	// Desktop menu
-	return (
-		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-			<DropdownMenuTrigger asChild>
-				<Button variant="outline" size="sm" className="h-10">
-					<Sprout className="h-4 w-4 sm:mr-2" />
-					<span className="hidden sm:inline">Learn & Grow</span>
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent className="w-screen max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-[800px]" sideOffset={8}>
-				<div className="relative flex w-full flex-col space-y-4 p-3 sm:p-4">
-					{/* Featured Categories */}
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-						{featuredCategories.map((category) => {
-							const Icon = category.icon;
-							return (
-								<div key={category.title} className={cn("group relative flex flex-col space-y-2 rounded-lg p-3", category.bg, "hover:opacity-90 cursor-pointer")}>
-									<Icon className={cn("h-5 w-5", category.color)} />
-									<div>
-										<h4 className="font-medium text-sm">{category.title}</h4>
-										<p className="text-xs text-muted-foreground line-clamp-2">{category.description}</p>
-									</div>
-								</div>
-							);
-						})}
-					</div>
+						<div className="px-6 py-2">
+							<div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent my-2"></div>
+						</div>
 
-					<div className="h-px bg-border" />
-
-					{/* Main Content Grid */}
-					<div className="grid grid-cols-1 md:grid-cols-[1fr_250px] gap-6">
 						{/* Learning Paths */}
-						<div className="space-y-3">
-							<div className="flex items-center gap-2">
-								<h3 className="text-sm font-medium">Learning Paths</h3>
-								<Sparkles className="h-3.5 w-3.5 text-amber-500" />
-							</div>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-								{blogs?.slice(0, 4).map((blog) => {
+						<div className="px-6 py-4">
+							<h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+								<BookOpen className="h-4 w-4 text-purple-600" />
+								Learning Paths
+							</h3>
+							<div className="space-y-1.5">
+								{blogs?.map((blog) => {
 									const style = blog.handle.includes("guide") ? categoryStyles.guide : blog.handle.includes("tutorial") ? categoryStyles.tutorial : blog.handle.includes("tip") ? categoryStyles.tip : categoryStyles.default;
 
-									const Icon = style.icon;
+									const IconComponent = style.icon;
 
 									return (
-										<Link key={blog.id} href={`/blogs/${blog.handle}`} className={cn("flex items-center gap-3 rounded-lg p-2.5", style.bg, "transition-colors hover:opacity-90")} onClick={() => setIsOpen(false)}>
-											<Icon className={cn("h-4 w-4 shrink-0", style.color)} />
-											<div className="space-y-0.5">
-												<h4 className="text-sm font-medium line-clamp-1">{blog.title}</h4>
-												<p className="text-xs text-muted-foreground">{blog.articles?.edges?.length || 0} articles</p>
+										<Link key={blog.id} href={`/blogs/${blog.handle}`} className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 rounded-md hover:bg-white dark:hover:bg-gray-800 border border-transparent hover:border-gray-100 dark:hover:border-gray-700 transition-all group">
+											<div className="flex items-center gap-3">
+												<div className={cn("w-8 h-8 rounded-md flex items-center justify-center transition-colors", style.bg)}>
+													<IconComponent className={cn("h-4 w-4", style.color)} />
+												</div>
+												<span className="group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">{blog.title}</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<Badge variant="outline" className="text-xs bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+													{blog.articles?.edges?.length || 0}
+												</Badge>
+												<ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" />
 											</div>
 										</Link>
 									);
@@ -200,37 +153,144 @@ export function LearnAndGrowMenu({ blogs }: LearnAndGrowMenuProps) {
 						</div>
 
 						{/* Latest Articles */}
-						<div className="space-y-3">
-							<div className="flex items-center justify-between">
-								<h3 className="text-sm font-medium">Latest Articles</h3>
-								<Link href="/blogs" className="text-xs text-primary hover:underline" onClick={() => setIsOpen(false)}>
-									View All →
-								</Link>
-							</div>
-							<div className="space-y-2">
-								{blogs?.slice(0, 2).map((blog) =>
-									blog.articles?.edges?.slice(0, 2).map((article) => (
-										<Link key={article.node.id} href={`/blogs/${blog.handle}/${article.node.handle}`} className="group flex items-start gap-2 rounded-lg p-2 hover:bg-muted/50 transition-colors" onClick={() => setIsOpen(false)}>
-											<div className={cn("shrink-0 p-1.5 rounded", categoryStyles.default.bg)}>
-												<Leaf className={cn("h-3.5 w-3.5", categoryStyles.default.color)} />
-											</div>
-											<div className="space-y-1 min-w-0">
-												<h4 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-2">{article.node.title}</h4>
-												<p className="text-xs text-muted-foreground">
-													{new Date(article.node.publishedAt).toLocaleDateString("en-US", {
-														month: "short",
-														day: "numeric",
-													})}
-												</p>
+						{blogs && blogs.length > 0 && (
+							<div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+								<h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+									<Leaf className="h-4 w-4 text-green-600" />
+									Latest Articles
+								</h3>
+								<div className="space-y-3">
+									{blogs.slice(0, 3).map((blog) => (
+										<Link key={blog.id} href={`/blogs/${blog.handle}`} className="block p-4 rounded-md bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-800 hover:shadow-sm transition-all">
+											<h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 hover:text-purple-700 dark:hover:text-purple-400">{blog.title}</h4>
+											<div className="flex items-center gap-2 mt-2">
+												<Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800">
+													{blog.articles?.edges?.length || 0} articles
+												</Badge>
+												<span className="text-xs text-gray-500 dark:text-gray-400">Updated recently</span>
 											</div>
 										</Link>
-									))
-								)}
+									))}
+								</div>
+								<div className="mt-4">
+									<Button variant="outline" size="sm" className="w-full border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-purple-700 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800 transition-colors" asChild>
+										<Link href="/blogs" className="flex items-center justify-center gap-1">
+											View all articles
+											<ChevronRight className="h-3.5 w-3.5" />
+										</Link>
+									</Button>
+								</div>
+							</div>
+						)}
+					</div>
+				</SheetContent>
+			</Sheet>
+		);
+	}
+
+	// Desktop menu
+	return (
+		<div className="hidden md:block">
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button variant="ghost" size="sm" className="h-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1.5">
+						<BookOpen className="h-4 w-4" />
+						<span>Learn</span>
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="start" className="w-[600px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-0 shadow-lg rounded-lg overflow-hidden">
+					<div className="grid grid-cols-2">
+						<div className="p-6 border-r border-gray-200 dark:border-gray-800">
+							<h3 className="text-sm font-semibold text-purple-700 dark:text-purple-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+								<Sparkles className="h-4 w-4" />
+								Featured Categories
+							</h3>
+							<div className="grid grid-cols-2 gap-3">
+								{featuredCategories.map((category) => {
+									const CategoryIcon = category.icon;
+									return (
+										<DropdownMenuItem key={category.title} asChild className="p-0 focus:bg-transparent">
+											<Link href={`/blogs/${category.title.toLowerCase().replace(/\s+/g, "-")}`} className="flex flex-col items-center p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 hover:border-purple-200 dark:hover:border-purple-800 group w-full">
+												<div className={cn("w-10 h-10 rounded-full flex items-center justify-center mb-3 transition-colors", category.bg, "group-hover:opacity-90")}>
+													<CategoryIcon className={cn("h-5 w-5", category.color)} />
+												</div>
+												<span className="text-sm font-medium text-gray-900 dark:text-gray-100 text-center group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">{category.title}</span>
+											</Link>
+										</DropdownMenuItem>
+									);
+								})}
+							</div>
+
+							<div className="my-4">
+								<div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent"></div>
+							</div>
+
+							<h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+								<BookOpen className="h-4 w-4 text-purple-600" />
+								Learning Paths
+							</h3>
+							<div className="space-y-1.5">
+								{blogs?.map((blog) => {
+									const style = blog.handle.includes("guide") ? categoryStyles.guide : blog.handle.includes("tutorial") ? categoryStyles.tutorial : blog.handle.includes("tip") ? categoryStyles.tip : categoryStyles.default;
+
+									const IconComponent = style.icon;
+
+									return (
+										<DropdownMenuItem key={blog.id} asChild className="p-0 focus:bg-transparent">
+											<Link href={`/blogs/${blog.handle}`} className="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 w-full group">
+												<div className="flex items-center gap-2">
+													<div className={cn("w-6 h-6 rounded-md flex items-center justify-center transition-colors", style.bg)}>
+														<IconComponent className={cn("h-3.5 w-3.5", style.color)} />
+													</div>
+													<span className="group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">{blog.title}</span>
+												</div>
+												<div className="flex items-center gap-2">
+													<Badge variant="outline" className="text-xs bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+														{blog.articles?.edges?.length || 0}
+													</Badge>
+													<ChevronRight className="h-3.5 w-3.5 text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" />
+												</div>
+											</Link>
+										</DropdownMenuItem>
+									);
+								})}
 							</div>
 						</div>
+
+						{blogs && blogs.length > 0 && (
+							<div className="p-6 bg-gray-50 dark:bg-gray-900/50">
+								<h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+									<Leaf className="h-4 w-4 text-green-600" />
+									Latest Articles
+								</h3>
+								<div className="space-y-3">
+									{blogs.slice(0, 3).map((blog) => (
+										<DropdownMenuItem key={blog.id} asChild className="p-0 focus:bg-transparent">
+											<Link href={`/blogs/${blog.handle}`} className="block p-3 rounded-md bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-800 hover:shadow-sm transition-all w-full">
+												<h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 hover:text-purple-700 dark:hover:text-purple-400">{blog.title}</h4>
+												<div className="flex items-center gap-2 mt-2">
+													<Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800">
+														{blog.articles?.edges?.length || 0} articles
+													</Badge>
+													<span className="text-xs text-gray-500 dark:text-gray-400">Updated recently</span>
+												</div>
+											</Link>
+										</DropdownMenuItem>
+									))}
+								</div>
+								<div className="mt-4">
+									<Button variant="outline" size="sm" className="w-full border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-purple-700 dark:hover:text-purple-400 hover:border-purple-200 dark:hover:border-purple-800 transition-colors" asChild>
+										<Link href="/blogs" className="flex items-center justify-center gap-1">
+											View all articles
+											<ChevronRight className="h-3.5 w-3.5" />
+										</Link>
+									</Button>
+								</div>
+							</div>
+						)}
 					</div>
-				</div>
-			</DropdownMenuContent>
-		</DropdownMenu>
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
 	);
 }

@@ -3,7 +3,14 @@
 import { unstable_cache } from "next/cache";
 import { shopifyFetch } from "./client";
 import type { ProductResponse, CollectionResponse, ShopifyCollectionWithPagination, ShopifyResponse } from "./types";
-import type { ShopifyProduct, ShopifyCollection, ShopifyCart, CartItem, ShopifyBlog, ShopifyBlogArticle } from "@/lib/types";
+import type {
+	ShopifyProduct,
+	ShopifyCollection,
+	ShopifyCart,
+	CartItem,
+	ShopifyBlog,
+	ShopifyBlogArticle,
+} from "@/lib/types";
 import { PRODUCTS_FRAGMENT, COLLECTION_FRAGMENT, CART_FRAGMENT, BLOG_FRAGMENT, ARTICLE_FRAGMENT } from "./fragments";
 import { CACHE_TIMES, CACHE_TAGS } from "./cache-config";
 import { headerQuery, type HeaderQueryResponse, type HeaderData } from "./queries/header";
@@ -59,181 +66,167 @@ let lastFetchTime = 0;
 const CACHE_DURATION = 60000; // 1 minute
 const PRODUCTS_PER_PAGE = 35; // Update to 35 products per page
 
-export const getProducts = unstable_cache(
-	async () => {
-		const now = Date.now();
+export const getProducts = cache(async () => {
+	const now = Date.now();
 
-		// If there's a valid cached promise and it's not expired, return it
-		if (productsPromise && now - lastFetchTime < CACHE_DURATION) {
-			return productsPromise;
-		}
+	// If we already have a promise in flight, return it
+	if (productsPromise) {
+		return productsPromise;
+	}
 
-		// Start a new request
+	// Otherwise, create a new promise
+	productsPromise = (async () => {
 		try {
 			console.log("Server", "⚡ [Products] Starting fetch from Shopify...");
 			lastFetchTime = now;
-			productsPromise = (async () => {
-				let allProducts: ShopifyProduct[] = [];
-				let hasNextPage = true;
-				let cursor = null;
-				let batchCount = 0;
-				const startTime = Date.now();
+			let allProducts: ShopifyProduct[] = [];
+			let hasNextPage = true;
+			let cursor = null;
+			let batchCount = 0;
+			const startTime = Date.now();
 
-				while (hasNextPage) {
-					batchCount++;
-					const batchStartTime = Date.now();
+			while (hasNextPage) {
+				batchCount++;
+				const batchStartTime = Date.now();
 
-					const { data }: { data: { products: { nodes: ShopifyProduct[]; pageInfo: { hasNextPage: boolean; endCursor: string } } } } = await shopifyFetch<{ products: { nodes: ShopifyProduct[]; pageInfo: { hasNextPage: boolean; endCursor: string } } }>({
+				const {
+					data,
+				}: { data: { products: { nodes: ShopifyProduct[]; pageInfo: { hasNextPage: boolean; endCursor: string } } } } =
+					await shopifyFetch<{
+						products: { nodes: ShopifyProduct[]; pageInfo: { hasNextPage: boolean; endCursor: string } };
+					}>({
 						query: `
-							query getProducts($cursor: String) {
-								products(first: ${PRODUCTS_PER_PAGE}, after: $cursor, sortKey: CREATED_AT, reverse: true) {
-									nodes {
-										id
-										title
-										handle
-										description
-										productType
-										vendor
-										availableForSale
-										priceRange {
-											minVariantPrice {
+						query getProducts($cursor: String) {
+							products(first: ${PRODUCTS_PER_PAGE}, after: $cursor, sortKey: CREATED_AT, reverse: true) {
+								nodes {
+									id
+									title
+									handle
+									description
+									productType
+									vendor
+									availableForSale
+									tags
+									priceRange {
+										minVariantPrice {
+											amount
+											currencyCode
+										}
+										maxVariantPrice {
+											amount
+											currencyCode
+										}
+									}
+									variants(first: 1) {
+										nodes {
+											id
+											title
+											availableForSale
+											price {
 												amount
 												currencyCode
 											}
-											maxVariantPrice {
+											compareAtPrice {
 												amount
 												currencyCode
 											}
 										}
-										variants(first: 1) {
-											nodes {
-												id
-												title
-												availableForSale
-												price {
-													amount
-													currencyCode
-												}
-												compareAtPrice {
-													amount
-													currencyCode
-												}
-											}
-										}
-										images(first: 1) {
-											nodes {
-												url
-												altText
-												width
-												height
-											}
-										}
-										publishedAt
 									}
-									pageInfo {
-										hasNextPage
-										endCursor
+									images(first: 1) {
+										nodes {
+											url
+											altText
+											width
+											height
+										}
 									}
+									publishedAt
+								}
+								pageInfo {
+									hasNextPage
+									endCursor
 								}
 							}
-						`,
+						}
+					`,
 						variables: { cursor },
 						tags: [CACHE_TAGS.PRODUCT],
 						cache: "no-store", // Ensure fresh data on each request
 					});
 
-					if (!data?.products?.nodes) {
-						console.log("Server", "⚡ [Products] No products found in batch", batchCount);
-						break;
-					}
+				if (!data?.products?.nodes) {
+					console.log("Server", "⚡ [Products] No products found in batch", batchCount);
+					break;
+				}
 
-					const products = data.products.nodes;
+				const products = data.products.nodes;
 
-					// Cache each batch separately with a unique key that includes timestamp
-					const batchKey = `products-batch-${batchCount}-${Date.now()}`;
-					await unstable_cache(async () => products, [batchKey], {
-						revalidate: CACHE_TIMES.PRODUCTS,
-						tags: [CACHE_TAGS.PRODUCT],
-					})();
+				// Cache each batch separately with a unique key that includes timestamp
+				const batchKey = `products-batch-${batchCount}-${Date.now()}`;
+				await cacheProductBatch(products, batchKey);
 
-					allProducts = [...allProducts, ...products];
+				allProducts = [...allProducts, ...products];
 
-					hasNextPage = data.products.pageInfo.hasNextPage;
-					cursor = data.products.pageInfo.endCursor;
+				hasNextPage = data.products.pageInfo.hasNextPage;
+				cursor = data.products.pageInfo.endCursor;
 
-					const batchTime = Date.now() - batchStartTime;
-					const batchSize = (JSON.stringify(products).length / 1024).toFixed(2);
-					console.log(
-						"Server",
-						`⚡ [Products] Batch #${batchCount} | ${batchTime}ms | Size: ${batchSize}KB
+				const batchTime = Date.now() - batchStartTime;
+				const batchSize = (JSON.stringify(products).length / 1024).toFixed(2);
+				console.log(
+					"Server",
+					`⚡ [Products] Batch #${batchCount} | ${batchTime}ms | Size: ${batchSize}KB
 - Fetched: ${products.length}
 - Total so far: ${allProducts.length}
 - Has more: ${hasNextPage ? "Yes" : "No"}`
-					);
-
-					// Add a delay between batches to prevent rate limiting
-					if (hasNextPage) {
-						await new Promise((resolve) => setTimeout(resolve, 250));
-					}
-				}
-
-				const totalTime = Date.now() - startTime;
-				const totalSize = (JSON.stringify(allProducts).length / 1024).toFixed(2);
-
-				console.log(
-					"Server",
-					`⚡ [Products] Complete | ${totalTime}ms | Size: ${totalSize}KB
-- Batches: ${batchCount}
-- Total Products: ${allProducts.length}`
 				);
 
-				return allProducts;
-			})();
+				// Add a delay between batches to prevent rate limiting
+				if (hasNextPage) {
+					await new Promise((resolve) => setTimeout(resolve, 250));
+				}
+			}
 
-			const result = await productsPromise;
-			return result;
+			const totalTime = Date.now() - startTime;
+			const totalSize = (JSON.stringify(allProducts).length / 1024).toFixed(2);
+
+			console.log(
+				"Server",
+				`⚡ [Products] Complete | ${totalTime}ms | Size: ${totalSize}KB
+- Batches: ${batchCount}
+- Total Products: ${allProducts.length}`
+			);
+
+			return allProducts;
 		} catch (error) {
-			console.error("Server", "⚡ [Products] Error:", error);
-			productsPromise = null; // Clear the promise on error
-			lastFetchTime = 0; // Reset the fetch time on error
+			console.error("Error fetching products:", error);
 			return [];
 		}
-	},
-	["products-list"],
-	{
-		revalidate: CACHE_TIMES.PRODUCTS,
-		tags: [CACHE_TAGS.PRODUCT],
-	}
-);
+	})();
 
-export const getProduct = unstable_cache(
-	async (handle: string) => {
-		try {
-			const { data } = await shopifyFetch<ProductResponse>({
-				query: `
-					query getProduct($handle: String!) {
-						product(handle: $handle) {
-							...ProductFragment
-						}
+	return productsPromise;
+});
+
+export const getProduct = cache(async (handle: string) => {
+	try {
+		const { data } = await shopifyFetch<ProductResponse>({
+			query: `
+				query getProduct($handle: String!) {
+					product(handle: $handle) {
+						...ProductFragment
 					}
-					${PRODUCTS_FRAGMENT}
-				`,
-				variables: { handle },
-				tags: [`${CACHE_TAGS.PRODUCT}-${handle}`],
-			});
+				}
+				${PRODUCTS_FRAGMENT}
+			`,
+			variables: { handle },
+			tags: [`${CACHE_TAGS.PRODUCT}-${handle}`],
+		});
 
-			return data?.product ?? null;
-		} catch (error) {
-			console.error("Error fetching product:", error);
-			return null;
-		}
-	},
-	["product"],
-	{
-		revalidate: CACHE_TIMES.PRODUCTS,
-		tags: [CACHE_TAGS.PRODUCT],
+		return data?.product ?? null;
+	} catch (error) {
+		console.error(`Error fetching product with handle ${handle}:`, error);
+		return null;
 	}
-);
+});
 
 /**
  * Get a collection by handle with pagination
@@ -306,7 +299,7 @@ export const getCollection = cache(
 						// If we need to go further, keep fetching until we reach our target page
 						let currentPage = 2;
 						while (currentPage < page) {
-							const response = await shopifyFetch<CollectionResponse>({
+							const response: any = await shopifyFetch<CollectionResponse>({
 								query: collectionQuery,
 								variables: {
 									handle,
@@ -318,7 +311,7 @@ export const getCollection = cache(
 								tags: [`${CACHE_TAGS.COLLECTION}-${handle}-cursor-${currentPage}`],
 							});
 
-							const edges = response?.data?.collection?.products?.edges || [];
+							const edges: Array<{ cursor: string }> = response?.data?.collection?.products?.edges || [];
 							if (!edges.length) {
 								break;
 							}
@@ -709,24 +702,24 @@ export const getPaginatedBlogPosts = unstable_cache(
 		try {
 			// Get all blog posts
 			const allPosts = await getAllBlogPosts();
-			
+
 			// Sort posts by date (newest first)
 			allPosts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-			
+
 			// Calculate total pages
 			const totalPosts = allPosts.length;
 			const totalPages = Math.max(1, Math.ceil(totalPosts / postsPerPage));
-			
+
 			// Ensure page is within valid range
 			const validPage = Math.max(1, Math.min(page, totalPages));
-			
+
 			// Calculate start and end indices
 			const startIndex = (validPage - 1) * postsPerPage;
 			const endIndex = Math.min(startIndex + postsPerPage, totalPosts);
-			
+
 			// Get posts for current page
 			const paginatedPosts = allPosts.slice(startIndex, endIndex);
-			
+
 			return {
 				posts: paginatedPosts,
 				pagination: {
@@ -735,8 +728,8 @@ export const getPaginatedBlogPosts = unstable_cache(
 					totalPosts,
 					postsPerPage,
 					hasNextPage: validPage < totalPages,
-					hasPreviousPage: validPage > 1
-				}
+					hasPreviousPage: validPage > 1,
+				},
 			};
 		} catch (error) {
 			console.error("Error fetching paginated blog posts:", error);
@@ -748,8 +741,8 @@ export const getPaginatedBlogPosts = unstable_cache(
 					totalPosts: 0,
 					postsPerPage,
 					hasNextPage: false,
-					hasPreviousPage: false
-				}
+					hasPreviousPage: false,
+				},
 			};
 		}
 	},
@@ -769,7 +762,7 @@ export const getPaginatedBlogPostsByHandle = unstable_cache(
 		try {
 			// Get the blog with all its articles
 			const blog = await getBlogByHandle(handle);
-			
+
 			if (!blog) {
 				return {
 					posts: [],
@@ -780,28 +773,30 @@ export const getPaginatedBlogPostsByHandle = unstable_cache(
 						totalPosts: 0,
 						postsPerPage,
 						hasNextPage: false,
-						hasPreviousPage: false
-					}
+						hasPreviousPage: false,
+					},
 				};
 			}
-			
+
 			// Sort articles by date (newest first)
-			const articles = blog.articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-			
+			const articles = blog.articles.sort(
+				(a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+			);
+
 			// Calculate total pages
 			const totalPosts = articles.length;
 			const totalPages = Math.max(1, Math.ceil(totalPosts / postsPerPage));
-			
+
 			// Ensure page is within valid range
 			const validPage = Math.max(1, Math.min(page, totalPages));
-			
+
 			// Calculate start and end indices
 			const startIndex = (validPage - 1) * postsPerPage;
 			const endIndex = Math.min(startIndex + postsPerPage, totalPosts);
-			
+
 			// Get posts for current page
 			const paginatedPosts = articles.slice(startIndex, endIndex);
-			
+
 			return {
 				posts: paginatedPosts,
 				blog,
@@ -811,8 +806,8 @@ export const getPaginatedBlogPostsByHandle = unstable_cache(
 					totalPosts,
 					postsPerPage,
 					hasNextPage: validPage < totalPages,
-					hasPreviousPage: validPage > 1
-				}
+					hasPreviousPage: validPage > 1,
+				},
 			};
 		} catch (error) {
 			console.error("Error fetching paginated blog posts by handle:", error);
@@ -825,8 +820,8 @@ export const getPaginatedBlogPostsByHandle = unstable_cache(
 					totalPosts: 0,
 					postsPerPage,
 					hasNextPage: false,
-					hasPreviousPage: false
-				}
+					hasPreviousPage: false,
+				},
 			};
 		}
 	},
@@ -837,82 +832,83 @@ export const getPaginatedBlogPostsByHandle = unstable_cache(
 	}
 );
 
-export const getBlogByHandle = unstable_cache(
-	async (handle: string) => {
-		if (!handle) {
-			console.error("Blog handle is required");
-			return null;
-		}
+export async function getBlogByHandle(handle: string) {
+	"use cache";
 
-		try {
-			const { data } = await shopifyFetch<{
-				blog: {
-					id: string;
-					handle: string;
-					title: string;
-					articles: {
-						edges: {
-							node: ShopifyBlogArticle;
-						}[];
-					};
+	if (!handle) {
+		console.error("Blog handle is required");
+		return null;
+	}
+
+	// Check if handle is the string "undefined"
+	if (handle === "undefined") {
+		console.error("Blog handle is the string 'undefined'");
+		return null;
+	}
+
+	try {
+		const { data } = await shopifyFetch<{
+			blog: {
+				id: string;
+				handle: string;
+				title: string;
+				articles: {
+					edges: {
+						node: ShopifyBlogArticle;
+					}[];
 				};
-			}>({
-				query: `
-					query getBlog($handle: String!) {
-						blog(handle: $handle) {
-							id
-							handle
-							title
-							articles(first: 100, sortKey: PUBLISHED_AT, reverse: true) {
-								edges {
-									node {
-										id
-										handle
-										title
-										content
-										contentHtml
-										excerpt
-										excerptHtml
-										publishedAt
-										image {
-											url
-											altText
-											width
-											height
-										}
-										author {
-											name
-										}
+			};
+		}>({
+			query: `
+				query getBlog($handle: String!) {
+					blog(handle: $handle) {
+						id
+						handle
+						title
+						articles(first: 100, sortKey: PUBLISHED_AT, reverse: true) {
+							edges {
+								node {
+									id
+									handle
+									title
+									content
+									contentHtml
+									excerpt
+									excerptHtml
+									publishedAt
+									image {
+										url
+										altText
+										width
+										height
+									}
+									author {
+										name
 									}
 								}
 							}
 						}
 					}
-				`,
-				variables: { handle },
-				tags: [`${CACHE_TAGS.BLOG}-${handle}`],
-			});
+				}
+			`,
+			variables: { handle },
+			tags: [`${CACHE_TAGS.BLOG}-${handle}`],
+		});
 
-			if (!data?.blog) {
-				console.error("Blog not found:", handle);
-				return null;
-			}
-
-			return {
-				...data.blog,
-				articles: data.blog.articles.edges.map((edge) => edge.node),
-			};
-		} catch (error) {
-			console.error("Error fetching blog:", error);
+		if (!data?.blog) {
+			console.error("Blog not found:", handle);
 			return null;
 		}
-	},
-	["blog"],
-	{
-		revalidate: CACHE_TIMES.BLOGS,
-		tags: [CACHE_TAGS.BLOG],
+
+		return {
+			...data.blog,
+			articles: data.blog.articles.edges.map((edge) => edge.node),
+		};
+	} catch (error) {
+		console.error("Error fetching blog:", error);
+		return null;
 	}
-);
+}
 
 // Product Page Data
 export async function getProductPageData(handle: string) {
@@ -1064,7 +1060,8 @@ export const getHeaderData = unstable_cache(
 				shop: response.data.shop,
 				menuItems: response.data.menu?.items || [],
 				blogs: response.data.blogs?.edges?.map((edge: { node: any }) => edge.node) || [],
-				collections: response.data.collections?.edges?.map((edge: { node: ShopifyCollectionWithPagination }) => edge.node) || [],
+				collections:
+					response.data.collections?.edges?.map((edge: { node: ShopifyCollectionWithPagination }) => edge.node) || [],
 			};
 		} catch (error) {
 			console.error("Error fetching header data:", error);
@@ -1192,7 +1189,10 @@ const getCachedProducts = unstable_cache(
 				})();
 
 				const batchTime = Date.now() - batchStartTime;
-				console.log("Server", `⚡ [Products] Batch ${batchCount} fetched ${products.length} products in ${batchTime}ms`);
+				console.log(
+					"Server",
+					`⚡ [Products] Batch ${batchCount} fetched ${products.length} products in ${batchTime}ms`
+				);
 
 				// Add a small delay between batches
 				await new Promise((resolve) => setTimeout(resolve, 100));
@@ -1652,3 +1652,9 @@ export const getProductsByIds = unstable_cache(
 		tags: [CACHE_TAGS.PRODUCT],
 	}
 );
+
+// For the functions that need to cache data with specific keys, use the new "use cache" directive
+async function cacheProductBatch(products: any[], batchKey: string) {
+	"use cache";
+	return products;
+}

@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Tag, Clock, TrendingUp, Star } from "lucide-react";
+import { Search, Tag, Clock, TrendingUp, Star, Sparkles, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export interface SearchResult {
 	id: string;
@@ -51,7 +53,45 @@ export function EnhancedSearch({ isOpen, onClose, initialResults = [] }: Enhance
 		<Command className="rounded-lg border shadow-md">
 			<CommandInput placeholder="Search products and articles..." value={query} onValueChange={setQuery} />
 			<CommandList>
-				<CommandEmpty>No results found.</CommandEmpty>
+				<CommandEmpty>
+					<div className="py-6 px-4 text-center">
+						<div className="bg-background rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+							<Search className="h-6 w-6 text-primary" />
+						</div>
+						<h3 className="text-lg font-medium mb-2">No results found</h3>
+						<p className="text-sm text-muted-foreground mb-4">
+							Try adjusting your search or browse our popular categories below.
+						</p>
+						<div className="space-y-3 mb-4">
+							<h4 className="text-sm font-medium">Search Tips:</h4>
+							<ul className="text-xs text-muted-foreground space-y-1 text-left list-disc pl-5">
+								<li>Check your spelling</li>
+								<li>Use more general keywords</li>
+								<li>Try a different search term</li>
+							</ul>
+						</div>
+						<div className="flex flex-wrap gap-2 justify-center">
+							<Button variant="outline" size="sm" asChild className="text-xs">
+								<Link href="/products" onClick={onClose}>
+									<ShoppingBag className="h-3 w-3 mr-1" />
+									All Products
+								</Link>
+							</Button>
+							<Button variant="outline" size="sm" asChild className="text-xs">
+								<Link href="/collections/best-sellers" onClick={onClose}>
+									<Star className="h-3 w-3 mr-1" />
+									Best Sellers
+								</Link>
+							</Button>
+							<Button variant="outline" size="sm" asChild className="text-xs">
+								<Link href="/collections/new-arrivals" onClick={onClose}>
+									<Sparkles className="h-3 w-3 mr-1" />
+									New Arrivals
+								</Link>
+							</Button>
+						</div>
+					</div>
+				</CommandEmpty>
 
 				{/* Recent Searches */}
 				{recentSearches.length > 0 && !query && (
@@ -87,7 +127,12 @@ export function EnhancedSearch({ isOpen, onClose, initialResults = [] }: Enhance
 							{initialResults
 								.filter((result) => result.type === "product")
 								.map((result) => (
-									<CommandItem key={result.id} value={result.title} onSelect={handleSelect} className="flex items-center gap-2">
+									<CommandItem
+										key={result.id}
+										value={result.title}
+										onSelect={handleSelect}
+										className="flex items-center gap-2"
+									>
 										{result.image && (
 											<div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
 												<img src={result.image} alt={result.title} className="h-6 w-6 object-cover" />

@@ -4,12 +4,22 @@ const nextConfig = {
 		ppr: true,
 		inlineCss: true,
 		reactCompiler: true,
+		useCache: true,
 	},
 	typescript: {
 		ignoreBuildErrors: true,
 	},
 	eslint: {
 		ignoreDuringBuilds: true,
+	},
+	// Disable source maps when using Bun to avoid the SourceMap error
+	productionBrowserSourceMaps: false,
+	webpack: (config: any, { dev }: { dev: boolean }) => {
+		// Disable source maps in development when using Bun
+		if (dev && process.env.BUN_RUNTIME) {
+			config.devtool = false;
+		}
+		return config;
 	},
 	images: {
 		minimumCacheTTL: 31536000,

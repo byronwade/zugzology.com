@@ -66,6 +66,9 @@ export const AddToCartButton = memo(function AddToCartButton({ variantId, availa
 				});
 
 				toast.success("Added to cart");
+
+				// Cart will be opened automatically by the cart provider
+
 				if (callbacksRef.current.onSuccess) {
 					callbacksRef.current.onSuccess();
 				}
@@ -83,11 +86,10 @@ export const AddToCartButton = memo(function AddToCartButton({ variantId, availa
 
 	// Determine button style based on type
 	const buttonStyle = cn(
-		"relative w-full transition-colors",
+		"relative w-full transition-colors font-medium rounded-md",
 		{
-			"bg-blue-600 hover:bg-blue-700 text-white": hasVariants,
+			"bg-purple-600 hover:bg-purple-700 text-white": hasVariants || (!hasVariants && !isPreOrder),
 			"bg-amber-600 hover:bg-amber-700 text-white": isPreOrder && !hasVariants,
-			"bg-primary hover:bg-primary/90": !hasVariants && !isPreOrder,
 		},
 		className
 	);
@@ -95,11 +97,14 @@ export const AddToCartButton = memo(function AddToCartButton({ variantId, availa
 	return (
 		<Button onClick={handleClick} disabled={isLoading || (!availableForSale && !isPreOrder)} className={buttonStyle} size="lg" aria-label={hasVariants ? "Select Options" : isPreOrder ? "Pre-Order Now" : "Add to Cart"}>
 			{isLoading ? (
-				<Loader2 className="h-4 w-4 animate-spin" />
+				<div className="flex items-center justify-center gap-2">
+					<Loader2 className="h-4 w-4 animate-spin" />
+					<span className="text-sm">Loading...</span>
+				</div>
 			) : (
 				<div className="flex items-center justify-center gap-2">
 					{isPreOrder ? <Clock className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
-					<span>{hasVariants ? "Select Options" : isPreOrder ? "Pre-Order Now" : "Add to Cart"}</span>
+					<span className="text-sm">{hasVariants ? "Select Options" : isPreOrder ? "Pre-Order Now" : "Add to Cart"}</span>
 				</div>
 			)}
 		</Button>

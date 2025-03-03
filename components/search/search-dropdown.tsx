@@ -1,404 +1,478 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useLayoutEffect } from "react";
-import Link from "next/link";
+import React, { useRef, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useSearch } from "@/lib/providers/search-provider";
-import { formatPrice, debugLog } from "@/lib/utils";
-import { Clock, Search, TrendingUp, Tag } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useRouter, usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { ShopifyProduct, ShopifyBlogArticle } from "@/lib/types";
-import { ImagePlaceholder } from "@/components/ui/image-placeholder";
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ArrowRight, Clock, Tag, BookOpen, Search, ShoppingBag, Sparkles, TrendingUp, Zap, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function SearchDropdown() {
 	const router = useRouter();
-	const pathname = usePathname();
-	const { searchResults, isSearching, searchQuery, isDropdownOpen, recentSearches, addRecentSearch, setIsDropdownOpen } = useSearch();
-	const [isMobile, setIsMobile] = useState(false);
-	const [selectedIndex, setSelectedIndex] = useState(-1);
+	const {
+		searchQuery,
+		searchResults,
+		isSearching,
+		isDropdownOpen,
+		setIsDropdownOpen,
+		recentSearches,
+		addRecentSearch,
+		allProducts,
+	} = useSearch();
+
 	const dropdownRef = useRef<HTMLDivElement>(null);
-	const animationFrameRef = useRef<number | null>(null);
-	const isClosingRef = useRef(false);
 
-	// Split results into products and blog posts with proper typing
-	const productResults = searchResults.filter((result): result is { type: "product"; item: ShopifyProduct } => result.type === "product").map((result) => result.item);
-	const blogResults = searchResults.filter((result): result is { type: "blog"; item: ShopifyBlogArticle } => result.type === "blog").map((result) => result.item);
-
-	const displayedProducts = productResults.slice(0, isMobile ? 2 : 4);
-	const displayedBlogs = blogResults.slice(0, isMobile ? 1 : 2);
-
-	// Handle responsive state
+	// Close dropdown when clicking outside
 	useEffect(() => {
-		const checkMobile = () => {
-			setIsMobile(window.innerWidth < 768);
-		};
-
-		// Initial check
-		checkMobile();
-
-		// Add resize listener
-		window.addEventListener("resize", checkMobile);
-
-		// Cleanup
-		return () => window.removeEventListener("resize", checkMobile);
-	}, []);
-
-	// Close dropdown on route change
-	useEffect(() => {
-		setIsDropdownOpen(false);
-	}, [pathname, setIsDropdownOpen]);
-
-	// Reset selected index when search results change
-	useEffect(() => {
-		setSelectedIndex(-1);
-	}, [searchResults]);
-
-	// CRITICAL FIX: Use useLayoutEffect to ensure our click handlers are set up before React's synthetic events
-	useLayoutEffect(() => {
-		if (!isDropdownOpen) return;
-
-		debugLog("DROPDOWN", "Setting up click outside handlers");
-
-		// Store original overflow style
-		const originalOverflow = document.body.style.overflow;
-
-		// Function to check if an element is a child of another
-		const isDescendantOf = (child: Node | null, parent: Node | null): boolean => {
-			if (!child || !parent) return false;
-			let node: Node | null = child;
-			while (node) {
-				if (node === parent) return true;
-				node = node.parentNode;
-			}
-			return false;
-		};
-
-		// The main close handler - will be attached directly to document
-		const handleDocumentInteraction = (e: MouseEvent | TouchEvent | FocusEvent) => {
-			if (isClosingRef.current) return;
-
-			// Get the target element
-			const target = e.target as Node;
-
-			// Check if click is inside dropdown
-			if (dropdownRef.current && isDescendantOf(target, dropdownRef.current)) {
-				return;
-			}
-
-			// If we get here, the interaction was outside our dropdown
-			isClosingRef.current = true;
-
-			// Use requestAnimationFrame to ensure we're not fighting with React's rendering
-			if (animationFrameRef.current) {
-				cancelAnimationFrame(animationFrameRef.current);
-			}
-
-			animationFrameRef.current = requestAnimationFrame(() => {
-				debugLog("DROPDOWN", "Closing dropdown from document interaction");
-				// Just close the dropdown without submitting the form
+		const handleClickOutside = (event: MouseEvent) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
 				setIsDropdownOpen(false);
-				isClosingRef.current = false;
-			});
-		};
-
-		// Handle scroll events
-		const handleScroll = () => {
-			if (isClosingRef.current) return;
-			isClosingRef.current = true;
-
-			if (animationFrameRef.current) {
-				cancelAnimationFrame(animationFrameRef.current);
 			}
-
-			animationFrameRef.current = requestAnimationFrame(() => {
-				debugLog("DROPDOWN", "Closing dropdown from scroll");
-				// Just close the dropdown without submitting the form
-				setIsDropdownOpen(false);
-				isClosingRef.current = false;
-			});
 		};
 
-		// Add all event listeners with capture phase to ensure they run first
-		document.addEventListener("mousedown", handleDocumentInteraction, true);
-		document.addEventListener("touchstart", handleDocumentInteraction, true);
-		document.addEventListener("click", handleDocumentInteraction, true);
-		window.addEventListener("scroll", handleScroll, true);
-
-		// Prevent scrolling when dropdown is open on mobile
-		if (isMobile) {
-			document.body.style.overflow = "hidden";
-		}
-
-		// Clean up all event listeners
+		document.addEventListener("mousedown", handleClickOutside);
 		return () => {
-			document.removeEventListener("mousedown", handleDocumentInteraction, true);
-			document.removeEventListener("touchstart", handleDocumentInteraction, true);
-			document.removeEventListener("click", handleDocumentInteraction, true);
-			window.removeEventListener("scroll", handleScroll, true);
-
-			// Restore original overflow
-			document.body.style.overflow = originalOverflow;
-
-			if (animationFrameRef.current) {
-				cancelAnimationFrame(animationFrameRef.current);
-				animationFrameRef.current = null;
-			}
-
-			isClosingRef.current = false;
+			document.removeEventListener("mousedown", handleClickOutside);
 		};
-	}, [isDropdownOpen, setIsDropdownOpen, isMobile]);
+	}, [setIsDropdownOpen]);
 
-	// Handle keyboard navigation
-	useEffect(() => {
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (!isDropdownOpen) return;
-
-			const totalResults = displayedProducts.length + displayedBlogs.length;
-
-			switch (e.key) {
-				case "ArrowDown":
-					e.preventDefault();
-					setSelectedIndex((prev) => {
-						const maxIndex = totalResults - 1;
-						return prev < maxIndex ? prev + 1 : 0;
-					});
-					break;
-				case "ArrowUp":
-					e.preventDefault();
-					setSelectedIndex((prev) => {
-						const maxIndex = totalResults - 1;
-						return prev > 0 ? prev - 1 : maxIndex;
-					});
-					break;
-				case "Enter":
-					e.preventDefault();
-					if (selectedIndex === -1 && searchQuery?.trim()) {
-						// If no item is selected and there's a search query, submit the search
-						handleSearchClick(searchQuery);
-					} else if (selectedIndex >= 0 && selectedIndex < totalResults) {
-						// If an item is selected, navigate to it
-						let selectedItem;
-						if (selectedIndex < displayedProducts.length) {
-							selectedItem = displayedProducts[selectedIndex];
-							if (selectedItem?.handle) {
-								router.push(`/products/${selectedItem.handle}`);
-							}
-						} else {
-							selectedItem = displayedBlogs[selectedIndex - displayedProducts.length];
-							if (selectedItem?.handle && selectedItem?.blogHandle) {
-								router.push(`/blogs/${selectedItem.blogHandle}/${selectedItem.handle}`);
-							}
-						}
-						setIsDropdownOpen(false);
-						if (searchQuery?.trim()) {
-							addRecentSearch(searchQuery);
-						}
-					}
-					break;
-				case "Escape":
-					setIsDropdownOpen(false);
-					break;
-			}
-		};
-
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [isDropdownOpen, selectedIndex, displayedProducts, displayedBlogs, router, searchQuery, addRecentSearch, setIsDropdownOpen]);
-
-	// Scroll selected item into view
-	useEffect(() => {
-		if (selectedIndex >= 0 && dropdownRef.current) {
-			const selectedElement = dropdownRef.current.querySelector(`[data-index="${selectedIndex}"]`);
-			if (selectedElement) {
-				selectedElement.scrollIntoView({ block: "nearest" });
-			}
-		}
-	}, [selectedIndex]);
-
-	useEffect(() => {
-		debugLog("DROPDOWN", "State:", {
-			isDropdownOpen,
-			searchQuery,
-			isSearching,
-			resultsCount: searchResults.length,
-			recentSearchesCount: recentSearches.length,
-		});
-	}, [isDropdownOpen, searchQuery, isSearching, searchResults, recentSearches]);
-
-	if (!isDropdownOpen) {
-		debugLog("DROPDOWN", "Not showing - dropdown is closed");
-		return null;
-	}
-
-	const handleSearchClick = (query: string) => {
-		debugLog("DROPDOWN", "Search clicked:", { query });
-		addRecentSearch(query);
-		setIsDropdownOpen(false);
-		router.push(`/search?q=${encodeURIComponent(query)}`);
-	};
-
-	const handleProductClick = () => {
+	// Handle navigation to search result
+	const handleSelectItem = (item: ShopifyProduct | ShopifyBlogArticle, type: "product" | "blog") => {
 		if (searchQuery.trim()) {
 			addRecentSearch(searchQuery);
 		}
+
+		setIsDropdownOpen(false);
+
+		if (type === "product") {
+			const product = item as ShopifyProduct;
+			router.push(`/products/${product.handle}`);
+		} else {
+			const article = item as ShopifyBlogArticle;
+			// Check if blog exists before accessing handle
+			if (article.blog) {
+				router.push(`/blogs/${article.blog.handle}/${article.handle}`);
+			} else {
+				// Fallback if blog information is missing
+				router.push(`/blogs/all/${article.handle}`);
+			}
+		}
+	};
+
+	// Handle navigation to search page
+	const handleViewAllResults = () => {
+		if (searchQuery.trim()) {
+			addRecentSearch(searchQuery);
+			router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+			setIsDropdownOpen(false);
+		}
+	};
+
+	// Handle recent search click
+	const handleRecentSearchClick = (query: string) => {
+		router.push(`/search?q=${encodeURIComponent(query)}`);
 		setIsDropdownOpen(false);
 	};
 
-	// Helper function to get product image URL safely
-	const getProductImageUrl = (product: ShopifyProduct): string | undefined => {
-		return product.images?.nodes?.[0]?.url || product.media?.nodes?.[0]?.previewImage?.url;
+	// Navigate to all products
+	const handleBrowseAllProducts = () => {
+		router.push("/products");
+		setIsDropdownOpen(false);
 	};
 
-	// Helper function to get blog image URL safely
-	const getBlogImageUrl = (post: ShopifyBlogArticle): string | undefined => {
-		return post.image?.url;
+	// Navigate to featured collection
+	const handleFeaturedCollection = () => {
+		router.push("/collections/featured");
+		setIsDropdownOpen(false);
 	};
 
-	// Helper function to get product image alt text safely
-	const getProductImageAlt = (product: ShopifyProduct): string => {
-		return product.images?.nodes?.[0]?.altText || product.media?.nodes?.[0]?.previewImage?.altText || product.title;
+	// Navigate to trending products
+	const handleTrendingProducts = () => {
+		router.push("/collections/trending");
+		setIsDropdownOpen(false);
 	};
 
-	// Helper function to get blog image alt text safely
-	const getBlogImageAlt = (post: ShopifyBlogArticle): string => {
-		return post.image?.altText || post.title;
+	// Navigate to new arrivals
+	const handleNewArrivals = () => {
+		router.push("/collections/new-arrivals");
+		setIsDropdownOpen(false);
 	};
 
-	// Add a transparent overlay to capture clicks outside the dropdown
+	if (!isDropdownOpen) return null;
+
+	// Group results by type
+	const productResults = searchResults.filter((result) => result.type === "product");
+	const blogResults = searchResults.filter((result) => result.type === "blog");
+
+	// Get featured products for empty state
+	const featuredProducts = allProducts.slice(0, 3);
+
+	// Generate structured data for search
+	const structuredData = {
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		url: "https://zugzology.com/",
+		potentialAction: {
+			"@type": "SearchAction",
+			target: {
+				"@type": "EntryPoint",
+				urlTemplate: "https://zugzology.com/search?q={search_term_string}",
+			},
+			"query-input": "required name=search_term_string",
+		},
+	};
+
 	return (
-		<>
-			{/* Invisible overlay to capture clicks */}
-			<div
-				className="fixed inset-0 z-[99]"
-				onClick={() => {
-					debugLog("DROPDOWN", "Overlay clicked");
-					setIsDropdownOpen(false);
-				}}
-			/>
+		<div
+			ref={dropdownRef}
+			className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg overflow-hidden max-h-[70vh] sm:max-h-[80vh] w-full"
+			style={{ maxWidth: "calc(100vw - 16px)" }}
+			role="search"
+			aria-label="Search products and articles"
+		>
+			{/* Add structured data for SEO */}
+			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
 
-			{/* Actual dropdown */}
-			<div
-				className={cn("fixed md:absolute left-0 right-0 md:top-full bg-background border-t md:border-t-0 md:border md:rounded-lg shadow-lg overflow-hidden z-[100]", "md:mt-2 md:mx-0", "top-[var(--header-height)] h-[calc(100vh-var(--header-height))] md:h-auto")}
-				ref={dropdownRef}
-				onClick={(e) => {
-					// Stop propagation to prevent the overlay click handler from firing
-					e.stopPropagation();
-				}}
-			>
-				<ScrollArea className="h-full md:max-h-[80vh]">
-					<div className="p-4 space-y-6">
-						{/* Recent Searches */}
-						{recentSearches.length > 0 && !searchQuery && (
-							<div>
-								<h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-									<Clock className="w-4 h-4 mr-2" />
-									Recent Searches
-								</h3>
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-									{recentSearches.map((query) => (
-										<Link key={query} href={`/search?q=${encodeURIComponent(query)}`} className="flex items-center gap-2 p-3 hover:bg-accent rounded-lg text-sm transition-colors" onClick={() => handleSearchClick(query)}>
-											<Search className="w-4 h-4 text-muted-foreground" />
-											<span className="line-clamp-1">{query}</span>
-										</Link>
-									))}
-								</div>
-							</div>
-						)}
+			<Command className="w-full">
+				<CommandList className="max-h-[70vh] sm:max-h-[80vh] overflow-auto">
+					{isSearching ? (
+						<div className="py-8 text-center">
+							<div
+								className="animate-spin inline-block w-8 h-8 border-2 border-current border-t-transparent text-primary rounded-full"
+								aria-hidden="true"
+							></div>
+							<p className="mt-3 text-sm text-muted-foreground">Searching our catalog...</p>
+							<p className="text-xs text-muted-foreground mt-1">Finding the best matches for you</p>
+						</div>
+					) : (
+						<>
+							{/* Empty state when no search query */}
+							{searchQuery.trim() === "" && (
+								<>
+									{/* Recent searches section */}
+									{recentSearches.length > 0 && (
+										<CommandGroup heading="Recent Searches">
+											<ScrollArea className="max-h-[150px] sm:max-h-[200px]">
+												{recentSearches.map((query, index) => (
+													<CommandItem
+														key={`recent-${index}`}
+														onSelect={() => handleRecentSearchClick(query)}
+														className="flex items-center gap-2 px-3 sm:px-4 py-2 cursor-pointer text-sm"
+													>
+														<Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+														<span className="truncate">{query}</span>
+													</CommandItem>
+												))}
+											</ScrollArea>
+										</CommandGroup>
+									)}
 
-						{/* Loading State */}
-						{isSearching && (
-							<div className="flex items-center justify-center py-12">
-								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-							</div>
-						)}
+									{/* Popular categories */}
+									<CommandGroup heading="Popular Categories">
+										<div className="grid grid-cols-2 gap-2 p-3">
+											<Button
+												variant="outline"
+												size="sm"
+												className="flex items-center justify-start gap-2 h-auto py-3"
+												onClick={handleBrowseAllProducts}
+											>
+												<ShoppingBag className="h-4 w-4 text-purple-500" />
+												<span>All Products</span>
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												className="flex items-center justify-start gap-2 h-auto py-3"
+												onClick={handleFeaturedCollection}
+											>
+												<Sparkles className="h-4 w-4 text-amber-500" />
+												<span>Featured</span>
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												className="flex items-center justify-start gap-2 h-auto py-3"
+												onClick={handleTrendingProducts}
+											>
+												<TrendingUp className="h-4 w-4 text-green-500" />
+												<span>Trending</span>
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												className="flex items-center justify-start gap-2 h-auto py-3"
+												onClick={handleNewArrivals}
+											>
+												<Zap className="h-4 w-4 text-blue-500" />
+												<span>New Arrivals</span>
+											</Button>
+										</div>
+									</CommandGroup>
 
-						{/* No Results */}
-						{!isSearching && searchQuery && searchResults.length === 0 && (
-							<div className="text-center py-12">
-								<p className="text-muted-foreground">No results found for "{searchQuery}"</p>
-							</div>
-						)}
+									{/* Featured products */}
+									{featuredProducts.length > 0 && (
+										<CommandGroup heading="Featured Products">
+											<ScrollArea className="max-h-[250px] sm:max-h-[300px]">
+												{featuredProducts.map((product) => (
+													<CommandItem
+														key={product.id}
+														onSelect={() => handleSelectItem(product, "product")}
+														className="flex items-start gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 cursor-pointer"
+													>
+														{product.images && product.images.nodes && product.images.nodes.length > 0 && (
+															<div className="relative h-10 w-10 sm:h-12 sm:w-12 rounded overflow-hidden flex-shrink-0 border border-gray-200 dark:border-gray-800">
+																<Image
+																	src={product.images.nodes[0].url}
+																	alt={product.title}
+																	fill
+																	sizes="(max-width: 640px) 40px, 48px"
+																	className="object-cover"
+																/>
+															</div>
+														)}
+														<div className="flex-1 min-w-0">
+															<p className="font-medium text-xs sm:text-sm truncate">{product.title}</p>
+															<div className="flex items-center mt-1">
+																<Tag className="h-3 w-3 text-muted-foreground mr-1" />
+																<p className="text-xs text-muted-foreground truncate">
+																	{product.priceRange.minVariantPrice.amount ===
+																	product.priceRange.maxVariantPrice.amount
+																		? `$${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}`
+																		: `$${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(
+																				2
+																		  )} - $${parseFloat(product.priceRange.maxVariantPrice.amount).toFixed(2)}`}
+																</p>
+															</div>
+														</div>
+													</CommandItem>
+												))}
+											</ScrollArea>
+										</CommandGroup>
+									)}
 
-						{/* Search Results */}
-						{!isSearching && searchResults.length > 0 && (
-							<div className="space-y-6">
-								{/* Product Results */}
-								{displayedProducts.length > 0 && (
-									<div>
-										<h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-											<Tag className="w-4 h-4 mr-2" />
-											Products
-										</h3>
-										<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-											{displayedProducts.map((product, index) => (
-												<Link key={product.id} href={`/products/${product.handle}`} className={cn("flex items-start gap-4 p-3 hover:bg-accent rounded-lg transition-colors", selectedIndex === index && "bg-accent")} data-index={index} onClick={handleProductClick}>
-													{/* Product Image */}
-													<div className="relative w-20 h-20 flex-shrink-0">
-														<div className="relative bg-muted rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">{getProductImageUrl(product) ? <Image src={getProductImageUrl(product)!} alt={getProductImageAlt(product)} fill className="object-cover" sizes="80px" /> : <ImagePlaceholder />}</div>
+									{/* Search tips */}
+									<div className="p-4 border-t border-gray-200 dark:border-gray-800">
+										<div className="text-xs text-muted-foreground">
+											<p className="font-medium mb-1">Search Tips:</p>
+											<ul className="list-disc pl-4 space-y-1">
+												<li>Try specific product names or categories</li>
+												<li>Use multiple keywords for better results</li>
+												<li>Search by product type or brand</li>
+											</ul>
+										</div>
+									</div>
+								</>
+							)}
+
+							{/* Search results */}
+							{searchQuery.trim() !== "" && (
+								<>
+									{productResults.length === 0 && blogResults.length === 0 ? (
+										<div className="py-8 px-4">
+											<div className="text-center mb-6">
+												<div className="bg-primary/10 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+													<Search className="h-8 w-8 text-primary" />
+												</div>
+												<h3 className="text-lg font-semibold mb-2">No results found for "{searchQuery}"</h3>
+												<p className="text-sm text-muted-foreground mb-4">
+													We couldn't find any matches for your search. Try our suggestions below.
+												</p>
+											</div>
+
+											{/* Suggestions for no results */}
+											<div className="space-y-6">
+												<div className="bg-accent/30 rounded-lg p-4">
+													<h4 className="text-sm font-medium mb-2 flex items-center">
+														<Search className="h-4 w-4 mr-2 text-primary" />
+														Search Tips
+													</h4>
+													<ul className="text-sm text-muted-foreground space-y-2 pl-5 list-disc">
+														<li>Check the spelling of your search terms</li>
+														<li>Use more general keywords (e.g., "shirt" instead of "blue cotton shirt")</li>
+														<li>Try searching for related products or categories</li>
+														<li>Remove any special characters or punctuation</li>
+													</ul>
+												</div>
+
+												<div>
+													<h4 className="text-sm font-medium mb-3 flex items-center">
+														<Sparkles className="h-4 w-4 mr-2 text-amber-500" />
+														Popular Categories
+													</h4>
+													<div className="grid grid-cols-2 gap-2">
+														<Button
+															variant="outline"
+															size="sm"
+															className="flex items-center justify-start gap-2 h-auto py-2.5 hover:bg-primary/5 transition-colors"
+															onClick={handleBrowseAllProducts}
+														>
+															<ShoppingBag className="h-4 w-4 text-purple-500" />
+															<span>All Products</span>
+														</Button>
+														<Button
+															variant="outline"
+															size="sm"
+															className="flex items-center justify-start gap-2 h-auto py-2.5 hover:bg-primary/5 transition-colors"
+															onClick={handleFeaturedCollection}
+														>
+															<Sparkles className="h-4 w-4 text-amber-500" />
+															<span>Featured</span>
+														</Button>
+														<Button
+															variant="outline"
+															size="sm"
+															className="flex items-center justify-start gap-2 h-auto py-2.5 hover:bg-primary/5 transition-colors"
+															onClick={handleTrendingProducts}
+														>
+															<TrendingUp className="h-4 w-4 text-green-500" />
+															<span>Trending</span>
+														</Button>
+														<Button
+															variant="outline"
+															size="sm"
+															className="flex items-center justify-start gap-2 h-auto py-2.5 hover:bg-primary/5 transition-colors"
+															onClick={handleNewArrivals}
+														>
+															<Zap className="h-4 w-4 text-blue-500" />
+															<span>New Arrivals</span>
+														</Button>
 													</div>
+												</div>
 
-													{/* Product Info */}
-													<div className="flex-1 min-w-0">
-														<h4 className="text-sm font-medium line-clamp-1">{product.title}</h4>
-														<p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{product.description}</p>
-														<div className="flex items-center gap-2 mt-2">
-															<span className="text-sm font-medium">{formatPrice(parseFloat(product.priceRange.minVariantPrice.amount))}</span>
-															{product.tags?.includes("trending") && (
-																<Badge variant="secondary" className="text-[10px] px-1 py-0">
-																	<TrendingUp className="w-3 h-3 mr-1" />
-																	Trending
-																</Badge>
-															)}
+												{featuredProducts.length > 0 && (
+													<div>
+														<h4 className="text-sm font-medium mb-3 flex items-center">
+															<Star className="h-4 w-4 mr-2 text-yellow-500" />
+															You Might Like
+														</h4>
+														<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+															{featuredProducts.slice(0, 2).map((product) => (
+																<div
+																	key={product.id}
+																	className="border border-gray-200 dark:border-gray-800 rounded-lg p-2 cursor-pointer hover:border-primary/50 transition-colors"
+																	onClick={() => handleSelectItem(product, "product")}
+																>
+																	<div className="flex items-start gap-2">
+																		{product.images && product.images.nodes && product.images.nodes.length > 0 && (
+																			<div className="relative h-14 w-14 rounded overflow-hidden flex-shrink-0">
+																				<Image
+																					src={product.images.nodes[0].url}
+																					alt={product.title}
+																					fill
+																					sizes="56px"
+																					className="object-cover"
+																				/>
+																			</div>
+																		)}
+																		<div className="flex-1 min-w-0">
+																			<p className="font-medium text-xs truncate">{product.title}</p>
+																			<p className="text-xs text-primary font-medium mt-1">
+																				{product.priceRange.minVariantPrice.amount ===
+																				product.priceRange.maxVariantPrice.amount
+																					? `$${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}`
+																					: `From $${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}`}
+																			</p>
+																		</div>
+																	</div>
+																</div>
+															))}
 														</div>
 													</div>
-												</Link>
-											))}
+												)}
+											</div>
 										</div>
-									</div>
-								)}
+									) : (
+										<>
+											{productResults.length > 0 && (
+												<CommandGroup heading="Products">
+													<ScrollArea className="max-h-[250px] sm:max-h-[300px]">
+														{productResults.slice(0, 5).map((result) => {
+															const product = result.item as ShopifyProduct;
+															return (
+																<CommandItem
+																	key={product.id}
+																	onSelect={() => handleSelectItem(product, "product")}
+																	className="flex items-start gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 cursor-pointer"
+																>
+																	{product.images && product.images.nodes && product.images.nodes.length > 0 && (
+																		<div className="relative h-10 w-10 sm:h-12 sm:w-12 rounded overflow-hidden flex-shrink-0 border border-gray-200 dark:border-gray-800">
+																			<Image
+																				src={product.images.nodes[0].url}
+																				alt={product.title}
+																				fill
+																				sizes="(max-width: 640px) 40px, 48px"
+																				className="object-cover"
+																			/>
+																		</div>
+																	)}
+																	<div className="flex-1 min-w-0">
+																		<p className="font-medium text-xs sm:text-sm truncate">{product.title}</p>
+																		<div className="flex items-center mt-1">
+																			<Tag className="h-3 w-3 text-muted-foreground mr-1" />
+																			<p className="text-xs text-muted-foreground truncate">
+																				{product.priceRange.minVariantPrice.amount ===
+																				product.priceRange.maxVariantPrice.amount
+																					? `$${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}`
+																					: `$${parseFloat(product.priceRange.minVariantPrice.amount).toFixed(
+																							2
+																					  )} - $${parseFloat(product.priceRange.maxVariantPrice.amount).toFixed(2)}`}
+																			</p>
+																		</div>
+																	</div>
+																</CommandItem>
+															);
+														})}
+													</ScrollArea>
+												</CommandGroup>
+											)}
 
-								{/* Blog Results */}
-								{displayedBlogs.length > 0 && (
-									<div>
-										<h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-											<Clock className="w-4 h-4 mr-2" />
-											Blog Posts
-										</h3>
-										<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-											{displayedBlogs.map((post, index) => (
-												<Link key={post.id} href={`/blogs/${post.blogHandle}/${post.handle}`} className={cn("flex items-start gap-4 p-3 hover:bg-accent rounded-lg transition-colors", selectedIndex === displayedProducts.length + index && "bg-accent")} data-index={displayedProducts.length + index} onClick={handleProductClick}>
-													{/* Blog Image */}
-													<div className="relative w-20 h-20 flex-shrink-0">
-														<div className="relative bg-muted rounded-md overflow-hidden border border-foreground/10 group-hover:border-foreground/20 transition-colors duration-200 w-full h-full">{getBlogImageUrl(post) ? <Image src={getBlogImageUrl(post)!} alt={getBlogImageAlt(post)} fill className="object-cover" sizes="80px" /> : <ImagePlaceholder />}</div>
-													</div>
+											{blogResults.length > 0 && (
+												<CommandGroup heading="Articles">
+													<ScrollArea className="max-h-[150px] sm:max-h-[200px]">
+														{blogResults.slice(0, 3).map((result) => {
+															const article = result.item as ShopifyBlogArticle;
+															return (
+																<CommandItem
+																	key={article.id}
+																	onSelect={() => handleSelectItem(article, "blog")}
+																	className="flex items-start gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 cursor-pointer"
+																>
+																	<BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+																	<div className="flex-1 min-w-0">
+																		<p className="font-medium text-xs sm:text-sm truncate">{article.title}</p>
+																		{article.excerpt && (
+																			<p className="text-xs text-muted-foreground truncate mt-1">{article.excerpt}</p>
+																		)}
+																	</div>
+																</CommandItem>
+															);
+														})}
+													</ScrollArea>
+												</CommandGroup>
+											)}
+										</>
+									)}
 
-													{/* Blog Info */}
-													<div className="flex-1 min-w-0">
-														<h4 className="text-sm font-medium line-clamp-1">{post.title}</h4>
-														<p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{post.excerpt || post.content?.substring(0, 100)}</p>
-													</div>
-												</Link>
-											))}
+									{(productResults.length > 0 || blogResults.length > 0) && (
+										<div className="p-2 border-t border-gray-200 dark:border-gray-800">
+											<CommandItem
+												onSelect={handleViewAllResults}
+												className="flex items-center justify-center gap-1 sm:gap-2 w-full py-1.5 sm:py-2 font-medium text-xs sm:text-sm text-primary"
+											>
+												View all results for "{searchQuery}"
+												<ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+											</CommandItem>
 										</div>
-									</div>
-								)}
-
-								{/* View All Results Button */}
-								{(displayedProducts.length > 0 || displayedBlogs.length > 0) && searchQuery && (
-									<div className="pt-2 border-t">
-										<Link href={`/search?q=${encodeURIComponent(searchQuery)}`} className="block w-full text-center p-3 text-sm text-primary hover:underline" onClick={() => handleSearchClick(searchQuery)}>
-											View all results for "{searchQuery}"
-										</Link>
-									</div>
-								)}
-							</div>
-						)}
-					</div>
-				</ScrollArea>
-			</div>
-		</>
+									)}
+								</>
+							)}
+						</>
+					)}
+				</CommandList>
+			</Command>
+		</div>
 	);
 }

@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { LoginButton } from "@/components/auth/next-auth-buttons";
 import Link from "next/link";
 import { Metadata } from "next";
+import { LoginButton } from "@/components/auth/next-auth-buttons";
 import { getSiteSettings } from "@/lib/actions/shopify";
+import { getSession } from "@/lib/actions/session";
 
 export const metadata: Metadata = {
 	title: "Login | Zugzology",
@@ -11,12 +11,14 @@ export const metadata: Metadata = {
 };
 
 export default async function LoginPage() {
-	const session = await auth();
+	// Use the custom session management instead of Next.js auth
+	const session = await getSession();
+
 	const siteSettings = await getSiteSettings();
 	const storeName = siteSettings?.name || "Zugzology";
 
 	// If already authenticated, redirect to account page
-	if (session) {
+	if (session?.user) {
 		redirect("/account");
 	}
 

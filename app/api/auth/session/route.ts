@@ -8,6 +8,23 @@ export async function GET(request: NextRequest) {
 	try {
 		const session = await getSession();
 
+		if (!session) {
+			return NextResponse.json(
+				{
+					error: "No session found",
+					user: null,
+					expires: null,
+				},
+				{
+					status: 200,
+					headers: {
+						"Content-Type": "application/json",
+						"Cache-Control": "no-store, max-age=0",
+					},
+				}
+			);
+		}
+
 		return NextResponse.json(session, {
 			status: 200,
 			headers: {

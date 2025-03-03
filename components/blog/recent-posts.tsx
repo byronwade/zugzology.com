@@ -10,7 +10,7 @@ export function RecentPosts({ posts }: RecentPostsProps) {
 	if (posts.length === 0) return null;
 
 	return (
-		<section className="mt-16 mb-16 border-t dark:border-neutral-800 pt-16">
+		<div className="border-t dark:border-neutral-800 pt-16">
 			<h2 className="text-2xl font-bold mb-8 text-neutral-900 dark:text-neutral-100">Latest from Our Blog</h2>
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 				{posts.slice(0, 3).map((post) => (
@@ -52,6 +52,6 @@ export function RecentPosts({ posts }: RecentPostsProps) {
 					</Link>
 				))}
 			</div>
-		</section>
+		</div>
 	);
 }

@@ -79,6 +79,30 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 				.filter((p) => isUnique(p, usedProductIds))
 				.map((p) => ({ product: p, source: "history" as const, sectionId: "recently-viewed" })),
 		});
+	} else if (validRecommended.length > 0) {
+		// If no history, use recommended products with a "Recommended for You" section instead
+		sections.push({
+			id: "recommended-for-you",
+			title: "Recommended For You",
+			description: "Products we think you'll love based on popular items",
+			priority: 1,
+			products: validRecommended
+				.filter(filterCurrentProduct)
+				.filter((p) => isUnique(p, usedProductIds))
+				.map((p) => ({ product: p, source: "recommended" as const, sectionId: "recommended-for-you" })),
+		});
+	} else if (validRandom.length > 0) {
+		// If no history and no recommended, use random products
+		sections.push({
+			id: "products-you-might-like",
+			title: "Products You Might Like",
+			description: "Explore our popular products",
+			priority: 1,
+			products: validRandom
+				.filter(filterCurrentProduct)
+				.filter((p) => isUnique(p, usedProductIds))
+				.map((p) => ({ product: p, source: "popular" as const, sectionId: "products-you-might-like" })),
+		});
 	}
 
 	// Add Best Sellers section
@@ -204,8 +228,24 @@ export function HistoryRecommendations({ products, recommendedProducts = [], ran
 		}))
 		.filter((section) => section.products.length > 0);
 
-	if (processedSections.length === 0) {
-		return <EmptyState title="No Recommendations Available" description="We couldn't find any products to recommend at the moment. Check out our latest arrivals or browse all products." showCollectionCards={true} />;
+	// Ensure we always display at least one section
+	if (processedSections.length === 0 && validRandom.length > 0) {
+		// If we still have no processed sections, create a fallback section with random products
+		return (
+			<section className="w-full" itemScope itemType="https://schema.org/ItemList" aria-label="Product recommendations">
+				<meta itemProp="name" content="Product Recommendations" />
+				<ProductSection
+					title="Discover More Products"
+					description="Products you might be interested in"
+					products={validRandom
+						.filter(filterCurrentProduct)
+						.slice(0, 12)
+						.map((p) => ({ product: p, source: "popular" as const, sectionId: "discover-more" }))}
+					sectionId="discover-more"
+					currentProductId={currentProductId}
+				/>
+			</section>
+		);
 	}
 
 	return (

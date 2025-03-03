@@ -490,7 +490,7 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 							if (!thumbnailUrl) return null;
 
 							return (
-								<button key={media.id} className={`relative w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 ${selectedMediaIndex === index ? "ring-2 ring-primary" : "hover:border-neutral-300 dark:hover:border-neutral-600"}`} onClick={() => setSelectedMediaIndex(index)}>
+								<button key={media.id} className={`relative w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800 border ${selectedMediaIndex === index ? "border-purple-600 ring-2 ring-purple-600" : "border-neutral-200 dark:border-neutral-700 hover:border-purple-300 dark:hover:border-neutral-600"}`} onClick={() => setSelectedMediaIndex(index)}>
 									<Image src={thumbnailUrl} alt={altText} fill sizes="64px" className="object-cover" />
 									{(isMediaVideo(media) || isExternalVideo(media)) && (
 										<div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -558,8 +558,10 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 							)}
 						</div>
 					</div>
-				</div>
-				{/* Mobile Thumbnails Row */}
+				</div>;
+				{
+					/* Mobile Thumbnails Row */
+				}
 				<div className="md:hidden -mx-4">
 					<div className="flex gap-3 overflow-x-auto py-2 pl-4 scrollbar-hide">
 						{validMedia.map((media, index) => {
@@ -577,7 +579,7 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 							if (!thumbnailUrl) return null;
 
 							return (
-								<button key={media.id} className={`relative aspect-square w-[70px] flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800 ${selectedMediaIndex === index ? "ring-2 ring-primary ring-offset-2" : "hover:ring-2 hover:ring-neutral-300 dark:hover:ring-neutral-600"}`} onClick={() => setSelectedMediaIndex(index)}>
+								<button key={media.id} className={`relative aspect-square w-[70px] flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800 ${selectedMediaIndex === index ? "ring-2 ring-purple-600 ring-offset-2" : "hover:ring-2 hover:ring-purple-300 dark:hover:ring-neutral-600"}`} onClick={() => setSelectedMediaIndex(index)}>
 									<Image src={thumbnailUrl} alt={altText} fill sizes="70px" className="object-cover" />
 									{(isMediaVideo(media) || isExternalVideo(media)) && (
 										<div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -594,7 +596,7 @@ export function ProductGallery({ media: mediaProp, title: titleProp, selectedInd
 						})}
 						<div className="w-4 flex-shrink-0" aria-hidden="true" />
 					</div>
-				</div>
+				</div>;
 			</div>
 		</>
 	);

@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { formatPrice, cn } from "@/lib/utils";
+import { formatPrice, cn, isIntentionallyFree } from "@/lib/utils";
 import type { ShopifyProduct } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Star, ShoppingBag, Loader2, Package, Clock, Users, Heart } from "lucide-react";
+import { ShoppingCart, Star, ShoppingBag, Loader2, Package, Clock, Users, Heart, Info, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/providers/cart-provider";
 import { toast } from "sonner";
@@ -96,29 +96,37 @@ const calculateDiscountPercentage = (compareAtPrice: string, price: string) => {
 };
 
 // Add helper function to format quantity display, consistent with ProductActions
-const formatQuantityDisplay = (quantity: number) => {
-	if (quantity <= 0) {
-		return "Available (Backorder)";
+const formatQuantityDisplay = (quantity: number, isAvailableForSale: boolean = true) => {
+	// Only show as backorder if quantity is 0 AND product is NOT available for sale
+	if (quantity === 0 && !isAvailableForSale) {
+		return "Backorder";
+	} else if (quantity === 0 && isAvailableForSale) {
+		// If quantity is 0 but product is available for sale, it means inventory tracking is disabled in Shopify
+		return "In Stock";
 	} else if (quantity === 1) {
-		return "Last One!";
+		return "Last One";
 	} else if (quantity <= 5) {
-		return `Only ${quantity} left!`;
+		return `Last ${quantity} In Stock`;
 	} else if (quantity <= 10) {
 		return `${quantity} available`;
 	} else if (quantity <= 20) {
-		return "10+ available";
+		return "10+";
 	} else if (quantity <= 50) {
-		return "20+ available";
+		return "20+";
 	} else if (quantity <= 100) {
-		return "50+ available";
+		return "50+";
+	} else if (quantity <= 500) {
+		return "100+";
+	} else if (quantity <= 1000) {
+		return "500+";
 	} else {
-		return "100+ available";
+		return "1000+";
 	}
 };
 
 // Memoize the ProductCard component
-export const ProductCard = memo(function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity = 0, onAddToCart, isAddingToCartProp, onRemoveFromWishlist, onAddToWishlist, isVisible = true }: ProductCardProps) {
-	const { addItem } = useCart();
+export const ProductCard = memo(function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity: quantityProp, onAddToCart, isAddingToCartProp, onRemoveFromWishlist, onAddToWishlist, isVisible = true }: ProductCardProps) {
+	const { addItem, openCart } = useCart();
 	const [isAddingToCartLocal, setIsAddingToCartLocal] = useState(false);
 	const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
@@ -147,6 +155,23 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 		const discountPercentage = hasDiscount ? calculateDiscountPercentage(compareAtPrice, price) : 0;
 		const firstImage = product.images?.nodes?.[0];
 
+		// Determine the actual quantity to use
+		// Use quantityProp if explicitly provided, otherwise use the variant's quantityAvailable
+		let actualQuantity = quantityProp !== undefined ? quantityProp : firstVariant?.quantityAvailable ?? 0;
+
+		// Log the actual quantity for debugging
+		console.log(`[Stock Debug] Product "${product.title}" (${product.handle}): quantityAvailable=${actualQuantity}, availableForSale=${firstVariant?.availableForSale}`);
+
+		// A product is on backorder only if its quantity is strictly 0 AND it's NOT available for sale
+		// This ensures products marked as available for sale are never shown as backorder items
+		const isBackorder = !!firstVariant?.id && firstVariant.availableForSale === false && actualQuantity === 0;
+
+		// Check if this is an intentionally free product using the utility function
+		const isFreeProduct = isIntentionallyFree(product) || parseFloat(price) === 0;
+
+		// All products should have a valid price - if price is 0, treat as free product
+		const hasValidPrice = true;
+
 		return {
 			firstVariant,
 			price,
@@ -156,12 +181,21 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 			imageUrl: firstImage?.url,
 			imageAlt: firstImage?.altText || product.title,
 			isAvailable: firstVariant?.availableForSale ?? false,
+			isBackorder,
+			hasValidPrice,
+			isFreeProduct,
+			quantity: actualQuantity,
 		};
-	}, [product]);
+	}, [product, quantityProp]);
 
 	const isWishlisted = useMemo(() => isInWishlist(product.handle), [isInWishlist, product.handle]);
 	const isAddingToCartState = isAddingToCartLocal || isAddingToCartProp;
-	const isLowStock = quantity > 0 && quantity <= 10;
+	const isLowStock = productDetails.quantity > 0 && productDetails.quantity <= 10;
+
+	// Determine if product can be added to cart:
+	// 1. It must be available OR on backorder
+	// 2. It must have a valid price (greater than 0)
+	const canAddToCart = (productDetails.isAvailable || productDetails.isBackorder) && productDetails.hasValidPrice;
 
 	// Memoize the product URL
 	const productUrl = useMemo(() => {
@@ -192,6 +226,8 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 				}
 
 				toast.success("Added to cart");
+
+				// Cart will be opened automatically by the cart provider
 			} catch (error) {
 				console.error("Error in handleAddToCart:", error);
 				toast.error("Failed to add to cart");
@@ -244,7 +280,7 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 							loading={isVisible ? "eager" : "lazy"}
 							className="object-cover hover:scale-105 transition-transform duration-300"
 							sizes={view === "grid" ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw" : "96px"}
-							onLoadingComplete={(img) => {
+							onLoad={(event) => {
 								if (isVisible) {
 									// Once the image loads, prefetch the product page
 									const link = document.createElement("link");
@@ -266,10 +302,10 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 			<div className={cn("flex flex-col", view === "grid" ? "mt-3 flex-1 p-2" : "flex-1 min-w-0 py-1")}>
 				<Link href={productUrl} className="flex-1">
 					{/* Vendor */}
-					<p className="text-sm text-muted-foreground mb-1">{product.vendor || "Zugzology"}</p>
+					<p className="text-xs text-gray-500 mb-1">{product.vendor || "Zugzology"}</p>
 
 					{/* Title */}
-					<h2 className={cn("font-medium text-base group-hover:text-primary transition-colors", view === "grid" ? "line-clamp-2" : "line-clamp-2 sm:line-clamp-1")}>{product.title}</h2>
+					<h2 className={cn("font-medium text-gray-900 group-hover:text-purple-600 transition-colors", view === "grid" ? "line-clamp-2" : "line-clamp-2 sm:line-clamp-1")}>{product.title}</h2>
 
 					{/* Reviews */}
 					{hasRating ? (
@@ -278,7 +314,7 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 						</div>
 					) : (
 						<div className="mt-1">
-							<p className="text-sm text-muted-foreground">Be the first to review</p>
+							<p className="text-xs text-gray-500">Be the first to review</p>
 						</div>
 					)}
 
@@ -286,42 +322,71 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 					<div className="mt-2">
 						{productDetails.hasDiscount && (
 							<div className="flex items-center gap-1">
-								<span className="text-sm text-muted-foreground line-through">List Price: {formatPrice(parseFloat(productDetails.compareAtPrice || "0"))}</span>
+								<span className="text-sm text-gray-500 line-through">List Price: {formatPrice(parseFloat(productDetails.compareAtPrice || "0"))}</span>
 							</div>
 						)}
 						<div className="flex items-baseline gap-2">
-							<span className="text-xl font-medium" aria-label={`Price: ${formatPrice(parseFloat(productDetails.price))}`}>
-								<span className="text-sm">$</span>
-								<span>{Math.floor(parseFloat(productDetails.price))}</span>
-								<span className="text-sm">{(parseFloat(productDetails.price) % 1).toFixed(2).substring(1)}</span>
-							</span>
+							{productDetails.hasValidPrice ? (
+								<span className="text-base font-medium text-gray-900" aria-label={`Price: ${formatPrice(parseFloat(productDetails.price))}`}>
+									{productDetails.isFreeProduct ? (
+										"Free"
+									) : (
+										<>
+											<span className="text-sm">$</span>
+											<span>{Math.floor(parseFloat(productDetails.price))}</span>
+											<span className="text-sm">{(parseFloat(productDetails.price) % 1).toFixed(2).substring(1)}</span>
+										</>
+									)}
+								</span>
+							) : (
+								<span className="text-base font-medium text-gray-900">{productDetails.isBackorder ? "Price TBD (Backorder)" : "Price TBD"}</span>
+							)}
 							{productDetails.hasDiscount && (
-								<span className="text-sm text-red-600 font-medium">
+								<span className="text-xs font-medium text-red-600">
 									Save {discountPercentage}% ({formatPrice(parseFloat(productDetails.compareAtPrice || "0") - parseFloat(productDetails.price))})
 								</span>
 							)}
 						</div>
 					</div>
-
-					{/* Stock and Shipping Info */}
-					<div className={cn("space-y-1.5", view === "grid" ? "mt-2" : "mt-1.5")}>
-						<div className="flex items-center justify-between">
-							<span className="text-sm font-medium text-green-600">Available</span>
-							<span className="text-xs text-muted-foreground">{formatQuantityDisplay(quantity)}</span>
-						</div>
-						<div className="flex items-center justify-between">
-							<span className="text-sm text-primary">FREE Shipping</span>
-							<span className="text-xs text-muted-foreground">{quantity > 0 ? `Delivery by ${formatDeliveryDate()}` : "Ships within 1-2 weeks"}</span>
-						</div>
-					</div>
-
-					{/* Recent Purchases */}
-					{recentPurchases > 0 && <p className="mt-2 text-xs text-muted-foreground">{purchaseText}</p>}
 				</Link>
 
+				{/* Stock and Shipping Info */}
+				<div className="mt-2 space-y-1">
+					{/* Stock Status */}
+					<div className="flex items-center gap-1.5">
+						{productDetails.isAvailable ? (
+							<>
+								<div className="w-2 h-2 rounded-full bg-green-500"></div>
+								<span className="text-xs text-gray-700">{productDetails.isBackorder ? "Available for Pre-Order" : "In Stock"}</span>
+							</>
+						) : (
+							<>
+								<div className="w-2 h-2 rounded-full bg-gray-300"></div>
+								<span className="text-xs text-gray-500">Out of Stock</span>
+							</>
+						)}
+					</div>
+
+					{/* Shipping Info */}
+					<p className="text-xs text-gray-500 flex items-center gap-1.5">
+						<Truck className="h-3 w-3" />
+						{productDetails.isBackorder ? `Ships ${formatDeliveryDate()}` : "Free Shipping"}
+					</p>
+				</div>
+
+				{/* Recent Purchases */}
+				{recentPurchases > 0 && (
+					<div className="mt-2 pt-2 border-t border-gray-200">
+						<p className="text-xs text-gray-500 flex items-center gap-1.5">
+							<Users className="h-3 w-3" />
+							{purchaseText}
+						</p>
+					</div>
+				)}
+
 				{/* Add to Cart Button */}
-				<div className="flex items-stretch gap-2 mt-2">
-					<Button variant="secondary" className="w-full bg-secondary hover:bg-secondary/80 text-foreground border border-foreground/10 hover:border-foreground/20 shadow-none" onClick={handleAddToCart} disabled={isAddingToCartState || !isAvailable || !variantId}>
+				<div className="mt-3">
+					<Button variant="secondary" className="w-full h-9 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md" onClick={handleAddToCart} disabled={isAddingToCartState || !variantId || !canAddToCart}>
 						<div className="flex items-center justify-center w-full">
 							{isAddingToCartState ? (
 								<>
@@ -330,8 +395,22 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 								</>
 							) : (
 								<>
-									<ShoppingCart className="h-4 w-4 mr-2" />
-									<span>Add to Cart</span>
+									{productDetails.isBackorder ? (
+										<>
+											<Clock className="h-4 w-4 mr-2" />
+											<span>Pre-Order</span>
+										</>
+									) : !productDetails.hasValidPrice ? (
+										<>
+											<Info className="h-4 w-4 mr-2" />
+											<span>Contact for Pricing</span>
+										</>
+									) : (
+										<>
+											<ShoppingCart className="h-4 w-4 mr-2" />
+											<span>{productDetails.isFreeProduct ? "Claim Free" : "Add to Cart"}</span>
+										</>
+									)}
 								</>
 							)}
 						</div>

@@ -7,6 +7,7 @@ import { useDebounce } from "@/lib/hooks/use-debounce";
 interface SearchResult {
 	type: "product" | "blog";
 	item: ShopifyProduct | ShopifyBlogArticle;
+	relevance: number; // Add relevance score for better sorting
 }
 
 interface SearchContextType {
@@ -25,6 +26,7 @@ interface SearchContextType {
 	addRecentSearch: (query: string) => void;
 	shouldUpdateMainContent: boolean;
 	setShouldUpdateMainContent: (shouldUpdate: boolean) => void;
+	clearSearchCache: () => void; // Add function to clear search cache
 }
 
 const SearchContext = createContext<SearchContextType>({
@@ -43,17 +45,53 @@ const SearchContext = createContext<SearchContextType>({
 	addRecentSearch: () => {},
 	shouldUpdateMainContent: false,
 	setShouldUpdateMainContent: () => {},
+	clearSearchCache: () => {},
 });
 
 const MAX_RECENT_SEARCHES = 5;
 const SEARCH_DEBOUNCE_MS = 150;
 const MAX_RESULTS = {
-	PRODUCTS: 5,
-	BLOGS: 3,
+	PRODUCTS: 8, // Increased from 5
+	BLOGS: 4, // Increased from 3
 };
 
 // Create a search cache outside component to persist between renders
 const searchCache = new Map<string, SearchResult[]>();
+
+// Helper function to calculate relevance score
+function calculateRelevance(text: string, searchTerms: string[]): number {
+	if (!text || !searchTerms.length) return 0;
+
+	const lowerText = text.toLowerCase();
+	let score = 0;
+
+	// Exact match bonus
+	if (searchTerms.length === 1 && lowerText.includes(searchTerms[0])) {
+		score += 10;
+
+		// Title starts with search term (higher relevance)
+		if (lowerText.startsWith(searchTerms[0])) {
+			score += 15;
+		}
+
+		// Exact word match (not substring)
+		const words = lowerText.split(/\s+/);
+		if (words.includes(searchTerms[0])) {
+			score += 5;
+		}
+	}
+
+	// All terms match (basic score)
+	if (searchTerms.every((term) => lowerText.includes(term))) {
+		score += 5;
+	}
+
+	// Percentage of terms that match
+	const matchingTerms = searchTerms.filter((term) => lowerText.includes(term));
+	score += (matchingTerms.length / searchTerms.length) * 5;
+
+	return score;
+}
 
 export function SearchProvider({ children }: { children: React.ReactNode }) {
 	const [searchState, setSearchState] = useState({
@@ -70,10 +108,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 		blogPosts: [] as ShopifyBlogArticle[],
 	});
 
-	const debouncedSearchQuery = useDebounce(searchState.query, 100);
-
-	// Handle click-outside detection is now moved to the component level
-	// No need for a searchRef here anymore
+	const debouncedSearchQuery = useDebounce(searchState.query, SEARCH_DEBOUNCE_MS);
 
 	// Load recent searches from localStorage on mount
 	useEffect(() => {
@@ -105,7 +140,13 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 		});
 	}, []);
 
-	// Memoize search function
+	// Clear search cache
+	const clearSearchCache = useCallback(() => {
+		searchCache.clear();
+		console.log("🔍 [Search] Cache cleared");
+	}, []);
+
+	// Memoize search function with improved relevance scoring
 	const performSearch = useCallback(
 		(query: string) => {
 			const trimmedQuery = query?.trim() || "";
@@ -134,33 +175,65 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 
 			setSearchState((prev) => ({ ...prev, isSearching: true }));
 
-			const searchTerms = trimmedQuery.toLowerCase().split(/\s+/);
+			const searchTerms = trimmedQuery
+				.toLowerCase()
+				.split(/\s+/)
+				.filter((term) => term.length > 1);
 
-			// Search products
+			// If no valid search terms, return empty results
+			if (searchTerms.length === 0) {
+				setSearchState((prev) => ({
+					...prev,
+					results: [],
+					isSearching: false,
+					isDropdownOpen: false,
+				}));
+				return;
+			}
+
+			// Search products with relevance scoring
 			const productResults = data.products
-				.filter((product) => {
-					const searchableText = [product.title, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
-					return searchTerms.every((term) => searchableText.includes(term));
-				})
-				.slice(0, MAX_RESULTS.PRODUCTS)
-				.map((product) => ({
-					type: "product" as const,
-					item: product,
-				}));
+				.map((product) => {
+					const titleScore = calculateRelevance(product.title, searchTerms) * 2; // Title is most important
+					const typeScore = calculateRelevance(product.productType || "", searchTerms);
+					const vendorScore = calculateRelevance(product.vendor || "", searchTerms);
+					const tagsScore = calculateRelevance((product.tags || []).join(" "), searchTerms);
+					const descriptionScore = calculateRelevance(product.description || "", searchTerms) * 0.5; // Description less important
 
-			// Search blog posts
+					const totalScore = titleScore + typeScore + vendorScore + tagsScore + descriptionScore;
+
+					return {
+						type: "product" as const,
+						item: product,
+						relevance: totalScore,
+					};
+				})
+				.filter((result) => result.relevance > 0) // Only include results with some relevance
+				.sort((a, b) => b.relevance - a.relevance) // Sort by relevance
+				.slice(0, MAX_RESULTS.PRODUCTS);
+
+			// Search blog posts with relevance scoring
 			const blogResults = data.blogPosts
-				.filter((post) => {
-					const searchableText = [post.title, post.excerpt, post.author.name].filter(Boolean).join(" ").toLowerCase();
-					return searchTerms.every((term) => searchableText.includes(term));
-				})
-				.slice(0, MAX_RESULTS.BLOGS)
-				.map((post) => ({
-					type: "blog" as const,
-					item: post,
-				}));
+				.map((post) => {
+					const titleScore = calculateRelevance(post.title, searchTerms) * 2; // Title is most important
+					const excerptScore = calculateRelevance(post.excerpt || "", searchTerms);
+					const authorScore = calculateRelevance(post.author?.name || "", searchTerms);
+					const contentScore = calculateRelevance(post.contentHtml || "", searchTerms) * 0.3; // Content less important
 
-			const results = [...productResults, ...blogResults];
+					const totalScore = titleScore + excerptScore + authorScore + contentScore;
+
+					return {
+						type: "blog" as const,
+						item: post,
+						relevance: totalScore,
+					};
+				})
+				.filter((result) => result.relevance > 0) // Only include results with some relevance
+				.sort((a, b) => b.relevance - a.relevance) // Sort by relevance
+				.slice(0, MAX_RESULTS.BLOGS);
+
+			// Combine and sort results by relevance
+			const results = [...productResults, ...blogResults].sort((a, b) => b.relevance - a.relevance);
 
 			// Cache the results
 			searchCache.set(cacheKey, results);
@@ -192,12 +265,11 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 		() => ({
 			searchQuery: searchState.query,
 			setSearchQuery: (query: string) => {
-				const trimmedQuery = query?.trim() || "";
 				setSearchState((prev) => ({
 					...prev,
-					query: trimmedQuery,
-					isDropdownOpen: !!trimmedQuery,
-					isSearching: !!trimmedQuery,
+					query,
+					isDropdownOpen: !!query.trim(),
+					isSearching: !!query.trim(),
 				}));
 			},
 			searchResults: searchState.results,
@@ -205,18 +277,21 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 			allProducts: data.products,
 			setAllProducts: (products: ShopifyProduct[]) => {
 				setData((prev) => ({ ...prev, products }));
+				// Clear cache when products change
 				searchCache.clear();
+				console.log(`🔍 [Search] Loaded ${products.length} products`);
 			},
 			allBlogPosts: data.blogPosts,
-			setAllBlogPosts: (blogPosts: ShopifyBlogArticle[]) => setData((prev) => ({ ...prev, blogPosts })),
+			setAllBlogPosts: (blogPosts: ShopifyBlogArticle[]) => {
+				setData((prev) => ({ ...prev, blogPosts }));
+				console.log(`🔍 [Search] Loaded ${blogPosts.length} blog posts`);
+			},
 			totalProducts: data.products.length,
 			isDropdownOpen: searchState.isDropdownOpen,
 			setIsDropdownOpen: (open: boolean) => {
 				setSearchState((prev) => ({
 					...prev,
 					isDropdownOpen: open,
-					query: open ? prev.query : "",
-					results: open ? prev.results : [],
 					isSearching: open && !!prev.query,
 				}));
 			},
@@ -229,8 +304,9 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
 					shouldUpdateMainContent: shouldUpdate,
 				}));
 			},
+			clearSearchCache,
 		}),
-		[searchState, data, addRecentSearch]
+		[searchState, data, addRecentSearch, clearSearchCache]
 	);
 
 	return <SearchContext.Provider value={contextValue}>{children}</SearchContext.Provider>;

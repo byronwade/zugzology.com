@@ -1,17 +1,17 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { getCustomer } from "@/lib/services/shopify-customer";
 import AccountInfo from "./account-info";
 import OrderHistory from "./order-history";
 import { cookies } from "next/headers";
 import { AUTH_CONFIG } from "@/lib/config/auth";
+import { getSession } from "@/lib/actions/session";
 
 export default async function AccountPage() {
-	// Check NextAuth session
-	const session = await auth();
+	// Use the custom session management instead of Next.js auth
+	const session = await getSession();
 
 	// Also check custom auth system
 	const cookieStore = await cookies();
@@ -19,12 +19,12 @@ export default async function AccountPage() {
 	const customAuthToken = customerAccessToken?.value;
 
 	console.log("🔍 [Account] Auth status:", {
-		nextAuthSession: !!session,
+		sessionUser: !!session?.user,
 		customAuthToken: !!customAuthToken,
 	});
 
 	// Immediately redirect if not authenticated in either system
-	if (!session && !customAuthToken) {
+	if (!session?.user && !customAuthToken) {
 		console.log("❌ [Account] No authentication found, redirecting to login");
 		redirect("/login?redirect=/account");
 	}
@@ -32,14 +32,14 @@ export default async function AccountPage() {
 	try {
 		console.log("🔍 [Account] Fetching customer data...");
 
-		// Try to get customer data using NextAuth token first
+		// Try to get customer data using session token first
 		let customer = null;
 		let tokenUsed = "";
 
-		if (session?.shopifyAccessToken) {
-			console.log("🔍 [Account] Trying NextAuth token...");
-			tokenUsed = "nextauth";
-			customer = await getCustomer(session.shopifyAccessToken);
+		if (session?.user?.accessToken) {
+			console.log("🔍 [Account] Trying session token...");
+			tokenUsed = "session";
+			customer = await getCustomer(session.user.accessToken);
 		}
 
 		// If that fails, try the custom auth token
@@ -85,10 +85,7 @@ export default async function AccountPage() {
 					<div className="bg-white rounded-lg shadow p-6 mb-6">
 						<h2 className="text-xl font-semibold mb-4">Account Information</h2>
 						<p className="mb-2">
-							<strong>Name:</strong> {session?.user?.name || "Not provided"}
-						</p>
-						<p className="mb-2">
-							<strong>Email:</strong> {session?.user?.email || "Not provided"}
+							<strong>Email:</strong> {session?.user?.accessToken ? "Authenticated" : "Not provided"}
 						</p>
 						<p className="text-sm text-muted-foreground mt-4">We're having trouble loading your detailed account information.</p>
 					</div>

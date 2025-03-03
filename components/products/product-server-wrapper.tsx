@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { ProductContentClient } from "./product-content-client";
 import { ShopifyProduct, ShopifyBlogArticle } from "@/lib/types";
-import { getAllBlogPosts } from "@/lib/actions/shopify";
+import { getAllBlogPosts } from "@/lib/api/shopify/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductWithRecommendations extends ShopifyProduct {
@@ -33,11 +33,28 @@ function ProductLoading() {
 
 // Server component to fetch blog posts
 async function RecentBlogPosts() {
-	const posts = await getAllBlogPosts();
-	const recentPosts = posts.slice(0, 3);
+	try {
+		console.log("📚 [Product] Fetching recent blog posts");
+		const allPosts = await getAllBlogPosts();
+		// Sort by date, newest first
+		const sortedPosts = [...allPosts].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+		const recentPosts = sortedPosts.slice(0, 3);
 
-	// Pass the posts to the client component through props
-	return <input type="hidden" id="recent-blog-posts-data" value={JSON.stringify(recentPosts)} />;
+		// Ensure each post has a blogHandle property
+		const postsWithBlogHandle = recentPosts.map((post) => ({
+			...post,
+			// Use blog.handle if available, otherwise fallback to blogHandle or "blog"
+			blogHandle: post.blog?.handle || post.blogHandle || "blog",
+		}));
+
+		console.log(`📚 [Product] Fetched ${postsWithBlogHandle.length} recent blog posts`);
+
+		// Pass the posts to the client component through props
+		return <input type="hidden" id="recent-blog-posts-data" value={JSON.stringify(postsWithBlogHandle)} />;
+	} catch (error) {
+		console.error("❌ [Product] Error fetching blog posts:", error);
+		return null;
+	}
 }
 
 export async function ProductServerWrapper({ product, relatedProducts }: ProductServerWrapperProps) {

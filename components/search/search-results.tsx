@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, Search, ShoppingBag, Star } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import Link from "next/link";
 
 interface SearchResultsProps {
 	products: ShopifyProduct[];
@@ -63,7 +64,16 @@ export function SearchResults({ products, searchParams }: SearchResultsProps) {
 		if (query) {
 			const searchTerms = query.toLowerCase().split(/\s+/);
 			results = results.filter((product) => {
-				const searchableText = [product.title, product.description, product.productType, product.vendor, ...(product.tags || [])].filter(Boolean).join(" ").toLowerCase();
+				const searchableText = [
+					product.title,
+					product.description,
+					product.productType,
+					product.vendor,
+					...(product.tags || []),
+				]
+					.filter(Boolean)
+					.join(" ")
+					.toLowerCase();
 
 				return searchTerms.every((term) => searchableText.includes(term));
 			});
@@ -107,10 +117,14 @@ export function SearchResults({ products, searchParams }: SearchResultsProps) {
 		// Apply sorting
 		switch (sortBy) {
 			case "price-asc":
-				results.sort((a, b) => parseFloat(a.priceRange.minVariantPrice.amount) - parseFloat(b.priceRange.minVariantPrice.amount));
+				results.sort(
+					(a, b) => parseFloat(a.priceRange.minVariantPrice.amount) - parseFloat(b.priceRange.minVariantPrice.amount)
+				);
 				break;
 			case "price-desc":
-				results.sort((a, b) => parseFloat(b.priceRange.minVariantPrice.amount) - parseFloat(a.priceRange.minVariantPrice.amount));
+				results.sort(
+					(a, b) => parseFloat(b.priceRange.minVariantPrice.amount) - parseFloat(a.priceRange.minVariantPrice.amount)
+				);
 				break;
 			case "title-asc":
 				results.sort((a, b) => a.title.localeCompare(b.title));
@@ -131,7 +145,9 @@ export function SearchResults({ products, searchParams }: SearchResultsProps) {
 			}
 
 			const currentValues = prev[type as keyof typeof prev] as string[];
-			const newValues = currentValues.includes(value) ? currentValues.filter((v) => v !== value) : [...currentValues, value];
+			const newValues = currentValues.includes(value)
+				? currentValues.filter((v) => v !== value)
+				: [...currentValues, value];
 
 			return { ...prev, [type]: newValues };
 		});
@@ -200,9 +216,43 @@ export function SearchResults({ products, searchParams }: SearchResultsProps) {
 						<ProductCard key={product.id} product={product} view="grid" />
 					))}
 					{searchResults.length === 0 && (
-						<div className="col-span-full text-center py-12">
-							<h2 className="text-xl font-semibold mb-2">No results found</h2>
-							<p className="text-muted-foreground">Try adjusting your search or filters to find what you're looking for.</p>
+						<div className="col-span-full py-16">
+							<div className="max-w-2xl mx-auto text-center bg-accent/30 rounded-xl p-8">
+								<div className="bg-background rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+									<Search className="w-8 h-8 text-primary" />
+								</div>
+								<h2 className="text-2xl font-bold mb-3">No results found</h2>
+								<p className="text-muted-foreground mb-6">
+									We couldn't find any products matching your search criteria.
+								</p>
+
+								<div className="space-y-4 mb-8">
+									<div>
+										<h3 className="font-medium text-lg mb-2">Search Tips:</h3>
+										<ul className="text-sm text-muted-foreground space-y-1 mx-auto max-w-md text-left list-disc pl-8">
+											<li>Check the spelling of your search terms</li>
+											<li>Try using more general keywords</li>
+											<li>Search for related terms or alternative product names</li>
+											<li>Try adjusting your filters</li>
+										</ul>
+									</div>
+								</div>
+
+								<div className="flex flex-col sm:flex-row gap-4 justify-center">
+									<Button asChild size="lg" className="gap-2">
+										<Link href="/products">
+											<ShoppingBag className="w-5 h-5" />
+											Browse All Products
+										</Link>
+									</Button>
+									<Button asChild variant="outline" size="lg" className="gap-2">
+										<Link href="/collections/best-sellers">
+											<Star className="w-5 h-5" />
+											Best Sellers
+										</Link>
+									</Button>
+								</div>
+							</div>
 						</div>
 					)}
 				</div>
@@ -228,7 +278,7 @@ function FilterSection({
 		vendors: string[];
 		priceRanges: string[];
 	};
-	onFilterChange: (type: string, value: any) => void;
+	onFilterChange: (type: "inStock" | "priceRange" | "productTypes" | "vendors", value: any) => void;
 }) {
 	return (
 		<div className="space-y-6">
@@ -237,8 +287,15 @@ function FilterSection({
 				<h3 className="font-medium">Availability</h3>
 				<div className="space-y-2">
 					<div className="flex items-center space-x-2">
-						<Checkbox id="in-stock" checked={filters.inStock} onCheckedChange={(checked) => onFilterChange("inStock", checked)} />
-						<label htmlFor="in-stock" className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+						<Checkbox
+							id="in-stock"
+							checked={filters.inStock}
+							onCheckedChange={(checked) => onFilterChange("inStock", checked)}
+						/>
+						<label
+							htmlFor="in-stock"
+							className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+						>
 							In stock only
 						</label>
 					</div>
@@ -253,8 +310,15 @@ function FilterSection({
 				<div className="space-y-2">
 					{filterOptions.priceRanges.map((range) => (
 						<div key={range} className="flex items-center space-x-2">
-							<Checkbox id={range} checked={filters.priceRange.includes(range)} onCheckedChange={(checked) => onFilterChange("priceRange", range)} />
-							<label htmlFor={range} className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+							<Checkbox
+								id={range}
+								checked={filters.priceRange.includes(range)}
+								onCheckedChange={(checked) => onFilterChange("priceRange", range)}
+							/>
+							<label
+								htmlFor={range}
+								className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+							>
 								{range}
 							</label>
 						</div>
@@ -272,8 +336,15 @@ function FilterSection({
 						<div className="space-y-2">
 							{filterOptions.productTypes.map((type) => (
 								<div key={type} className="flex items-center space-x-2">
-									<Checkbox id={type} checked={filters.productTypes.includes(type)} onCheckedChange={(checked) => onFilterChange("productTypes", type)} />
-									<label htmlFor={type} className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+									<Checkbox
+										id={type}
+										checked={filters.productTypes.includes(type)}
+										onCheckedChange={(checked) => onFilterChange("productTypes", type)}
+									/>
+									<label
+										htmlFor={type}
+										className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+									>
 										{type}
 									</label>
 								</div>
@@ -292,8 +363,15 @@ function FilterSection({
 					<div className="space-y-2">
 						{filterOptions.vendors.map((vendor) => (
 							<div key={vendor} className="flex items-center space-x-2">
-								<Checkbox id={vendor} checked={filters.vendors.includes(vendor)} onCheckedChange={(checked) => onFilterChange("vendors", vendor)} />
-								<label htmlFor={vendor} className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+								<Checkbox
+									id={vendor}
+									checked={filters.vendors.includes(vendor)}
+									onCheckedChange={(checked) => onFilterChange("vendors", vendor)}
+								/>
+								<label
+									htmlFor={vendor}
+									className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+								>
 									{vendor}
 								</label>
 							</div>

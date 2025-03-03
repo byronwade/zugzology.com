@@ -69,73 +69,101 @@ body {
 
 @layer base {
   :root {
+    /* Royal Purple Theme */
+      --primary: 270 70% 40%;
+      /* Royal Purple */
+      --primary-foreground: 0 0% 100%;
+    
+      --secondary: 270 30% 96%;
+      --secondary-foreground: 270 70% 40%;
+    
+      --accent: 270 30% 96%;
+      --accent-foreground: 270 70% 40%;
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
+    
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
+    
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-      --muted: 240 4.8% 95.9%;
+    --muted: 240 4.8% 95.9%;
       --muted-foreground: 240 3.8% 46.1%;
-      --accent: 240 4.8% 95.9%;
-      --accent-foreground: 240 5.9% 10%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+    
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-      --ring: 240 5.9% 10%;
+    --ring: 270 70% 40%;
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-      --sidebar-primary: 240 5.9% 10%;
-      --sidebar-primary-foreground: 0 0% 98%;
-      --sidebar-accent: 240 4.8% 95.9%;
-      --sidebar-accent-foreground: 240 5.9% 10%;
-      --sidebar-border: 220 13% 91%;
-      --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Chart colors */
+      --chart-1: 270 70% 40%;
+      --chart-2: 270 70% 60%;
+      --chart-3: 270 70% 80%;
+      --chart-4: 270 50% 40%;
+      --chart-5: 270 50% 60%;
+    
+      /* Sidebar colors */
+      --sidebar-background: 0 0% 100%;
+      --sidebar-foreground: 240 10% 3.9%;
+      --sidebar-primary: 270 70% 40%;
+      --sidebar-primary-foreground: 0 0% 100%;
+      --sidebar-accent: 270 30% 96%;
+      --sidebar-accent-foreground: 270 70% 40%;
+      --sidebar-border: 240 5.9% 90%;
+      --sidebar-ring: 270 70% 40%;
     --header-top-height: 60px;
-      --header-nav-height: 40px;
+    --header-nav-height: 40px;
       --header-height: calc(var(--header-top-height) + var(--header-nav-height));
       --header-offset: var(--header-height);
     --removed-body-scroll-bar-size: 0px;
   }
   .dark {
+    --primary: 270 70% 60%;
+      /* Lighter Royal Purple for dark mode */
+      --primary-foreground: 0 0% 100%;
+    
+      --secondary: 270 30% 20%;
+      --secondary-foreground: 0 0% 98%;
+    
+      --accent: 270 30% 20%;
+      --accent-foreground: 0 0% 98%;
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
+    
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
+    
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-      --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
+    
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-      --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-      --sidebar-primary: 224.3 76.3% 48%;
+    --ring: 270 70% 60%;
+    
+      /* Chart colors */
+      --chart-1: 270 70% 60%;
+      --chart-2: 270 70% 80%;
+      --chart-3: 270 70% 40%;
+      --chart-4: 270 50% 60%;
+      --chart-5: 270 50% 80%;
+    
+      /* Sidebar colors */
+      --sidebar-background: 240 10% 3.9%;
+      --sidebar-foreground: 0 0% 98%;
+      --sidebar-primary: 270 70% 60%;
       --sidebar-primary-foreground: 0 0% 100%;
-      --sidebar-accent: 240 3.7% 15.9%;
-      --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-accent: 270 30% 20%;
+      --sidebar-accent-foreground: 0 0% 98%;
       --sidebar-border: 240 3.7% 15.9%;
-      --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 270 70% 60%;
   }
 /* Prevent layout shift when scrollbar appears/disappears */
 html {
@@ -354,10 +382,53 @@ html.scrolling {
 /* Toast spacing */
 .toast-spacing [data-sonner-toaster] {
   gap: 0.5rem !important;
+  z-index: 49 !important;
+    /* Make sure it's below cart sheet z-index of 50 */
 }
 
 .toast-spacing [data-sonner-toast] {
   margin: 0 !important;
+  max-width: 400px !important;
+    width: auto !important;
+  }
+  
+  /* On mobile, ensure toasts are compact and don't block content */
+  @media (max-width: 767px) {
+    .toast-spacing [data-sonner-toaster][data-position^="bottom"] {
+      bottom: 70px !important;
+      /* Add space for mobile navigation and cart buttons */
+      right: 8px !important;
+      left: auto !important;
+    }
+  
+    .toast-spacing [data-sonner-toast] {
+      max-width: 280px !important;
+      margin-right: 8px !important;
+    }
+  }
+  
+  /* Make sure toasts don't interfere with cart sheet */
+  [data-state="open"]~div [data-sonner-toaster][data-position^="bottom"] {
+    bottom: 100px !important;
+    /* Increase bottom margin when cart is open */
+  }
+  
+  /* Make sure toasts have nice animations */
+  .toast-spacing [data-sonner-toast] {
+    animation: slideIn 0.3s ease forwards;
+    transform-origin: bottom right;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.9);
+    }
+  
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
 }
 
 /* Reading mode styles */

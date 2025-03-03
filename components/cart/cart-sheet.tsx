@@ -203,6 +203,7 @@ export function CartSheet() {
 				removeFromWishlist(productHandle);
 				setWishlistProducts((prev) => prev.filter((p) => p.handle !== productHandle));
 				toast.success("Added to cart");
+				// Cart will be opened automatically by the cart provider
 			} catch (error) {
 				console.error("Error adding to cart:", error);
 				toast.error("Failed to add to cart");
@@ -260,6 +261,7 @@ export function CartSheet() {
 			open={isOpen}
 			onOpenChange={(open) => {
 				if (!open) closeCart();
+				else openCart();
 			}}
 		>
 			<SheetContent
@@ -271,143 +273,207 @@ export function CartSheet() {
 					transform: `translateX(${dragOffset}px)`,
 					transition: isDragging ? "none" : "transform 0.3s ease-out",
 				}}
-				className="fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out inset-y-0 right-0 h-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right flex flex-col w-full sm:max-w-lg touch-pan-y"
+				className="fixed z-50 gap-4 bg-white p-0 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out inset-y-0 right-0 h-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right flex flex-col w-full sm:max-w-lg touch-pan-y"
 			>
-				<SheetHeader className="flex flex-col space-y-2.5 text-center sm:text-left pb-6 border-b">
-					<SheetTitle className="text-lg font-semibold text-foreground flex items-center gap-2.5">
-						<ShoppingCart className="h-5 w-5" />
-						Shopping Cart {cartData.itemCount > 0 ? `(${cartData.itemCount})` : ""}
-					</SheetTitle>
-					<SheetDescription className="text-sm text-muted-foreground">View and manage items in your shopping cart</SheetDescription>
-				</SheetHeader>
+				<div className="sticky top-0 z-10 bg-white">
+					<SheetHeader className="flex flex-col space-y-1 text-left p-4 border-b border-gray-200">
+						<div className="flex justify-between items-center">
+							<SheetTitle className="text-lg font-medium text-gray-900 flex items-center gap-2">
+								<ShoppingCart className="h-5 w-5 text-purple-600" />
+								Shopping Cart {cartData.itemCount > 0 ? `(${cartData.itemCount})` : ""}
+							</SheetTitle>
+							<button
+								onClick={closeCart}
+								className="rounded-full p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200"
+								aria-label="Close"
+							>
+								<X className="h-5 w-5" />
+								<span className="sr-only">Close</span>
+							</button>
+						</div>
+						<SheetDescription className="text-sm text-gray-500">
+							View and manage items in your shopping cart
+						</SheetDescription>
+					</SheetHeader>
+				</div>
 
 				{isLoading && (
 					<div className="flex-1 flex items-center justify-center py-8">
-						<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+						<Loader2 className="h-8 w-8 animate-spin text-purple-600" />
 					</div>
 				)}
 
 				{!isLoading && cartData.items.length === 0 && (
-					<div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
-						<ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
-						<p className="text-base text-muted-foreground mb-2">Your cart is empty</p>
-						<p className="text-sm text-muted-foreground/60">Add items to your cart to continue shopping</p>
+					<div className="flex-1 flex flex-col items-center justify-center py-8 text-center px-4">
+						<div className="bg-purple-50 rounded-full p-4 mb-4">
+							<ShoppingCart className="h-10 w-10 text-purple-600" />
+						</div>
+						<p className="text-base font-medium text-gray-900 mb-1">Your cart is empty</p>
+						<p className="text-sm text-gray-500 max-w-xs">Add items to your cart to continue shopping</p>
 					</div>
 				)}
 
-				<div className="flex-1 overflow-y-auto -mx-6 px-6">
-					{cartData.items.map(({ node }) => (
-						<div key={node.id} className="flex gap-4 py-4 border-b last:border-b-0 group">
-							<div className="relative w-20 h-20 flex-shrink-0 bg-accent/50 rounded-md overflow-hidden">
-								{node.merchandise.product.images.edges[0]?.node ? (
-									<Image src={node.merchandise.product.images.edges[0].node.url} alt={node.merchandise.product.images.edges[0].node.altText || node.merchandise.product.title} fill className="object-cover rounded-md transition-transform group-hover:scale-105" sizes="80px" priority />
-								) : (
-									<div className="w-full h-full bg-accent/50 rounded-md flex items-center justify-center">
-										<ShoppingCart className="h-8 w-8 text-muted-foreground" />
-									</div>
-								)}
-							</div>
-
-							<div className="flex-1 min-w-0">
-								<div className="flex items-start justify-between gap-2">
-									<div>
-										<h3 className="font-medium group-hover:text-primary transition-colors">{node.merchandise.product.title}</h3>
-										{node.merchandise.title !== "Default Title" && <p className="text-sm text-muted-foreground mt-0.5">{node.merchandise.title}</p>}
-										<p className="mt-1.5 font-medium">{formatPrice(parseFloat(node.cost.totalAmount.amount))}</p>
-									</div>
-									<Button variant="ghost" size="icon" onClick={() => handleRemoveItem(node.id)} disabled={isLoading} className="hover:bg-destructive/10 hover:text-destructive h-8 w-8 -mt-1 -mr-1">
-										<Trash2 className="h-4 w-4" />
-									</Button>
-								</div>
-
-								<div className="flex items-center gap-4 mt-3">
-									<div className="flex items-center gap-2">
-										<input
-											type="number"
-											inputMode="numeric"
-											pattern="[0-9]*"
-											min="1"
-											autoFocus={false}
-											tabIndex={-1}
-											value={pendingUpdates[node.id] ?? quantities[node.id] ?? node.quantity}
-											onChange={(e) => handleQuantityChange(node.id, e.target.value)}
-											className="w-16 h-8 rounded-md border bg-background px-2 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-											disabled={isLoading || updatingItems[node.id]}
-										/>
-										{pendingUpdates[node.id] !== undefined && (
-											<Button size="sm" variant="outline" onClick={() => handleUpdateQuantity(node.id, pendingUpdates[node.id])} disabled={updatingItems[node.id] || pendingUpdates[node.id] === "" || pendingUpdates[node.id] === 0} className="h-8 px-2 bg-background">
-												{updatingItems[node.id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-											</Button>
+				<div className="flex-1 overflow-y-auto px-4">
+					{!isLoading && cartData.items.length > 0 && (
+						<div className="py-4 space-y-4">
+							{cartData.items.map(({ node }) => (
+								<div
+									key={node.id}
+									className="flex gap-4 relative group p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+								>
+									<div className="relative h-20 w-20 rounded-md overflow-hidden border border-gray-200 bg-gray-50 flex-shrink-0">
+										{node.merchandise.product.images.edges[0]?.node ? (
+											<Image
+												src={node.merchandise.product.images.edges[0].node.url}
+												alt={node.merchandise.product.images.edges[0].node.altText || node.merchandise.product.title}
+												fill
+												sizes="80px"
+												className="object-cover"
+											/>
+										) : (
+											<div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+												<ShoppingCart className="h-6 w-6 text-gray-400" />
+											</div>
 										)}
 									</div>
-									<button onClick={() => handleMoveToWishlist(node)} disabled={isLoading} className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5">
-										<Heart className="h-3.5 w-3.5" />
-										Save for later
-									</button>
+
+									<div className="flex-1 min-w-0">
+										<div className="flex justify-between gap-2">
+											<h3 className="text-sm font-medium text-gray-900 line-clamp-2">
+												{node.merchandise.product.title}
+											</h3>
+											<p className="text-sm font-medium text-gray-900 whitespace-nowrap">
+												{formatPrice(parseFloat(node.cost.totalAmount.amount))}
+											</p>
+										</div>
+
+										{node.merchandise.title !== "Default Title" && (
+											<p className="text-xs text-gray-500 mt-0.5">{node.merchandise.title}</p>
+										)}
+
+										<div className="flex items-center justify-between mt-2">
+											<div className="flex items-center border border-gray-200 rounded-md shadow-sm">
+												<button
+													onClick={() => handleUpdateQuantity(node.id, Math.max(1, quantities[node.id] - 1))}
+													disabled={updatingItems[node.id] || quantities[node.id] <= 1}
+													className="h-7 w-7 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-transparent"
+													aria-label="Decrease quantity"
+												>
+													<span className="text-lg font-medium">−</span>
+												</button>
+												<input
+													type="text"
+													inputMode="numeric"
+													pattern="[0-9]*"
+													value={
+														pendingUpdates[node.id] !== undefined ? pendingUpdates[node.id] : quantities[node.id] || ""
+													}
+													onChange={(e) => handleQuantityChange(node.id, e.target.value)}
+													onBlur={() => {
+														if (pendingUpdates[node.id] !== undefined && pendingUpdates[node.id] !== "") {
+															handleUpdateQuantity(node.id, Number(pendingUpdates[node.id]));
+														}
+													}}
+													className="w-12 h-7 text-center text-sm border-x border-gray-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
+													aria-label="Quantity"
+												/>
+												<button
+													onClick={() => handleUpdateQuantity(node.id, quantities[node.id] + 1)}
+													disabled={updatingItems[node.id]}
+													className="h-7 w-7 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-transparent"
+													aria-label="Increase quantity"
+												>
+													<span className="text-lg font-medium">+</span>
+												</button>
+											</div>
+
+											<div className="flex items-center gap-2">
+												<button
+													onClick={() => handleMoveToWishlist(node)}
+													className="text-gray-400 hover:text-purple-600 transition-colors p-1.5 rounded-full hover:bg-gray-100"
+													aria-label="Save for later"
+												>
+													<Heart className="h-4 w-4" />
+												</button>
+												<button
+													onClick={() => handleRemoveItem(node.id)}
+													disabled={updatingItems[node.id]}
+													className="text-gray-400 hover:text-red-600 transition-colors p-1.5 rounded-full hover:bg-gray-100"
+													aria-label="Remove item"
+												>
+													<Trash2 className="h-4 w-4" />
+												</button>
+											</div>
+										</div>
+									</div>
+
+									{updatingItems[node.id] && (
+										<div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+											<Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+										</div>
+									)}
 								</div>
-							</div>
+							))}
 						</div>
-					))}
+					)}
 
-					{!isLoading && cartData.items.length > 0 && wishlistProducts.length > 0 && (
-						<div className="mt-8 pt-6 border-t">
-							<div className="bg-accent/50 rounded-lg p-4 mb-6">
-								<h3 className="font-medium text-base flex items-center gap-2">
-									<Heart className="w-4 h-4" />
-									From Your Wishlist
-								</h3>
-								<p className="text-sm text-muted-foreground mt-1">Add these items from your wishlist to complete your purchase</p>
-							</div>
-
+					{wishlistProducts.length > 0 && (
+						<div className="border-t border-gray-200 pt-6 pb-4">
+							<h3 className="text-sm font-medium text-gray-900 mb-4 flex items-center">
+								<Heart className="h-4 w-4 mr-2 text-purple-600" />
+								Saved for later
+							</h3>
 							<div className="space-y-4">
 								{wishlistProducts.map((product) => (
-									<div key={product.id} className="flex gap-4 py-4 border-b last:border-b-0 group">
-										<div className="relative w-20 h-20 flex-shrink-0 bg-accent/50 rounded-md overflow-hidden">
-											{product.images?.nodes?.[0] ? (
-												<Image src={product.images.nodes[0].url} alt={product.images.nodes[0].altText || product.title} fill className="object-cover rounded-md transition-transform group-hover:scale-105" sizes="80px" />
+									<div
+										key={product.handle}
+										className="flex gap-3 items-center p-2 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+									>
+										<div className="relative h-16 w-16 rounded-md overflow-hidden border border-gray-200 bg-gray-50 flex-shrink-0">
+											{product.featuredImage?.url ? (
+												<Image
+													src={product.featuredImage.url}
+													alt={product.title}
+													fill
+													sizes="64px"
+													className="object-cover"
+												/>
 											) : (
-												<div className="w-full h-full bg-accent/50 rounded-md flex items-center justify-center">
-													<ShoppingCart className="h-8 w-8 text-muted-foreground" />
+												<div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+													<ShoppingCart className="h-5 w-5 text-gray-400" />
 												</div>
 											)}
 										</div>
+
 										<div className="flex-1 min-w-0">
-											<div className="flex items-start justify-between gap-2">
-												<div>
-													<h3 className="font-medium group-hover:text-primary transition-colors">{product.title}</h3>
-													{product.variants?.nodes?.[0]?.title !== "Default Title" && <p className="text-sm text-muted-foreground mt-0.5">{product.variants.nodes[0].title}</p>}
-													<p className="mt-1.5 font-medium">{formatPrice(parseFloat(product.variants?.nodes?.[0]?.price?.amount || product.priceRange?.minVariantPrice?.amount))}</p>
-												</div>
-											</div>
-											<Button
-												variant="outline"
-												size="sm"
-												className="mt-3 bg-background"
-												onClick={() => {
-													const variant = product.variants?.nodes?.[0];
-													if (!variant?.id) {
-														toast.error("Could not add to cart: product variant not available");
-														return;
-													}
-													handleAddToCart(variant.id, product.handle);
-												}}
-												disabled={!product.variants?.nodes?.[0]?.availableForSale || loadingStates[product.handle]}
-											>
-												{loadingStates[product.handle] ? (
-													<div className="flex items-center gap-2">
-														<Loader2 className="h-4 w-4 animate-spin" />
-														Adding...
-													</div>
-												) : !product.variants?.nodes?.[0]?.availableForSale ? (
-													"Out of Stock"
-												) : (
-													<>
-														<ShoppingCart className="h-4 w-4 mr-2" />
-														Add to Cart
-													</>
-												)}
-											</Button>
+											<h4 className="text-sm font-medium text-gray-900 line-clamp-1">{product.title}</h4>
+											<p className="text-sm text-gray-500 mt-0.5">
+												{product.priceRange?.minVariantPrice?.amount
+													? formatPrice(parseFloat(product.priceRange.minVariantPrice.amount))
+													: "Price unavailable"}
+											</p>
 										</div>
+
+										<Button
+											onClick={() => handleAddToCart(product.variants.nodes[0].id, product.handle)}
+											disabled={loadingStates[product.handle] || !product.variants?.nodes?.[0]?.availableForSale}
+											className="h-8 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-medium"
+											size="sm"
+										>
+											{loadingStates[product.handle] ? (
+												<div className="flex items-center gap-1">
+													<Loader2 className="h-3 w-3 animate-spin" />
+													Adding...
+												</div>
+											) : !product.variants?.nodes?.[0]?.availableForSale ? (
+												"Out of Stock"
+											) : (
+												<>
+													<ShoppingCart className="h-3 w-3 mr-1" />
+													Add to Cart
+												</>
+											)}
+										</Button>
 									</div>
 								))}
 							</div>
@@ -415,12 +481,23 @@ export function CartSheet() {
 					)}
 				</div>
 
-				<div className="border-t pt-6 space-y-4">
-					<div className="flex justify-between items-baseline">
-						<span className="text-base font-medium">Subtotal</span>
-						<span className="text-lg font-semibold">{formatPrice(cartData.cartTotal)}</span>
+				<div className="border-t border-gray-200 p-4 space-y-4 bg-gray-50">
+					<div className="space-y-2">
+						<div className="flex justify-between items-baseline">
+							<span className="text-base font-medium text-gray-900">Total</span>
+							<span className="text-base font-medium text-gray-900">{formatPrice(cartData.cartTotal)}</span>
+						</div>
+						<div className="flex items-center text-sm text-green-600">
+							<Check className="h-4 w-4 mr-1.5" />
+							Free shipping on all orders
+						</div>
 					</div>
-					<Button className="w-full h-11 text-base font-medium" disabled={!cartData.checkoutUrl || isLoading} onClick={() => cartData.checkoutUrl && (window.location.href = cartData.checkoutUrl)}>
+
+					<Button
+						className="w-full h-10 bg-purple-600 hover:bg-purple-700 text-white rounded-md font-medium"
+						disabled={!cartData.checkoutUrl || isLoading}
+						onClick={() => cartData.checkoutUrl && (window.location.href = cartData.checkoutUrl)}
+					>
 						{isLoading ? (
 							<div className="flex items-center gap-2">
 								<Loader2 className="h-4 w-4 animate-spin" />
@@ -433,13 +510,7 @@ export function CartSheet() {
 							</>
 						)}
 					</Button>
-					<p className="text-sm text-center text-muted-foreground">Shipping and taxes calculated at checkout</p>
 				</div>
-
-				<SheetClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-					<X className="h-4 w-4" />
-					<span className="sr-only">Close</span>
-				</SheetClose>
 			</SheetContent>
 		</Sheet>
 	);
