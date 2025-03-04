@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { memo, useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
 import { ProductCard } from "@/components/products/product-card";
 import type { ShopifyProduct } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ interface ProductListProps {
 	onAddToWishlist?: (handle: string) => void;
 	collectionHandle?: string;
 	showPagination?: boolean;
+	initialSearchParams?: string;
 }
 
 // ProductSkeleton component for loading states
@@ -56,64 +57,107 @@ const useStockInfo = (product: ShopifyProduct) => {
 	}, [product.variants?.nodes]);
 };
 
-// Memoized ProductGrid component
-const ProductGrid = memo(({ products, visibleProducts, onRemoveFromWishlist, onAddToWishlist, collectionHandle }: { products: ShopifyProduct[]; visibleProducts: Set<string>; onRemoveFromWishlist?: (handle: string) => void; onAddToWishlist?: (handle: string) => void; collectionHandle?: string }) => {
-	// Optimize rendering by only rendering products that are likely to be visible
-	// This is a simple virtualization technique that works well for most cases
-	const [renderedProducts, setRenderedProducts] = useState<ShopifyProduct[]>([]);
+// ProductGrid component
+const ProductGrid = memo(
+	({
+		products,
+		visibleProducts,
+		onRemoveFromWishlist,
+		onAddToWishlist,
+		collectionHandle,
+	}: {
+		products: ShopifyProduct[];
+		visibleProducts: Set<string>;
+		onRemoveFromWishlist?: (handle: string) => void;
+		onAddToWishlist?: (handle: string) => void;
+		collectionHandle?: string;
+	}) => {
+		// Optimize rendering by only rendering products that are likely to be visible
+		// This is a simple virtualization technique that works well for most cases
+		const [renderedProducts, setRenderedProducts] = useState<ShopifyProduct[]>([]);
+		const [isInitialRender, setIsInitialRender] = useState(true);
 
-	useEffect(() => {
-		// Check if this is the "All Products" collection
-		const isAllProductsCollection = collectionHandle === "all";
+		useEffect(() => {
+			// Check if this is the "All Products" collection
+			const isAllProductsCollection = collectionHandle === "all";
 
-		// For the "All Products" page, use more aggressive virtualization
-		if (isAllProductsCollection && products.length > 12) {
-			// Initially render only the first 8 products
-			setRenderedProducts(products.slice(0, 8));
+			// For the "All Products" page, use more aggressive virtualization
+			if (isAllProductsCollection && products.length > 12) {
+				// Initially render only the first 8 products
+				setRenderedProducts(products.slice(0, 8));
 
-			// After a short delay, render the first 12 products
-			const timer1 = setTimeout(() => {
+				// After a short delay, render the first 12 products
+				const timer1 = setTimeout(() => {
+					setRenderedProducts(products.slice(0, 12));
+					setIsInitialRender(false);
+
+					// After another delay, render all products
+					const timer2 = setTimeout(() => {
+						setRenderedProducts(products);
+					}, 300);
+
+					return () => clearTimeout(timer2);
+				}, 100);
+
+				return () => clearTimeout(timer1);
+			} else {
+				// For other collections, use the standard approach
+				// Initially render only the first 12 products
 				setRenderedProducts(products.slice(0, 12));
 
-				// After another delay, render all products
-				const timer2 = setTimeout(() => {
+				// After a short delay, render the rest
+				const timer = setTimeout(() => {
 					setRenderedProducts(products);
-				}, 300);
+					setIsInitialRender(false);
+				}, 100);
 
-				return () => clearTimeout(timer2);
-			}, 100);
+				return () => clearTimeout(timer);
+			}
+		}, [products, collectionHandle]);
 
-			return () => clearTimeout(timer1);
-		} else {
-			// For other collections, use the standard approach
-			// Initially render only the first 12 products
-			setRenderedProducts(products.slice(0, 12));
+		return (
+			<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+				{renderedProducts.map((product, index) => {
+					const stockInfo = useStockInfo(product);
+					const isVisible = visibleProducts.has(product.id);
 
-			// After a short delay, render the rest
-			const timer = setTimeout(() => {
-				setRenderedProducts(products);
-			}, 100);
+					// Use priority loading only for the first 4 products
+					const isPriority = index < 4 && isInitialRender;
 
-			return () => clearTimeout(timer);
-		}
-	}, [products, collectionHandle]);
-
-	return (
-		<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-			{renderedProducts.map((product) => {
-				const stockInfo = useStockInfo(product);
-				const isVisible = visibleProducts.has(product.id);
-
-				return <ProductCard key={product.id} product={product} view="grid" variantId={stockInfo.variantId} quantity={stockInfo.quantity} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} isVisible={isVisible} collectionHandle={collectionHandle} />;
-			})}
-		</div>
-	);
-});
+					return (
+						<ProductCard
+							key={product.id}
+							product={product}
+							view="grid"
+							variantId={stockInfo.variantId}
+							quantity={stockInfo.quantity}
+							onRemoveFromWishlist={onRemoveFromWishlist}
+							onAddToWishlist={onAddToWishlist}
+							isVisible={isVisible}
+							collectionHandle={collectionHandle}
+							priority={isPriority}
+						/>
+					);
+				})}
+			</div>
+		);
+	}
+);
 
 ProductGrid.displayName = "ProductGrid";
 
-// Main ProductList component
-export function ProductList({ products, totalProducts = 0, currentPage = 1, productsPerPage = 24, onRemoveFromWishlist, onAddToWishlist, collectionHandle, showPagination = false }: ProductListProps) {
+// Inner component that uses useSearchParams
+function ProductListInner({
+	products,
+	totalProducts = 0,
+	currentPage = 1,
+	productsPerPage = 24,
+	onRemoveFromWishlist,
+	onAddToWishlist,
+	collectionHandle,
+	showPagination = false,
+	initialSearchParams,
+}: ProductListProps) {
 	const [visibleProducts, setVisibleProducts] = useState<Set<string>>(new Set());
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -164,7 +208,13 @@ export function ProductList({ products, totalProducts = 0, currentPage = 1, prod
 
 	return (
 		<div ref={containerRef}>
-			<ProductGrid products={products} visibleProducts={visibleProducts} onRemoveFromWishlist={onRemoveFromWishlist} onAddToWishlist={onAddToWishlist} collectionHandle={collectionHandle} />
+			<ProductGrid
+				products={products}
+				visibleProducts={visibleProducts}
+				onRemoveFromWishlist={onRemoveFromWishlist}
+				onAddToWishlist={onAddToWishlist}
+				collectionHandle={collectionHandle}
+			/>
 
 			{showPagination && (
 				<div className="mt-12 mb-8">
@@ -172,6 +222,30 @@ export function ProductList({ products, totalProducts = 0, currentPage = 1, prod
 				</div>
 			)}
 		</div>
+	);
+}
+
+// Main ProductList component with Suspense boundary
+export function ProductList(props: ProductListProps) {
+	return (
+		<Suspense
+			fallback={
+				<div>
+					<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+						{Array.from({ length: 8 }).map((_, index) => (
+							<ProductSkeleton key={index} />
+						))}
+					</div>
+					{props.showPagination && (
+						<div className="mt-12 mb-8 flex justify-center">
+							<div className="h-10 w-64 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse" />
+						</div>
+					)}
+				</div>
+			}
+		>
+			<ProductListInner {...props} />
+		</Suspense>
 	);
 }
 

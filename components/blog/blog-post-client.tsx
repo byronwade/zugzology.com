@@ -87,73 +87,92 @@ export function BlogPostClient({ children, featuredProducts = [] }: BlogPostClie
 	}
 
 	return (
-		<div className="grid grid-cols-1 xl:grid-cols-[70%_30%] gap-8 max-w-7xl mx-auto">
-			<div ref={contentRef} className="w-full blog-content">
-				{children}
-			</div>
-
-			{/* Sidebar */}
-			<aside className="hidden xl:block">
-				<div className="space-y-6">
-					{/* Featured Products */}
-					{limitedProducts.length > 0 && (
-						<div className="rounded-lg border p-4 bg-background">
-							<h3 className="text-lg font-semibold mb-4">Featured Products</h3>
-							<ProductAd products={limitedProducts} />
-						</div>
-					)}
-
-					{/* Advertisement */}
-					<AdPlaceholder type="advertise" />
-
-					{/* Bulk Discount Advertisement */}
-					<a href="https://allinonegrowbags.com" target="_blank" rel="noopener noreferrer sponsored" className="block w-full rounded-xl overflow-hidden border border-foreground/10 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-						<div className="relative">
-							{/* Advertisement Label */}
-							<div className="bg-purple-600 text-white text-center py-2 text-sm font-bold">ADVERTISEMENT</div>
-
-							{/* Product Image */}
-							<div className="relative aspect-square">
-								<Image src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/sterile-all-in-one-mushroom-grow-bag-4-lbs-substrate-and-grain-filter-patch-112491-Hkoucg5alJXunr83eIolGhCMiHCxR3-FeibS7qNAKjyL9XrVQosZdlm9U2qlF.webp" alt="All-in-One Mushroom Grow Bag" fill className="object-cover" priority />
-								<div className="absolute top-2 right-2 p-2 rounded-full bg-purple-500">
-									<Percent className="w-6 h-6 text-white" />
-								</div>
-							</div>
-
-							{/* Content */}
-							<div className="p-4 space-y-4">
-								<div>
-									<h3 className="text-xl font-bold tracking-tight leading-tight mb-1">All-in-One Mushroom Grow Bags</h3>
-									<p className="text-sm text-gray-600 dark:text-gray-400">Premium 4 lbs bags with sterilized substrate</p>
-								</div>
-
-								{/* Bulk Discount Information */}
-								<div className="p-3 rounded-lg border border-purple-200 bg-purple-50 dark:border-purple-700 dark:bg-gray-800">
-									<h4 className="font-bold mb-2 text-purple-600">Bulk Discounts:</h4>
-									<ul className="text-sm space-y-1">
-										<li>2+ Bags: 15% OFF</li>
-										<li>5+ Bags: 25% OFF</li>
-										<li>10+ Bags: 30% OFF</li>
-										<li>20+ Bags: 35% OFF</li>
-									</ul>
-								</div>
-
-								<div className="flex items-center justify-between">
-									<span className="text-2xl font-bold">$24.95</span>
-									<span className="text-sm text-purple-600">Free Shipping</span>
-								</div>
-
-								<button className="w-full py-2 rounded-md font-medium flex items-center justify-center gap-2 bg-purple-600 text-white">
-									Shop Now <ExternalLink className="w-4 h-4" />
-								</button>
-							</div>
-
-							{/* External Link Notice */}
-							<div className="text-xs text-center py-2 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Links to: allinonegrowbags.com</div>
-						</div>
-					</a>
+		<div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+			<div className="grid grid-cols-1 xl:grid-cols-[70%_30%] gap-8">
+				<div ref={contentRef} className="w-full blog-content">
+					{children}
 				</div>
-			</aside>
+
+				{/* Sidebar */}
+				<aside className="hidden xl:block">
+					<div className="space-y-6">
+						{/* Featured Products */}
+						{limitedProducts.length > 0 && (
+							<div className="rounded-lg border p-4 bg-background">
+								<h3 className="text-lg font-semibold mb-4">Featured Products</h3>
+								<ProductAd products={limitedProducts} />
+							</div>
+						)}
+
+						{/* Advertisement */}
+						<AdPlaceholder type="advertise" />
+
+						{/* Bulk Discount Advertisement */}
+						<a
+							href="https://allinonegrowbags.com"
+							target="_blank"
+							rel="noopener noreferrer sponsored"
+							className="block w-full rounded-xl overflow-hidden border border-foreground/10 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100"
+						>
+							<div className="relative">
+								{/* Advertisement Label */}
+								<div className="bg-purple-600 text-white text-center py-2 text-sm font-bold">ADVERTISEMENT</div>
+
+								{/* Product Image */}
+								<div className="relative aspect-square">
+									<Image
+										src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/sterile-all-in-one-mushroom-grow-bag-4-lbs-substrate-and-grain-filter-patch-112491-Hkoucg5alJXunr83eIolGhCMiHCxR3-FeibS7qNAKjyL9XrVQosZdlm9U2qlF.webp"
+										alt="All-in-One Mushroom Grow Bag"
+										fill
+										className="object-cover"
+										priority
+									/>
+									<div className="absolute top-2 right-2 p-2 rounded-full bg-purple-500">
+										<Percent className="w-6 h-6 text-white" />
+									</div>
+								</div>
+
+								{/* Content */}
+								<div className="p-4 space-y-4">
+									<div>
+										<h3 className="text-xl font-bold tracking-tight leading-tight mb-1">
+											All-in-One Mushroom Grow Bags
+										</h3>
+										<p className="text-sm text-gray-600 dark:text-gray-400">
+											Premium 4 lbs bags with sterilized substrate
+										</p>
+									</div>
+
+									{/* Bulk Discount Information */}
+									<div className="p-3 rounded-lg border border-purple-200 bg-purple-50 dark:border-purple-700 dark:bg-gray-800">
+										<h4 className="font-bold mb-2 text-purple-600">Bulk Discounts:</h4>
+										<ul className="text-sm space-y-1">
+											<li>2+ Bags: 15% OFF</li>
+											<li>5+ Bags: 25% OFF</li>
+											<li>10+ Bags: 30% OFF</li>
+											<li>20+ Bags: 35% OFF</li>
+										</ul>
+									</div>
+
+									<div className="flex items-center justify-between">
+										<span className="text-2xl font-bold">$24.95</span>
+										<span className="text-sm text-purple-600">Free Shipping</span>
+									</div>
+
+									<button className="w-full py-2 rounded-md font-medium flex items-center justify-center gap-2 bg-purple-600 text-white">
+										Shop Now <ExternalLink className="w-4 h-4" />
+									</button>
+								</div>
+
+								{/* External Link Notice */}
+								<div className="text-xs text-center py-2 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+									Links to: allinonegrowbags.com
+								</div>
+							</div>
+						</a>
+					</div>
+				</aside>
+			</div>
 		</div>
 	);
 }

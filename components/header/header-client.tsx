@@ -179,9 +179,11 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	const { showPromo, setShowPromo } = usePromo();
 	const router = useRouter();
 
-	// Replace auth context with Next Auth session
-	const { data: session, status } = useSession();
-	const isAuthenticatedNextAuth = status === "authenticated";
+	// Use session with fallback for when SessionProvider is not available
+	const { data: session } = useSession({ required: false }) || { data: null };
+
+	// Check if authenticated via NextAuth
+	const isAuthenticatedNextAuth = !!session;
 
 	// 2. State hooks with stable initial values
 	const [mounted, setMounted] = useState<boolean>(false);
@@ -540,40 +542,6 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 										<Heart className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 										Wishlist
 									</DropdownMenuItem>
-
-									<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
-
-									{/* Account options */}
-									{isAuthenticatedNextAuth ? (
-										<>
-											<DropdownMenuItem
-												onClick={() => router.push("/account")}
-												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
-											>
-												<User className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
-												Account
-											</DropdownMenuItem>
-											<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
-											<NextAuthLogout onSignOut={() => router.refresh()} />
-										</>
-									) : (
-										<>
-											<DropdownMenuItem
-												onClick={() => router.push("/login")}
-												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
-											>
-												<LogIn className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
-												Login
-											</DropdownMenuItem>
-											<DropdownMenuItem
-												onClick={() => router.push("/register")}
-												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
-											>
-												<UserPlus className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
-												Register
-											</DropdownMenuItem>
-										</>
-									)}
 								</DropdownMenuContent>
 							</DropdownMenu>
 
@@ -662,7 +630,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 								<span className="sr-only">Wishlist</span>
 							</Button>
 
-							{/* Account Button - Always visible */}
+							{/* Account Button - Hidden temporarily while testing
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button
@@ -736,6 +704,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 									)}
 								</DropdownMenuContent>
 							</DropdownMenu>
+							*/}
 
 							{/* Cart Button - Always visible */}
 							<Button

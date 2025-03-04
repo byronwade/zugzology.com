@@ -5,7 +5,9 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getBlogByHandle, getAllBlogPosts, getProducts } from "@/lib/api/shopify/actions";
+import { getBlogByHandle, getAllBlogPosts } from "@/lib/api/shopify/actions";
+import { getProducts } from "@/lib/api/shopify/actions";
+import { getLimitedProducts, getProductsByTags } from "@/lib/actions/shopify/index";
 import { ArrowLeft, CalendarDays, Clock, Percent, ExternalLink } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -131,7 +133,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 	};
 }
 
-// Helper function to get article by handle with proper typing - Add caching
+// Helper function to get article by handle with proper typing
 async function getArticleByHandle(
 	blogHandle: string,
 	articleHandle: string
@@ -157,19 +159,18 @@ async function getArticleByHandle(
 
 // Add a modified version of FrequentlyBoughtTogether that accepts custom title and description
 function BlogProductRecommendations({
+	mainProduct,
 	complementaryProducts,
 	title = "Products Related to This Article",
 	description = "These products are perfect companions for the techniques discussed in this article",
 }: {
+	mainProduct: ShopifyProduct;
 	complementaryProducts: ShopifyProduct[];
 	title?: string;
 	description?: string;
 }) {
 	// Skip if no products
 	if (!complementaryProducts.length) return null;
-
-	// Get first product as "main" if we need a placeholder
-	const mainProduct = complementaryProducts[0];
 
 	return <FrequentlyBoughtTogether mainProduct={mainProduct} complementaryProducts={complementaryProducts.slice(1)} />;
 }
@@ -186,6 +187,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 	const blog = await getBlogByHandle(nextParams.blog);
 	const article = (await getArticleByHandle(nextParams.blog, nextParams.slug)) as ExtendedShopifyBlogArticle;
 
+	// Get all blog categories - Removed
+
 	if (!blog || !article) {
 		notFound();
 	}
@@ -194,7 +197,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 	const allPosts = await getAllBlogPosts();
 
 	// Add blogHandle to all posts if it's missing
-	const postsWithBlogHandles = allPosts.map((post) => ({
+	const postsWithBlogHandles = allPosts.map((post: ShopifyBlogArticle) => ({
 		...post,
 		blogHandle: post.blog?.handle || nextParams.blog || "news", // Use post's blog handle, current blog handle, or default to "news"
 		blogTitle: post.blog?.title || blog.title,
@@ -208,22 +211,23 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 	const relatedPosts = findRelatedPosts(currentPostWithBlog, postsWithBlogHandles, 3);
 
-	// Get featured products - Get more products for additional sections
-	const allProducts = await getProducts();
+	// Performance optimization: Use specialized functions to fetch only the products we need
+	console.time("blogPostProductFetch");
 
-	// Only get the products we need instead of slicing a larger array
-	const featuredProducts = allProducts.slice(0, 4); // First 4 for featured
+	// Get tag-matched products using the optimized function
+	const tagMatchedProducts = article.tags && article.tags.length > 0 ? await getProductsByTags(article.tags, 3) : [];
 
-	// Filter products with matching tags first before randomizing to improve performance
-	const tagMatchedProducts = article.tags
-		? allProducts.filter((product) => product.tags?.some((tag) => article.tags?.includes(tag)))
-		: [];
+	// Get featured products - only fetch what we need
+	const featuredProducts = await getLimitedProducts(4);
 
-	const complementaryProducts = tagMatchedProducts.slice(0, 3); // Products with matching tags
+	// Log performance metrics
+	console.timeEnd("blogPostProductFetch");
 
-	// Only randomize if we have more than 6 products to avoid unnecessary processing
-	const randomProducts =
-		allProducts.length > 6 ? [...allProducts].sort(() => 0.5 - Math.random()).slice(0, 6) : allProducts.slice(0, 6);
+	// Get complementary products from tag-matched products
+	const complementaryProducts = tagMatchedProducts.length > 0 ? tagMatchedProducts : featuredProducts.slice(0, 3);
+
+	// No need to randomize products since we're already getting best sellers
+	const randomProducts = featuredProducts.slice(0, 6);
 
 	// Calculate reading time
 	const wordsPerMinute = 200;
@@ -310,17 +314,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 				}}
 			/>
 
-			<div className="min-h-screen w-full">
-				<div className="max-w-[1800px] mx-auto px-4 py-8">
-					<Suspense fallback={<div className="h-12 bg-neutral-200 dark:bg-neutral-700 rounded w-1/4 mb-8" />}>
-						<BlogBreadcrumb blogHandle={blog.handle} blogTitle={blog.title} articleTitle={article.title} />
-					</Suspense>
-
+			<div className="min-h-screen w-full bg-white dark:bg-black">
+				<div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
 					<article
-						className="w-full bg-white dark:bg-[#121212] relative"
+						className="w-full bg-white dark:bg-black relative"
 						itemScope
 						itemType="https://schema.org/BlogPosting"
 					>
+						{/* Breadcrumb - moved inside article */}
+						<div className="max-w-4xl mx-auto mb-6">
+							<Suspense fallback={<div className="h-12 bg-neutral-200 dark:bg-neutral-700 rounded w-1/4 mb-8" />}>
+								<BlogBreadcrumb blogHandle={blog.handle} blogTitle={blog.title} articleTitle={article.title} />
+							</Suspense>
+						</div>
+
 						{/* Share Toolbar - Client Component */}
 						<BlogShareToolbar
 							title={article.title}
@@ -329,17 +336,17 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 						/>
 
 						{/* Hero Section */}
-						<header className="w-full max-w-screen-md mx-auto px-4 sm:px-6 pt-12 pb-8">
-							<div className="space-y-4">
+						<header className="w-full max-w-4xl mx-auto pt-12 pb-8 px-4 sm:px-6">
+							<div className="space-y-6">
 								<div className="flex items-center gap-4">
-									<div className="w-12 h-12 rounded-full bg-[#f0f0f0] dark:bg-[#2f2f2f] flex items-center justify-center">
-										<span className="text-lg font-medium text-[#6b6b6b] dark:text-[#a8a8a8]">
+									<div className="w-12 h-12 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+										<span className="text-lg font-medium text-neutral-600 dark:text-neutral-400">
 											{article.author.name.charAt(0)}
 										</span>
 									</div>
 									<div className="flex flex-col">
-										<span className="text-[#242424] dark:text-[#e6e6e6] font-medium">{article.author.name}</span>
-										<div className="flex items-center gap-2 text-sm text-[#6b6b6b] dark:text-[#a8a8a8]">
+										<span className="text-neutral-900 dark:text-neutral-100 font-medium">{article.author.name}</span>
+										<div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
 											<time dateTime={article.publishedAt}>
 												{new Date(article.publishedAt).toLocaleDateString("en-US", {
 													month: "long",
@@ -353,28 +360,30 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 									</div>
 								</div>
 
-								<h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#242424] dark:text-[#e6e6e6] tracking-tight">
+								<h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 dark:text-neutral-100 tracking-tight">
 									{article.title}
 								</h1>
 
 								{article.excerpt && (
-									<p className="text-xl text-[#6b6b6b] dark:text-[#a8a8a8] leading-relaxed">{article.excerpt}</p>
+									<p className="text-xl md:text-2xl text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-4xl">
+										{article.excerpt}
+									</p>
 								)}
 
 								{article.image && (
-									<div className="mt-8 -mx-4 sm:-mx-6 md:mx-0">
-										<div className="aspect-[2/1] relative overflow-hidden rounded-lg md:rounded-xl">
+									<div className="mt-8 -mx-4 sm:-mx-6 md:-mx-8 lg:-mx-16 xl:-mx-24">
+										<div className="aspect-[21/9] relative overflow-hidden rounded-xl">
 											<Image
 												src={article.image.url}
 												alt={article.image.altText || article.title}
 												fill
 												priority
 												className="object-cover"
-												sizes="(max-width: 768px) 100vw, 720px"
+												sizes="100vw"
 											/>
 										</div>
 										{article.image.altText && (
-											<p className="mt-2 text-sm text-center text-[#6b6b6b] dark:text-[#a8a8a8]">
+											<p className="mt-3 text-sm text-center text-neutral-600 dark:text-neutral-400">
 												{article.image.altText}
 											</p>
 										)}
@@ -385,223 +394,271 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 						{/* Featured Products Banner - Show if we have tag-matched products */}
 						{complementaryProducts.length > 0 && (
-							<div className="w-full bg-[#f7f7f7] dark:bg-[#1a1a1a] py-8 my-8">
-								<div className="max-w-screen-lg mx-auto px-4 sm:px-6">
-									<div className="flex flex-col items-center text-center mb-8">
-										<h2 className="text-2xl font-bold text-[#242424] dark:text-[#e6e6e6] mb-2">
-											Products Featured in This Article
-										</h2>
-										<p className="text-[#6b6b6b] dark:text-[#a8a8a8]">
-											Get the supplies you need to follow along with this guide
-										</p>
-									</div>
-									<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-										{complementaryProducts.map((product) => (
-											<Link
-												key={product.id}
-												href={`/products/${product.handle}`}
-												className="group block bg-white dark:bg-[#242424] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-											>
-												{product.images?.nodes[0] && (
-													<div className="aspect-square relative">
-														<Image
-															src={product.images.nodes[0].url}
-															alt={product.images.nodes[0].altText || product.title}
-															fill
-															className="object-cover transition-transform duration-300 group-hover:scale-105"
-															sizes="(max-width: 768px) 100vw, 33vw"
-														/>
+							<div className="w-full bg-neutral-50 dark:bg-neutral-900 py-12 my-12 rounded-2xl">
+								<div className="w-full px-4 sm:px-6 lg:px-8">
+									<div className="max-w-[1800px] mx-auto">
+										<div className="flex flex-col items-center text-center mb-10">
+											<h2 className="text-2xl md:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
+												Featured Zugzology Products
+											</h2>
+											<p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl">
+												Quality supplies for your mushroom cultivation journey
+											</p>
+										</div>
+										<div
+											className={`grid gap-6 ${
+												complementaryProducts.length === 1
+													? "grid-cols-1 max-w-xs mx-auto"
+													: complementaryProducts.length === 2
+													? "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto"
+													: complementaryProducts.length === 3
+													? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 max-w-4xl mx-auto"
+													: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+											}`}
+										>
+											{complementaryProducts.map((product) => (
+												<Link
+													key={product.id}
+													href={`/products/${product.handle}`}
+													className="group block bg-white dark:bg-neutral-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-4px] border border-neutral-200 dark:border-neutral-700"
+												>
+													{product.images?.nodes[0] && (
+														<div className="aspect-square relative rounded-t-xl overflow-hidden">
+															<Image
+																src={product.images.nodes[0].url}
+																alt={product.images.nodes[0].altText || product.title}
+																fill
+																className="object-cover transition-transform duration-300 group-hover:scale-105"
+																sizes="(max-width: 768px) 50vw, 33vw"
+															/>
+														</div>
+													)}
+													<div className="p-4">
+														<h3 className="font-medium text-neutral-900 dark:text-neutral-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+															{product.title}
+														</h3>
+														<p className="text-neutral-600 dark:text-neutral-400 mt-1">
+															From {formatPrice(product.priceRange.minVariantPrice.amount)}
+														</p>
 													</div>
-												)}
-												<div className="p-4">
-													<h3 className="font-medium text-[#242424] dark:text-[#e6e6e6] group-hover:text-[#1a1a1a] dark:group-hover:text-white transition-colors">
-														{product.title}
-													</h3>
-													<p className="text-[#6b6b6b] dark:text-[#a8a8a8] mt-1">
-														From {formatPrice(product.priceRange.minVariantPrice.amount)}
-													</p>
-												</div>
-											</Link>
-										))}
+												</Link>
+											))}
+										</div>
 									</div>
 								</div>
 							</div>
 						)}
 
 						{/* Article Content */}
-						<div className="w-full max-w-screen-md mx-auto px-4 sm:px-6 py-8">
-							<div className="prose dark:prose-invert prose-lg max-w-none">
-								<div
-									dangerouslySetInnerHTML={{
-										__html: article.contentHtml || "",
-									}}
+						<div className="w-full px-4 sm:px-6 lg:px-8 py-12">
+							<div className="max-w-4xl mx-auto">
+								<div className="prose dark:prose-invert prose-lg md:prose-xl max-w-none prose-headings:text-neutral-900 prose-headings:dark:text-neutral-100 prose-p:text-neutral-700 prose-p:dark:text-neutral-300 prose-a:text-purple-600 prose-a:dark:text-purple-400 prose-a:font-medium">
+									<div
+										dangerouslySetInnerHTML={{
+											__html: article.contentHtml || "",
+										}}
+									/>
+								</div>
+
+								{/* Horizontal Share Toolbar */}
+								<BlogShareToolbarHorizontal
+									title={article.title}
+									url={`https://zugzology.com/blogs/${nextParams.blog}/${nextParams.slug}`}
+									description={article.excerpt || `Read about ${article.title} in our ${blog.title} blog.`}
 								/>
 							</div>
-
-							{/* Horizontal Share Toolbar */}
-							<BlogShareToolbarHorizontal
-								title={article.title}
-								url={`https://zugzology.com/blogs/${nextParams.blog}/${nextParams.slug}`}
-								description={article.excerpt || `Read about ${article.title} in our ${blog.title} blog.`}
-							/>
 						</div>
 
 						{/* Mid-Article Product Recommendation */}
 						{featuredProducts.length > 0 && (
-							<div className="w-full bg-[#f7f7f7] dark:bg-[#1a1a1a] py-12 my-12">
-								<div className="max-w-screen-lg mx-auto px-4 sm:px-6">
-									<div className="text-center mb-8">
-										<h2 className="text-2xl font-bold text-[#242424] dark:text-[#e6e6e6] mb-2">
-											Shop Our Best Sellers
-										</h2>
-										<p className="text-[#6b6b6b] dark:text-[#a8a8a8]">
-											Discover our most popular mushroom growing supplies
-										</p>
-									</div>
-									<div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-										{featuredProducts.map((product) => (
-											<Link
-												key={product.id}
-												href={`/products/${product.handle}`}
-												className="group block bg-white dark:bg-[#242424] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-											>
-												{product.images?.nodes[0] && (
-													<div className="aspect-square relative">
-														<Image
-															src={product.images.nodes[0].url}
-															alt={product.images.nodes[0].altText || product.title}
-															fill
-															className="object-cover transition-transform duration-300 group-hover:scale-105"
-															sizes="(max-width: 768px) 50vw, 25vw"
-														/>
-													</div>
-												)}
-												<div className="p-4">
-													<h3 className="font-medium text-[#242424] dark:text-[#e6e6e6] group-hover:text-[#1a1a1a] dark:group-hover:text-white transition-colors">
-														{product.title}
-													</h3>
-													<p className="text-[#6b6b6b] dark:text-[#a8a8a8] mt-1">
-														From {formatPrice(product.priceRange.minVariantPrice.amount)}
-													</p>
-												</div>
-											</Link>
-										))}
-									</div>
-									<div className="text-center mt-8">
-										<Link
-											href="/products"
-											className="inline-flex items-center px-6 py-3 rounded-full text-sm font-medium bg-[#242424] dark:bg-[#e6e6e6] text-white dark:text-[#242424] hover:bg-[#1a1a1a] dark:hover:bg-white transition-colors"
+							<div className="w-full bg-neutral-50 dark:bg-neutral-900 py-16 my-16 rounded-2xl">
+								<div className="w-full px-4 sm:px-6 lg:px-8">
+									<div className="max-w-[1800px] mx-auto">
+										<div className="text-center mb-10">
+											<h2 className="text-2xl md:text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3">
+												Shop Our Best Sellers
+											</h2>
+											<p className="text-lg text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
+												Discover our most popular mushroom growing supplies
+											</p>
+										</div>
+										<div
+											className={`grid gap-6 ${
+												featuredProducts.length === 1
+													? "grid-cols-1 max-w-xs mx-auto"
+													: featuredProducts.length === 2
+													? "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto"
+													: featuredProducts.length === 3
+													? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 max-w-4xl mx-auto"
+													: "grid-cols-2 md:grid-cols-4"
+											}`}
 										>
-											View All Products
-										</Link>
+											{featuredProducts.map((product: ShopifyProduct) => (
+												<Link
+													key={product.id}
+													href={`/products/${product.handle}`}
+													className="group block bg-white dark:bg-neutral-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-4px] border border-neutral-200 dark:border-neutral-700"
+												>
+													{product.images?.nodes[0] && (
+														<div className="aspect-square relative rounded-t-xl overflow-hidden">
+															<Image
+																src={product.images.nodes[0].url}
+																alt={product.images.nodes[0].altText || product.title}
+																fill
+																className="object-cover transition-transform duration-300 group-hover:scale-105"
+																sizes="(max-width: 768px) 50vw, 25vw"
+															/>
+														</div>
+													)}
+													<div className="p-4">
+														<h3 className="font-medium text-neutral-900 dark:text-neutral-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+															{product.title}
+														</h3>
+														<p className="text-neutral-600 dark:text-neutral-400 mt-1">
+															From {formatPrice(product.priceRange.minVariantPrice.amount)}
+														</p>
+													</div>
+												</Link>
+											))}
+										</div>
+										<div className="text-center mt-10">
+											<Link
+												href="/products"
+												className="inline-flex items-center px-6 py-3 rounded-full text-sm font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-white transition-colors"
+											>
+												View All Products
+											</Link>
+										</div>
 									</div>
 								</div>
 							</div>
 						)}
 
 						{/* Article Footer */}
-						<footer className="w-full max-w-screen-md mx-auto px-4 sm:px-6 py-8 border-t border-[#e6e6e6] dark:border-[#2f2f2f]">
-							<div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-								<div className="flex items-center gap-4">
-									<div className="w-16 h-16 rounded-full bg-[#f0f0f0] dark:bg-[#2f2f2f] flex items-center justify-center">
-										<span className="text-2xl font-medium text-[#6b6b6b] dark:text-[#a8a8a8]">
-											{article.author.name.charAt(0)}
-										</span>
+						<footer className="w-full px-4 sm:px-6 lg:px-8 py-12 border-t border-neutral-200 dark:border-neutral-800">
+							<div className="max-w-4xl mx-auto">
+								<div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+									<div className="flex items-center gap-5">
+										<div className="w-20 h-20 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+											<span className="text-3xl font-medium text-neutral-600 dark:text-neutral-400">
+												{article.author.name.charAt(0)}
+											</span>
+										</div>
+										<div className="flex flex-col">
+											<span className="text-xl font-medium text-neutral-900 dark:text-neutral-100">
+												Written by {article.author.name}
+											</span>
+											<time dateTime={article.publishedAt} className="text-neutral-600 dark:text-neutral-400">
+												Published on{" "}
+												{new Date(article.publishedAt).toLocaleDateString("en-US", {
+													month: "long",
+													day: "numeric",
+													year: "numeric",
+												})}
+											</time>
+										</div>
 									</div>
-									<div className="flex flex-col">
-										<span className="text-lg font-medium text-[#242424] dark:text-[#e6e6e6]">
-											Written by {article.author.name}
-										</span>
-										<time dateTime={article.publishedAt} className="text-[#6b6b6b] dark:text-[#a8a8a8]">
-											Published on{" "}
-											{new Date(article.publishedAt).toLocaleDateString("en-US", {
-												month: "long",
-												day: "numeric",
-												year: "numeric",
-											})}
-										</time>
-									</div>
-								</div>
 
-								<div className="flex items-center gap-2">
-									<Link
-										href={`/blogs/${article.blog?.handle || nextParams.blog}`}
-										className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-[#f0f0f0] dark:bg-[#2f2f2f] text-[#6b6b6b] dark:text-[#a8a8a8] hover:bg-[#e6e6e6] dark:hover:bg-[#3f3f3f] transition-colors"
-									>
-										More from {article.blog?.title || "Blog"}
-									</Link>
+									<div className="flex items-center gap-3">
+										<Link
+											href={`/blogs/${article.blog?.handle || nextParams.blog}`}
+											className="inline-flex items-center px-5 py-2.5 rounded-full text-sm font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+										>
+											More from {article.blog?.title || "Blog"}
+										</Link>
+									</div>
 								</div>
 							</div>
 						</footer>
 
 						{/* Related Articles */}
 						{relatedPosts.length > 0 && (
-							<section className="w-full max-w-screen-md mx-auto px-4 sm:px-6 py-12 border-t border-[#e6e6e6] dark:border-[#2f2f2f]">
-								<h2 className="text-2xl font-bold text-[#242424] dark:text-[#e6e6e6] mb-8">More Articles</h2>
-								<div className="grid gap-8 md:grid-cols-2">
-									{relatedPosts.map((relatedArticle) => (
-										<Link
-											key={relatedArticle.id}
-											href={`/blogs/${article.blog?.handle || nextParams.blog}/${relatedArticle.handle}`}
-											className="group block"
+							<section className="w-full bg-neutral-50 dark:bg-neutral-900 py-16 rounded-2xl">
+								<div className="w-full px-4 sm:px-6 lg:px-8">
+									<div className="max-w-[1800px] mx-auto">
+										<h2 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-10">
+											More Articles You Might Enjoy
+										</h2>
+										<div
+											className={`grid gap-8 ${
+												relatedPosts.length === 1
+													? "grid-cols-1 max-w-md mx-auto"
+													: relatedPosts.length === 2
+													? "grid-cols-1 md:grid-cols-2 max-w-3xl mx-auto"
+													: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+											}`}
 										>
-											<article className="space-y-3">
-												{relatedArticle.image && (
-													<div className="aspect-[2/1] relative overflow-hidden rounded-lg">
-														<Image
-															src={relatedArticle.image.url}
-															alt={relatedArticle.image.altText || relatedArticle.title}
-															fill
-															className="object-cover transition-transform duration-300 group-hover:scale-105"
-															sizes="(max-width: 768px) 100vw, 350px"
-														/>
-													</div>
-												)}
-												<div className="space-y-2">
-													<h3 className="text-lg font-bold text-[#242424] dark:text-[#e6e6e6] group-hover:text-[#1a1a1a] dark:group-hover:text-white transition-colors">
-														{relatedArticle.title}
-													</h3>
-													{relatedArticle.excerpt && (
-														<p className="text-[#6b6b6b] dark:text-[#a8a8a8] line-clamp-2">{relatedArticle.excerpt}</p>
-													)}
-													<div className="flex items-center gap-2 text-sm text-[#6b6b6b] dark:text-[#a8a8a8]">
-														<span>{relatedArticle.author.name}</span>
-														<span>·</span>
-														<time dateTime={relatedArticle.publishedAt}>
-															{new Date(relatedArticle.publishedAt).toLocaleDateString("en-US", {
-																month: "short",
-																day: "numeric",
-															})}
-														</time>
-													</div>
-												</div>
-											</article>
-										</Link>
-									))}
+											{relatedPosts.map((relatedArticle) => (
+												<Link
+													key={relatedArticle.id}
+													href={`/blogs/${article.blog?.handle || nextParams.blog}/${relatedArticle.handle}`}
+													className="group block bg-white dark:bg-neutral-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-4px] border border-neutral-200 dark:border-neutral-700"
+												>
+													<article className="h-full flex flex-col">
+														{relatedArticle.image && (
+															<div className="aspect-[16/9] relative overflow-hidden rounded-t-xl">
+																<Image
+																	src={relatedArticle.image.url}
+																	alt={relatedArticle.image.altText || relatedArticle.title}
+																	fill
+																	className="object-cover transition-transform duration-300 group-hover:scale-105"
+																	sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+																/>
+															</div>
+														)}
+														<div className="p-5 flex flex-col flex-grow">
+															<h3 className="text-xl font-bold text-neutral-900 dark:text-neutral-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors mb-2">
+																{relatedArticle.title}
+															</h3>
+															{relatedArticle.excerpt && (
+																<p className="text-neutral-600 dark:text-neutral-400 line-clamp-2 mb-4 flex-grow">
+																	{relatedArticle.excerpt}
+																</p>
+															)}
+															<div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-500 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+																<span>{relatedArticle.author.name}</span>
+																<span>·</span>
+																<time dateTime={relatedArticle.publishedAt}>
+																	{new Date(relatedArticle.publishedAt).toLocaleDateString("en-US", {
+																		month: "short",
+																		day: "numeric",
+																	})}
+																</time>
+															</div>
+														</div>
+													</article>
+												</Link>
+											))}
+										</div>
+									</div>
 								</div>
 							</section>
 						)}
 
 						{/* Final CTA Section */}
-						<div className="w-full bg-[#f7f7f7] dark:bg-[#1a1a1a] py-16">
-							<div className="max-w-screen-md mx-auto px-4 sm:px-6 text-center">
-								<h2 className="text-3xl font-bold text-[#242424] dark:text-[#e6e6e6] mb-4">Ready to Start Growing?</h2>
-								<p className="text-lg text-[#6b6b6b] dark:text-[#a8a8a8] mb-8">
-									Get everything you need to begin your mushroom cultivation journey
-								</p>
-								<div className="flex flex-col sm:flex-row gap-4 justify-center">
-									<Link
-										href="/products"
-										className="inline-flex items-center px-8 py-4 rounded-full text-base font-medium bg-[#242424] dark:bg-[#e6e6e6] text-white dark:text-[#242424] hover:bg-[#1a1a1a] dark:hover:bg-white transition-colors"
-									>
-										Shop All Products
-									</Link>
-									<Link
-										href="/collections/starter-kits"
-										className="inline-flex items-center px-8 py-4 rounded-full text-base font-medium bg-white dark:bg-[#242424] text-[#242424] dark:text-[#e6e6e6] border border-[#e6e6e6] dark:border-[#2f2f2f] hover:bg-[#f7f7f7] dark:hover:bg-[#1a1a1a] transition-colors"
-									>
-										View Starter Kits
-									</Link>
+						<div className="w-full bg-gradient-to-b from-neutral-50 to-white dark:from-neutral-900 dark:to-black py-24 rounded-2xl my-16">
+							<div className="w-full px-4 sm:px-6 lg:px-8">
+								<div className="max-w-[1800px] mx-auto text-center">
+									<h2 className="text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-6">
+										Ready to Start Growing?
+									</h2>
+									<p className="text-xl text-neutral-600 dark:text-neutral-400 mb-10 max-w-2xl mx-auto">
+										Get everything you need to begin your mushroom cultivation journey
+									</p>
+									<div className="flex flex-col sm:flex-row gap-4 justify-center">
+										<Link
+											href="/products"
+											className="inline-flex items-center px-8 py-4 rounded-full text-base font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-white transition-colors"
+										>
+											Shop All Products
+										</Link>
+										<Link
+											href="/collections/starter-kits"
+											className="inline-flex items-center px-8 py-4 rounded-full text-base font-medium bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors"
+										>
+											View Starter Kits
+										</Link>
+									</div>
 								</div>
 							</div>
 						</div>

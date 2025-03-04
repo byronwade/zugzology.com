@@ -1,35 +1,27 @@
 "use client";
 
-import { LogOut, Loader2 } from "lucide-react";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
 import { signOut } from "next-auth/react";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { LogOut } from "lucide-react";
 
 interface NextAuthLogoutProps {
 	onSignOut?: () => void;
 }
 
 export function NextAuthLogout({ onSignOut }: NextAuthLogoutProps) {
-	const [isLoading, setIsLoading] = useState(false);
-
 	const handleSignOut = async () => {
-		try {
-			setIsLoading(true);
-			// Sign out and redirect to home page
-			await signOut({ callbackUrl: "/" });
-
-			// Call the onSignOut callback if provided
-			onSignOut?.();
-		} catch (error) {
-			console.error("Logout error:", error);
-		} finally {
-			setIsLoading(false);
+		await signOut({ redirect: false });
+		if (onSignOut) {
+			onSignOut();
 		}
 	};
 
 	return (
-		<DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 dark:text-red-400" disabled={isLoading}>
-			{isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogOut className="h-4 w-4 mr-2" />}
+		<DropdownMenuItem
+			onClick={handleSignOut}
+			className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+		>
+			<LogOut className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 			Sign Out
 		</DropdownMenuItem>
 	);

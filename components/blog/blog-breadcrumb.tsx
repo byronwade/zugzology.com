@@ -18,7 +18,7 @@ interface BlogBreadcrumbProps {
 
 export function BlogBreadcrumb({ blogHandle, blogTitle, articleTitle }: BlogBreadcrumbProps) {
 	return (
-		<Breadcrumb className="mb-4">
+		<Breadcrumb className="mb-4 hidden md:block">
 			<BreadcrumbList>
 				<BreadcrumbItem>
 					<BreadcrumbLink asChild>

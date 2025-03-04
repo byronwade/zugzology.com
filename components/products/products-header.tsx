@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ interface ProductsHeaderProps {
 	filters?: Record<string, string>;
 	onUpdateFilter?: (key: string, value: string) => void;
 	count?: number;
+	initialSort?: string;
 }
 
 const sortOptions = [
@@ -34,10 +35,21 @@ const sortOptions = [
 	{ value: "newest", label: "Newest" },
 ] as const;
 
-export const ProductsHeader = memo(function ProductsHeader({ title, description, defaultSort = "featured", className, image, filters, onUpdateFilter, count }: ProductsHeaderProps) {
+// Inner component that uses useSearchParams
+const ProductsHeaderInner = memo(function ProductsHeaderInner({
+	title,
+	description,
+	defaultSort = "featured",
+	className,
+	image,
+	filters,
+	onUpdateFilter,
+	count,
+	initialSort,
+}: ProductsHeaderProps) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const currentSort = searchParams.get("sort") || defaultSort;
+	const currentSort = searchParams.get("sort") || initialSort || defaultSort;
 
 	// Handle sort change with stable reference
 	const handleUpdateSort = useCallback(
@@ -132,7 +144,12 @@ export const ProductsHeader = memo(function ProductsHeader({ title, description,
 									<span className="text-xs">
 										{key}: {value}
 									</span>
-									<Button variant="ghost" size="icon" className="h-4 w-4 p-0 ml-1 hover:bg-transparent hover:text-destructive" onClick={() => handleRemoveFilter(key)}>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-4 w-4 p-0 ml-1 hover:bg-transparent hover:text-destructive"
+										onClick={() => handleRemoveFilter(key)}
+									>
 										<X className="h-3 w-3" />
 										<span className="sr-only">Remove {key} filter</span>
 									</Button>
@@ -140,13 +157,50 @@ export const ProductsHeader = memo(function ProductsHeader({ title, description,
 							);
 						})}
 					{onUpdateFilter && (
-						<Button variant="ghost" size="sm" className="text-xs h-7 px-2 hover:bg-secondary" onClick={handleClearAllFilters}>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-xs h-7 px-2 hover:bg-secondary"
+							onClick={handleClearAllFilters}
+						>
 							Clear All
 						</Button>
 					)}
 				</div>
 			)}
 		</div>
+	);
+});
+
+// Wrapper component with Suspense boundary
+export const ProductsHeader = memo(function ProductsHeader(props: ProductsHeaderProps) {
+	return (
+		<Suspense
+			fallback={
+				<div className={cn("w-full border-b border-border/60 p-4 mb-8", props.className)}>
+					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+						<div className="flex items-center gap-4 flex-1 min-w-0">
+							{props.image?.url && (
+								<div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-border">
+									<div className="w-full h-full bg-muted animate-pulse" />
+								</div>
+							)}
+							<div className="flex-1 min-w-0">
+								<h1 className="text-2xl md:text-3xl font-bold tracking-tight truncate">{props.title}</h1>
+								{props.description && (
+									<p className="text-muted-foreground mt-1 line-clamp-3 max-w-[500px]">{props.description}</p>
+								)}
+							</div>
+						</div>
+						<div className="flex-shrink-0">
+							<div className="w-[180px] h-10 bg-muted rounded-md animate-pulse" />
+						</div>
+					</div>
+				</div>
+			}
+		>
+			<ProductsHeaderInner {...props} />
+		</Suspense>
 	);
 });
 

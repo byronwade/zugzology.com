@@ -10,9 +10,8 @@ export const AUTH_CONFIG = {
 			options: {
 				httpOnly: true,
 				secure: process.env.NODE_ENV === "production",
-				sameSite: "lax" as const,
+				maxAge: 60 * 60 * 24 * 30, // 30 days
 				path: "/",
-				maxAge: 30 * 24 * 60 * 60, // 30 days in seconds (Shopify default)
 			},
 		},
 		accessToken: {
@@ -20,9 +19,8 @@ export const AUTH_CONFIG = {
 			options: {
 				httpOnly: true,
 				secure: process.env.NODE_ENV === "production",
-				sameSite: "lax" as const,
+				maxAge: 60 * 60 * 24 * 7, // 7 days
 				path: "/",
-				maxAge: 60 * 60, // 1 hour in seconds
 			},
 		},
 		idToken: {
@@ -30,9 +28,8 @@ export const AUTH_CONFIG = {
 			options: {
 				httpOnly: true,
 				secure: process.env.NODE_ENV === "production",
-				sameSite: "lax" as const,
+				maxAge: 60 * 60 * 24 * 7, // 7 days
 				path: "/",
-				maxAge: 60 * 60, // 1 hour in seconds
 			},
 		},
 		csrfToken: {
@@ -83,7 +80,9 @@ export function generateToken(data: Record<string, any>, expiresIn = "1h"): stri
 	};
 
 	// Use btoa for base64 encoding which is available in browser environments
-	return typeof btoa !== "undefined" ? btoa(JSON.stringify(payload)) : Buffer.from(JSON.stringify(payload)).toString("base64");
+	return typeof btoa !== "undefined"
+		? btoa(JSON.stringify(payload))
+		: Buffer.from(JSON.stringify(payload)).toString("base64");
 }
 
 // Parse a token
@@ -98,10 +97,9 @@ export function parseToken(token: string): any {
 	}
 }
 
-// Logging helper
-export function logAuthEvent(event: string, details: Record<string, any> = {}) {
-	console.log(`🔐 [Auth] ${event}:`, {
-		timestamp: new Date().toISOString(),
-		...details,
-	});
+// Simple logging function for auth events
+export function logAuthEvent(event: string, data?: any) {
+	if (process.env.NODE_ENV === "development") {
+		console.log(`🔐 [Auth] ${event}`, data || "");
+	}
 }

@@ -2,8 +2,10 @@
 
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export function ScrollToTop() {
+// Client component that uses useSearchParams
+function ScrollToTopClient() {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 
@@ -14,4 +16,13 @@ export function ScrollToTop() {
 
 	// This component does not render anything
 	return null;
+}
+
+// Wrapper component with Suspense boundary
+export function ScrollToTop() {
+	return (
+		<Suspense fallback={null}>
+			<ScrollToTopClient />
+		</Suspense>
+	);
 }

@@ -23,6 +23,7 @@ export interface ProductCardProps {
 	onRemoveFromWishlist?: (handle: string) => void;
 	onAddToWishlist?: (handle: string) => void;
 	isVisible?: boolean;
+	priority?: boolean;
 }
 
 // Helper function to format recent purchases
@@ -83,9 +84,17 @@ const formatDeliveryDate = () => {
 const getRatingData = (product: ShopifyProduct) => {
 	const metafields = product.metafields || [];
 	return {
-		rating: parseFloat(metafields.find((field) => field?.namespace === "custom" && field?.key === "rating")?.value || "0"),
-		ratingCount: parseInt(metafields.find((field) => field?.namespace === "custom" && field?.key === "rating_count")?.value || "0", 10),
-		recentPurchases: parseInt(metafields.find((field) => field?.namespace === "custom" && field?.key === "recent_purchases")?.value || "0", 10),
+		rating: parseFloat(
+			metafields.find((field) => field?.namespace === "custom" && field?.key === "rating")?.value || "0"
+		),
+		ratingCount: parseInt(
+			metafields.find((field) => field?.namespace === "custom" && field?.key === "rating_count")?.value || "0",
+			10
+		),
+		recentPurchases: parseInt(
+			metafields.find((field) => field?.namespace === "custom" && field?.key === "recent_purchases")?.value || "0",
+			10
+		),
 	};
 };
 
@@ -125,7 +134,19 @@ const formatQuantityDisplay = (quantity: number, isAvailableForSale: boolean = t
 };
 
 // Memoize the ProductCard component
-export const ProductCard = memo(function ProductCard({ product, collectionHandle, view = "grid", variantId, quantity: quantityProp, onAddToCart, isAddingToCartProp, onRemoveFromWishlist, onAddToWishlist, isVisible = true }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({
+	product,
+	collectionHandle,
+	view = "grid",
+	variantId,
+	quantity: quantityProp,
+	onAddToCart,
+	isAddingToCartProp,
+	onRemoveFromWishlist,
+	onAddToWishlist,
+	isVisible = true,
+	priority = false,
+}: ProductCardProps) {
 	const { addItem, openCart } = useCart();
 	const [isAddingToCartLocal, setIsAddingToCartLocal] = useState(false);
 	const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
@@ -160,7 +181,9 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 		let actualQuantity = quantityProp !== undefined ? quantityProp : firstVariant?.quantityAvailable ?? 0;
 
 		// Log the actual quantity for debugging
-		console.log(`[Stock Debug] Product "${product.title}" (${product.handle}): quantityAvailable=${actualQuantity}, availableForSale=${firstVariant?.availableForSale}`);
+		console.log(
+			`[Stock Debug] Product "${product.title}" (${product.handle}): quantityAvailable=${actualQuantity}, availableForSale=${firstVariant?.availableForSale}`
+		);
 
 		// A product is on backorder only if its quantity is strictly 0 AND it's NOT available for sale
 		// This ensures products marked as available for sale are never shown as backorder items
@@ -199,7 +222,9 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 
 	// Memoize the product URL
 	const productUrl = useMemo(() => {
-		return `/products/${product.handle}${collectionHandle ? `?collection=${collectionHandle}` : ""}${variantId ? `${collectionHandle ? "&" : "?"}variant=${variantId}` : ""}`;
+		return `/products/${product.handle}${collectionHandle ? `?collection=${collectionHandle}` : ""}${
+			variantId ? `${collectionHandle ? "&" : "?"}variant=${variantId}` : ""
+		}`;
 	}, [product.handle, collectionHandle, variantId]);
 
 	const handleAddToCart = useCallback(
@@ -214,7 +239,9 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 
 			setIsAddingToCartLocal(true);
 			try {
-				const merchandiseId = variantId.includes("gid://shopify/ProductVariant/") ? variantId : `gid://shopify/ProductVariant/${variantId}`;
+				const merchandiseId = variantId.includes("gid://shopify/ProductVariant/")
+					? variantId
+					: `gid://shopify/ProductVariant/${variantId}`;
 
 				await addItem({
 					merchandiseId,
@@ -264,24 +291,56 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 	const isAvailable = productDetails.isAvailable;
 
 	return (
-		<div className={cn("group relative h-full", view === "grid" ? "flex flex-col sm:border sm:border-foreground/10 sm:hover:border-foreground/20 transition-colors duration-200 sm:rounded-lg sm:my-0.5" : "flex flex-row gap-4 border-b border-foreground/10 last:border-b-0 py-4")} data-view={view}>
-			<Button variant="ghost" size="icon" className={cn("absolute z-[1]", view === "grid" ? "right-2 top-2" : "right-0 top-0")} onClick={handleWishlistToggle}>
-				<Heart className={cn("h-5 w-5 transition-colors duration-200", isWishlisted ? "fill-red-500 stroke-red-500" : "fill-secondary stroke-foreground/60 group-hover:stroke-foreground/80")} />
+		<div
+			className={cn(
+				"group relative h-full",
+				view === "grid"
+					? "flex flex-col sm:border sm:border-foreground/10 sm:hover:border-foreground/20 transition-colors duration-200 sm:rounded-lg sm:my-0.5"
+					: "flex flex-row gap-4 border-b border-foreground/10 last:border-b-0 py-4"
+			)}
+			data-view={view}
+		>
+			<Button
+				variant="ghost"
+				size="icon"
+				className={cn("absolute z-[1]", view === "grid" ? "right-2 top-2" : "right-0 top-0")}
+				onClick={handleWishlistToggle}
+			>
+				<Heart
+					className={cn(
+						"h-5 w-5 transition-colors duration-200",
+						isWishlisted
+							? "fill-red-500 stroke-red-500"
+							: "fill-secondary stroke-foreground/60 group-hover:stroke-foreground/80"
+					)}
+				/>
 			</Button>
 
 			{/* Product Image */}
 			<Link href={productUrl} className={cn("block shrink-0", view === "grid" ? "w-full" : "w-24 sm:w-32")}>
-				<div className={cn("relative bg-neutral-100 dark:bg-neutral-800 overflow-hidden border border-foreground/10 hover:border-foreground/20 transition-colors sm:border-0", view === "grid" ? "aspect-square w-full sm:rounded-t-lg" : "aspect-square w-24 h-24 sm:w-32 sm:h-32 rounded-lg")}>
+				<div
+					className={cn(
+						"relative bg-neutral-100 dark:bg-neutral-800 overflow-hidden border border-foreground/10 hover:border-foreground/20 transition-colors sm:border-0",
+						view === "grid"
+							? "aspect-square w-full sm:rounded-t-lg"
+							: "aspect-square w-24 h-24 sm:w-32 sm:h-32 rounded-lg"
+					)}
+				>
 					{productDetails.imageUrl ? (
 						<Image
 							src={productDetails.imageUrl}
 							alt={productDetails.imageAlt}
 							fill
-							loading={isVisible ? "eager" : "lazy"}
+							loading={priority ? "eager" : isVisible ? "eager" : "lazy"}
+							priority={priority}
 							className="object-cover hover:scale-105 transition-transform duration-300"
-							sizes={view === "grid" ? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw" : "96px"}
+							sizes={
+								view === "grid"
+									? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+									: "96px"
+							}
 							onLoad={(event) => {
-								if (isVisible) {
+								if (isVisible || priority) {
 									// Once the image loads, prefetch the product page
 									const link = document.createElement("link");
 									link.rel = "prefetch";
@@ -305,7 +364,14 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 					<p className="text-xs text-gray-500 mb-1">{product.vendor || "Zugzology"}</p>
 
 					{/* Title */}
-					<h2 className={cn("font-medium text-gray-900 group-hover:text-purple-600 transition-colors", view === "grid" ? "line-clamp-2" : "line-clamp-2 sm:line-clamp-1")}>{product.title}</h2>
+					<h2
+						className={cn(
+							"font-medium text-gray-900 group-hover:text-purple-600 transition-colors",
+							view === "grid" ? "line-clamp-2" : "line-clamp-2 sm:line-clamp-1"
+						)}
+					>
+						{product.title}
+					</h2>
 
 					{/* Reviews */}
 					{hasRating ? (
@@ -322,12 +388,17 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 					<div className="mt-2">
 						{productDetails.hasDiscount && (
 							<div className="flex items-center gap-1">
-								<span className="text-sm text-gray-500 line-through">List Price: {formatPrice(parseFloat(productDetails.compareAtPrice || "0"))}</span>
+								<span className="text-sm text-gray-500 line-through">
+									List Price: {formatPrice(parseFloat(productDetails.compareAtPrice || "0"))}
+								</span>
 							</div>
 						)}
 						<div className="flex items-baseline gap-2">
 							{productDetails.hasValidPrice ? (
-								<span className="text-base font-medium text-gray-900" aria-label={`Price: ${formatPrice(parseFloat(productDetails.price))}`}>
+								<span
+									className="text-base font-medium text-gray-900"
+									aria-label={`Price: ${formatPrice(parseFloat(productDetails.price))}`}
+								>
 									{productDetails.isFreeProduct ? (
 										"Free"
 									) : (
@@ -339,11 +410,14 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 									)}
 								</span>
 							) : (
-								<span className="text-base font-medium text-gray-900">{productDetails.isBackorder ? "Price TBD (Backorder)" : "Price TBD"}</span>
+								<span className="text-base font-medium text-gray-900">
+									{productDetails.isBackorder ? "Price TBD (Backorder)" : "Price TBD"}
+								</span>
 							)}
 							{productDetails.hasDiscount && (
 								<span className="text-xs font-medium text-red-600">
-									Save {discountPercentage}% ({formatPrice(parseFloat(productDetails.compareAtPrice || "0") - parseFloat(productDetails.price))})
+									Save {discountPercentage}% (
+									{formatPrice(parseFloat(productDetails.compareAtPrice || "0") - parseFloat(productDetails.price))})
 								</span>
 							)}
 						</div>
@@ -357,7 +431,9 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 						{productDetails.isAvailable ? (
 							<>
 								<div className="w-2 h-2 rounded-full bg-green-500"></div>
-								<span className="text-xs text-gray-700">{productDetails.isBackorder ? "Available for Pre-Order" : "In Stock"}</span>
+								<span className="text-xs text-gray-700">
+									{productDetails.isBackorder ? "Available for Pre-Order" : "In Stock"}
+								</span>
 							</>
 						) : (
 							<>
@@ -386,7 +462,12 @@ export const ProductCard = memo(function ProductCard({ product, collectionHandle
 
 				{/* Add to Cart Button */}
 				<div className="mt-3">
-					<Button variant="secondary" className="w-full h-9 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md" onClick={handleAddToCart} disabled={isAddingToCartState || !variantId || !canAddToCart}>
+					<Button
+						variant="secondary"
+						className="w-full h-9 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md"
+						onClick={handleAddToCart}
+						disabled={isAddingToCartState || !variantId || !canAddToCart}
+					>
 						<div className="flex items-center justify-center w-full">
 							{isAddingToCartState ? (
 								<>

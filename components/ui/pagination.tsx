@@ -15,32 +15,64 @@ interface PaginationControlsProps {
 	onPageChange?: (page: number) => void;
 	baseUrl?: string;
 	searchParamName?: string;
+	pathname?: string;
+	searchParamsString?: string;
 }
 
-export function PaginationControls({ currentPage, totalPages, onPageChange, baseUrl, searchParamName = "page" }: PaginationControlsProps) {
-	const pathname = usePathname();
-	const searchParams = useSearchParams();
+// Memoize the PaginationControls component to prevent unnecessary re-renders
+export const PaginationControls = React.memo(function PaginationControls({
+	currentPage,
+	totalPages,
+	onPageChange,
+	baseUrl,
+	searchParamName = "page",
+	pathname: propPathname,
+	searchParamsString,
+}: PaginationControlsProps) {
+	// Use provided pathname and searchParams if available, otherwise use hooks
+	const hookPathname = usePathname();
+	const hookSearchParams = useSearchParams();
+
+	const pathname = propPathname || hookPathname;
+	const searchParams = searchParamsString ? new URLSearchParams(searchParamsString) : hookSearchParams;
 
 	// Don't render pagination if there's only one page
 	if (totalPages <= 1) return null;
 
+	// Log pagination information for debugging
+	React.useEffect(() => {
+		console.log(`[PaginationControls] Rendered with currentPage: ${currentPage}, totalPages: ${totalPages}`);
+		console.log(`[PaginationControls] pathname: ${pathname}, baseUrl: ${baseUrl || "undefined"}`);
+	}, [currentPage, totalPages, pathname, baseUrl]);
+
 	// Handle page change with client-side navigation if onPageChange is provided
-	// Otherwise, use Link for server-side navigation
-	const handlePageChange = (page: number) => {
-		if (onPageChange) {
-			onPageChange(page);
-		}
-	};
+	// Memoize the handler to prevent unnecessary re-renders
+	const handlePageChange = React.useCallback(
+		(page: number) => {
+			if (onPageChange) {
+				console.log(`[PaginationControls] Handling page change to ${page} with onPageChange`);
+				onPageChange(page);
+			}
+		},
+		[onPageChange]
+	);
 
 	// Create URL for a specific page
-	const createPageUrl = (page: number) => {
-		const params = new URLSearchParams(searchParams.toString());
-		params.set(searchParamName, page.toString());
-		return `${baseUrl || pathname}?${params.toString()}`;
-	};
+	// Memoize the function to prevent unnecessary re-renders
+	const createPageUrl = React.useCallback(
+		(page: number) => {
+			const params = new URLSearchParams(searchParams.toString());
+			params.set(searchParamName, page.toString());
+			const url = `${baseUrl || pathname}?${params.toString()}`;
+			console.log(`[PaginationControls] Created URL for page ${page}: ${url}`);
+			return url;
+		},
+		[baseUrl, pathname, searchParams, searchParamName]
+	);
 
 	// Calculate page range to display
-	const getPageRange = () => {
+	// Memoize the calculation to prevent unnecessary re-renders
+	const pageRange = React.useMemo(() => {
 		const maxPagesToShow = 5;
 
 		if (totalPages <= maxPagesToShow) {
@@ -76,21 +108,25 @@ export function PaginationControls({ currentPage, totalPages, onPageChange, base
 		}
 
 		return pages;
-	};
-
-	const pageRange = getPageRange();
+	}, [currentPage, totalPages]);
 
 	return (
 		<div className="flex items-center justify-center mt-12 mb-8 space-x-2">
 			{/* Previous page button */}
 			{onPageChange ? (
-				<Button variant="outline" size="icon" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1} aria-label="Previous page">
+				<Button
+					variant="outline"
+					size="icon"
+					onClick={() => handlePageChange(currentPage - 1)}
+					disabled={currentPage <= 1}
+					aria-label="Previous page"
+				>
 					<ChevronLeft className="h-4 w-4" />
 				</Button>
 			) : (
 				<Button variant="outline" size="icon" asChild disabled={currentPage <= 1} aria-label="Previous page">
 					{currentPage > 1 ? (
-						<Link href={createPageUrl(currentPage - 1)} scroll={true}>
+						<Link href={createPageUrl(currentPage - 1)} scroll={true} prefetch={true}>
 							<ChevronLeft className="h-4 w-4" />
 						</Link>
 					) : (
@@ -109,12 +145,26 @@ export function PaginationControls({ currentPage, totalPages, onPageChange, base
 							...
 						</span>
 					) : onPageChange ? (
-						<Button key={`page-${page}`} variant={currentPage === page ? "default" : "outline"} size="sm" onClick={() => handlePageChange(page as number)} aria-label={`Page ${page}`} aria-current={currentPage === page ? "page" : undefined}>
+						<Button
+							key={`page-${page}`}
+							variant={currentPage === page ? "default" : "outline"}
+							size="sm"
+							onClick={() => handlePageChange(page as number)}
+							aria-label={`Page ${page}`}
+							aria-current={currentPage === page ? "page" : undefined}
+						>
 							{page}
 						</Button>
 					) : (
-						<Button key={`page-${page}`} variant={currentPage === page ? "default" : "outline"} size="sm" asChild aria-label={`Page ${page}`} aria-current={currentPage === page ? "page" : undefined}>
-							<Link href={createPageUrl(page as number)} scroll={true}>
+						<Button
+							key={`page-${page}`}
+							variant={currentPage === page ? "default" : "outline"}
+							size="sm"
+							asChild
+							aria-label={`Page ${page}`}
+							aria-current={currentPage === page ? "page" : undefined}
+						>
+							<Link href={createPageUrl(page as number)} scroll={true} prefetch={true}>
 								{page}
 							</Link>
 						</Button>
@@ -124,13 +174,19 @@ export function PaginationControls({ currentPage, totalPages, onPageChange, base
 
 			{/* Next page button */}
 			{onPageChange ? (
-				<Button variant="outline" size="icon" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages} aria-label="Next page">
+				<Button
+					variant="outline"
+					size="icon"
+					onClick={() => handlePageChange(currentPage + 1)}
+					disabled={currentPage >= totalPages}
+					aria-label="Next page"
+				>
 					<ChevronRight className="h-4 w-4" />
 				</Button>
 			) : (
 				<Button variant="outline" size="icon" asChild disabled={currentPage >= totalPages} aria-label="Next page">
 					{currentPage < totalPages ? (
-						<Link href={createPageUrl(currentPage + 1)} scroll={true}>
+						<Link href={createPageUrl(currentPage + 1)} scroll={true} prefetch={true}>
 							<ChevronRight className="h-4 w-4" />
 						</Link>
 					) : (
@@ -142,6 +198,11 @@ export function PaginationControls({ currentPage, totalPages, onPageChange, base
 			)}
 		</div>
 	);
+});
+
+// Server-side compatible pagination component
+export function PaginationControlsSSR(props: Omit<PaginationControlsProps, "pathname" | "searchParamsString">) {
+	return <PaginationControls {...props} />;
 }
 
 const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => <nav role="navigation" aria-label="pagination" className={cn("mx-auto flex w-full justify-center", className)} {...props} />;

@@ -1,442 +1,380 @@
-import { Suspense } from "react";
-import { getProducts, getCollection, getAllCollections } from "@/lib/api/shopify/actions";
-import type { Metadata } from "next";
-import type { ProductsQueryOptions, ShopifyProduct } from "@/lib/types";
-import { HomeLoading } from "@/components/loading";
-import { NewsletterSection } from "@/components/sections/newsletter-section";
-import { LatestProducts } from "@/components/sections/latest-products";
-import { FeaturedCollections } from "@/components/sections/featured-collections";
-import { BestSellersShowcase } from "@/components/sections/best-sellers-showcase";
-import { FeaturedBundle } from "@/components/sections/featured-bundle";
-import {
-	ShoppingCart,
-	Star,
-	Shield,
-	Truck,
-	Package,
-	ArrowRight,
-	Clock,
-	Sprout,
-	Award,
-	BarChart,
-	Users,
-	ShoppingBag,
-	Leaf,
-	ThumbsUp,
-	BadgeCheck,
-	ChevronRight,
-} from "lucide-react";
+import React from "react";
+import { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, Check, ChevronRight, ShoppingBag, Star } from "lucide-react";
+
+// Components
+import HomeLoading from "./loading";
+import { StoreFeatures } from "@/components/store-features";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice } from "@/lib/utils";
-import { unstable_cache } from "next/cache";
-import Link from "next/link";
-import Image from "next/image";
-import { SEO } from "@/components/seo/seo";
-import { TrustIndicators } from "@/components/trust/trust-indicators";
-import { FAQSEO } from "@/components/seo/seo";
+import { Suspense } from "react";
+import { ValidatedLink } from "@/components/ui/validated-link";
+import { BlogPreview } from "@/components/blog-preview";
+import { FeaturedProduct } from "@/components/featured-product";
+import { BestSellers } from "@/components/best-sellers";
+import { VideoSection } from "@/components/video-section";
+import { BulkDiscount } from "@/components/bulk-discount";
 
+// API and Data
+import { getProducts, getSiteSettings, getAllCollections, getPaginatedProducts } from "@/lib/api/shopify/actions";
+import { ShopifyProduct, ShopifyCollection } from "@/lib/types";
+
+// Types
 interface SiteFeature {
-	iconName: string;
 	title: string;
-	text: string;
+	description: string;
+	icon: React.ReactNode;
 }
 
 interface SiteSettings {
 	title: string;
 	description: string;
 	features: SiteFeature[];
-	categories: Array<{
-		name: string;
-		handle: string;
-		image: string;
-	}>;
+	categories: string[];
 }
 
-interface OptimizedProduct extends ShopifyProduct {
-	rating: number;
-	reviewsCount: number;
-}
-
-// Add this function to fetch site settings from the server
-async function getLocalSiteSettings(): Promise<SiteSettings> {
-	return {
-		title: "Zugzology",
-		description: "Your trusted source for premium mushroom cultivation supplies and equipment.",
-		features: [
-			{ iconName: "Shield", title: "Premium Quality", text: "Only the highest quality cultivation supplies" },
-			{ iconName: "Truck", title: "Fast Shipping", text: "Free shipping on orders over $75" },
-			{ iconName: "ThumbsUp", title: "Satisfaction Guarantee", text: "100% satisfaction or your money back" },
-			{ iconName: "BadgeCheck", title: "Expert Support", text: "Guidance from cultivation experts" },
-		],
-		categories: [
-			// Using empty strings for images so we'll show gradients instead
-			{ name: "Grow Kits", handle: "grow-kits", image: "" },
-			{ name: "Substrates", handle: "substrates", image: "" },
-			{ name: "Cultures", handle: "cultures", image: "" },
-			{ name: "Equipment", handle: "equipment", image: "" },
-		],
+interface OptimizedProduct extends Omit<ShopifyProduct, "images"> {
+	isOnSale: boolean;
+	price: string;
+	compareAtPrice: string | null;
+	featuredImage?: {
+		url: string;
+		altText?: string;
+		blurDataURL?: string;
 	};
 }
 
-// Update getPageData to include all necessary data for the homepage
-const getPageData = unstable_cache(
-	async () => {
-		const [products, siteSettings, collections] = await Promise.all([
-			getProducts(),
-			getLocalSiteSettings(),
-			getAllCollections(),
-		]);
+interface OptimizedCollection {
+	id: string;
+	title: string;
+	handle: string;
+	description: string;
+	image?: {
+		url: string;
+		altText?: string;
+		blurDataURL?: string;
+	};
+}
 
-		// Get valid collection handles
-		const collectionHandles = collections ? collections.map((c: { handle: string }) => c.handle) : [];
+// Data fetching with Next.js 15 caching
+async function getLocalSiteSettings(): Promise<SiteSettings> {
+	"use cache";
 
-		// Debug info
-		console.log("Total products fetched:", products?.length);
-		console.log("Products with tags:", products?.filter((p: any) => p.tags && p.tags.length > 0).length);
-		console.log("Products with best-seller tag:", products?.filter((p: any) => p.tags?.includes("best-seller")).length);
-		console.log("Available collections:", collectionHandles);
+	// Fetch site settings from Shopify
+	const shopSettings = await getSiteSettings();
 
-		// Sample of product tags
-		const sampleTags = products?.slice(0, 5).map((p) => ({ title: p.title, tags: p.tags }));
-		console.log("Sample product tags:", sampleTags);
+	return {
+		title: shopSettings?.name || "Zugzology",
+		description: shopSettings?.description || "Premium mushroom cultivation supplies",
+		features: [
+			{
+				title: "Quality Guarantee",
+				description: "All products tested and approved by experts",
+				icon: <Check className="h-6 w-6" />,
+			},
+			{
+				title: "Fast Shipping",
+				description: "Orders ship within 24-48 hours",
+				icon: <ShoppingBag className="h-6 w-6" />,
+			},
+			{
+				title: "Expert Support",
+				description: "Get help from our knowledgeable team",
+				icon: <Star className="h-6 w-6" />,
+			},
+		],
+		categories: ["Substrates", "Spawn", "Tools", "Books", "Kits"],
+	};
+}
 
-		const optimizedProducts = products ? products.slice(0, 12) : [];
-		const topSellers = products ? products.filter((p) => p.tags?.includes("best-seller")).slice(0, 8) : [];
+// Custom function to get products by collection handle
+async function getProductsByCollection(collectionHandle: string, limit: number = 4): Promise<ShopifyProduct[]> {
+	//("use cache");
 
-		// If no best-seller tag products found, use top 8 products as fallback
-		const finalTopSellers = topSellers.length > 0 ? topSellers : products ? products.slice(0, 8) : [];
+	// Get all products
+	const allProducts = await getProducts();
 
-		// Improved sale product detection
-		const saleProducts = products
-			? products
-					.filter((p) => {
-						// Check for sale tag
-						const hasSaleTag = p.tags?.includes("sale");
+	// Filter products by collection handle using tags
+	// This is a simplified approach - in a real implementation, you would query products by collection
+	const filteredProducts = allProducts.filter((product) => {
+		return (
+			product.tags.includes(collectionHandle) ||
+			(collectionHandle === "best-sellers" && product.tags.includes("best-seller")) ||
+			(collectionHandle === "new-arrivals" && product.tags.includes("new-arrival")) ||
+			(collectionHandle === "sale" && product.variants.nodes[0]?.compareAtPrice !== null)
+		);
+	});
 
-						// Check for compare at price
-						const hasCompareAtPrice = p.variants.nodes.some(
-							(variant) =>
-								variant.compareAtPrice && parseFloat(variant.compareAtPrice.amount) > parseFloat(variant.price.amount)
-						);
+	// Return limited number of products
+	return filteredProducts.slice(0, limit);
+}
 
-						return hasSaleTag || hasCompareAtPrice;
-					})
-					.slice(0, 8)
-			: [];
+async function fetchHomePageData() {
+	// Use "use cache" directive for caching in Next.js 15
+	//("use cache");
 
-		// Get featured products
-		const featuredProducts = products ? products.filter((p) => p.tags?.includes("featured")).slice(0, 6) : [];
+	const collections = await getAllCollections();
+	const products = await getProducts();
 
-		// Get beginner-friendly products
-		const beginnerProducts = products
-			? products
-					.filter((p) =>
-						p.tags?.some(
-							(tag) =>
-								tag.toLowerCase().includes("beginner") ||
-								tag.toLowerCase().includes("starter-kit") ||
-								tag.toLowerCase().includes("easy")
-						)
-					)
-					.slice(0, 4)
-			: [];
+	// Filter products for best sellers, new arrivals, and sale items
+	const bestSellers = products
+		.filter((product) => product.tags.includes("best-seller"))
+		.slice(0, 4)
+		.map(optimizeProduct);
 
-		return {
-			products: optimizedProducts,
-			topSellers: finalTopSellers,
-			saleProducts,
-			featuredProducts,
-			beginnerProducts,
-			siteSettings,
-		};
-	},
-	["home-page-data"],
-	{
-		revalidate: 60,
-		tags: ["home-page"],
-	}
-);
+	const newArrivals = products
+		.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+		.slice(0, 4)
+		.map(optimizeProduct);
+
+	const saleProducts = products
+		.filter((product) => {
+			const variant = product.variants.nodes[0];
+			return (
+				variant &&
+				variant.compareAtPrice &&
+				parseFloat(variant.compareAtPrice.amount) > parseFloat(variant.price.amount)
+			);
+		})
+		.slice(0, 4)
+		.map(optimizeProduct);
+
+	return {
+		featuredCollections: collections.slice(0, 3).map(optimizeCollection),
+		featuredProducts: products.slice(0, 4).map(optimizeProduct),
+		bestSellers,
+		newArrivals,
+		saleProducts,
+		hasSaleProducts: saleProducts.length > 0,
+	};
+}
+
+// Helper function to optimize product data
+function optimizeProduct(product: ShopifyProduct): OptimizedProduct {
+	// Create blur data URL for image placeholder
+	const blurDataURL =
+		"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEDQIHXG8H/QAAAABJRU5ErkJggg==";
+
+	// Get the first variant's price
+	const firstVariant = product.variants.nodes[0];
+	const price = firstVariant ? firstVariant.price.amount : "0";
+	const compareAtPrice = firstVariant && firstVariant.compareAtPrice ? firstVariant.compareAtPrice.amount : null;
+
+	// Check if product is on sale
+	const isOnSale = compareAtPrice ? parseFloat(price) < parseFloat(compareAtPrice) : false;
+
+	// Get the featured image
+	const featuredImage = product.images.nodes[0]
+		? {
+				url: product.images.nodes[0].url,
+				altText: product.images.nodes[0].altText,
+				blurDataURL,
+		  }
+		: undefined;
+
+	return {
+		...product,
+		price,
+		compareAtPrice,
+		isOnSale,
+		featuredImage,
+	};
+}
+
+// Helper function to optimize collection data
+function optimizeCollection(collection: ShopifyCollection): OptimizedCollection {
+	// Create blur data URL for image placeholder
+	const blurDataURL =
+		"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEDQIHXG8H/QAAAABJRU5ErkJggg==";
+
+	return {
+		id: collection.id,
+		title: collection.title,
+		handle: collection.handle,
+		description: collection.description,
+		image: collection.image
+			? {
+					url: collection.image.url,
+					altText: collection.image.altText,
+					blurDataURL,
+			  }
+			: undefined,
+	};
+}
 
 export async function generateMetadata(): Promise<Metadata> {
+	const siteSettings = await getLocalSiteSettings();
+
 	return {
-		title: "Zugzology - Premium Mushroom Cultivation Supplies & Equipment",
-		description:
-			"Your trusted source for premium mushroom cultivation supplies and equipment. Find everything you need for successful mushroom growing, from spores to substrates. Expert guidance, fast shipping, and top-quality products guaranteed.",
-		keywords:
-			"mushroom cultivation, mushroom growing supplies, mushroom spores, mushroom substrate, cultivation equipment, growing kits, mycology supplies, gourmet mushrooms, medicinal mushrooms",
-		openGraph: {
-			title: "Zugzology - Premium Mushroom Cultivation Supplies & Equipment",
-			description:
-				"Your trusted source for premium mushroom cultivation supplies and equipment. Expert guidance, fast shipping, and top-quality products guaranteed.",
-			url: "https://zugzology.com",
-			siteName: "Zugzology",
-			type: "website",
-			locale: "en_US",
-			images: [
-				{
-					url: "https://zugzology.com/og-image.jpg",
-					width: 1200,
-					height: 630,
-					alt: "Zugzology - Premium Mushroom Cultivation Supplies",
-				},
-			],
-		},
-		twitter: {
-			card: "summary_large_image",
-			title: "Premium Mushroom Cultivation Supplies & Equipment",
-			description:
-				"Your trusted source for premium mushroom cultivation supplies and equipment. Free shipping on orders over $75.",
-			images: ["https://zugzology.com/og-image.jpg"],
-			creator: "@zugzology",
-			site: "@zugzology",
-		},
-		alternates: {
-			canonical: "https://zugzology.com",
-		},
-		robots: {
-			index: true,
-			follow: true,
-			nocache: true,
-			googleBot: {
-				index: true,
-				follow: true,
-				"max-video-preview": -1,
-				"max-image-preview": "large",
-				"max-snippet": -1,
-			},
-		},
-		verification: {
-			google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION_ID,
-		},
+		title: siteSettings.title,
+		description: siteSettings.description,
 	};
 }
 
-// Main component
-export default async function Home() {
-	const { products, topSellers, saleProducts, featuredProducts, beginnerProducts, siteSettings } = await getPageData();
+export default async function HomePage() {
+	return (
+		<Suspense fallback={<HomeLoading />}>
+			<HomeContent />
+		</Suspense>
+	);
+}
 
-	// Optimize product data structure - inside Home function scope
-	const optimizeProductData = (products: ShopifyProduct[]): OptimizedProduct[] => {
-		return products.map((product) => ({
-			...product,
-		rating: 4.5, // Default rating if missing
-		reviewsCount: 10, // Default review count if missing
-	}));
-	};
+async function HomeContent() {
+	const data = await fetchHomePageData();
 
-	// Convert to optimized format for rendering
-	const optimizedProducts = products ? optimizeProductData(products.slice(0, 8)) : [];
-	const optimizedTopSellers = topSellers ? optimizeProductData(topSellers.slice(0, 8)) : [];
-	const optimizedSaleProducts = saleProducts ? optimizeProductData(saleProducts.slice(0, 8)) : [];
-	const optimizedFeaturedProducts = featuredProducts ? optimizeProductData(featuredProducts.slice(0, 6)) : [];
-	const optimizedBeginnerProducts = beginnerProducts ? optimizeProductData(beginnerProducts.slice(0, 4)) : [];
+	return (
+		<div className="min-h-screen">
+			<AppleStyleHero />
 
-	// Get a featured product for the hero if available
-	const featuredProduct = optimizedFeaturedProducts.length > 0 ? optimizedFeaturedProducts[0] : null;
-
-	// Components defined inside the component
-	function FeatureShowcase({ features }: { features: SiteFeature[] }) {
-		// Function to render the appropriate icon based on name
-		const renderIcon = (iconName: string) => {
-			switch (iconName) {
-				case "Shield":
-					return <Shield className="h-6 w-6 text-primary" />;
-				case "Truck":
-					return <Truck className="h-6 w-6 text-primary" />;
-				case "ThumbsUp":
-					return <ThumbsUp className="h-6 w-6 text-primary" />;
-				case "BadgeCheck":
-					return <BadgeCheck className="h-6 w-6 text-primary" />;
-				default:
-					return <BadgeCheck className="h-6 w-6 text-primary" />;
-			}
-		};
-
-		return (
-			<section className="w-full py-20 bg-white dark:bg-black">
+			<section className="py-10 md:py-16">
 				<div className="container mx-auto px-4">
-					<div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-						{features.map((feature, index) => (
-							<div key={index} className="flex flex-col items-center text-center">
-								<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-									{renderIcon(feature.iconName)}
+					<h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Featured Collections</h2>
+					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+						{data.featuredCollections.map((collection) => (
+							<div key={collection.id} className="group">
+								<div className="relative overflow-hidden rounded-lg">
+									<ValidatedLink href={`/collections/${collection.handle}`}>
+										<Image
+											src={collection.image?.url || "/placeholder-collection.png"}
+											alt={collection.title}
+											width={400}
+											height={300}
+											className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+											sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+											loading="lazy"
+											blurDataURL={collection.image?.blurDataURL}
+											placeholder={collection.image?.blurDataURL ? "blur" : "empty"}
+										/>
+									</ValidatedLink>
+									<div className="absolute inset-0 bg-black bg-opacity-30 flex items-end p-4">
+										<h3 className="text-white text-xl font-semibold">{collection.title}</h3>
+									</div>
 								</div>
-								<h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-								<p className="text-sm text-gray-600 dark:text-gray-400">{feature.text}</p>
+								<div className="mt-2">
+									<ValidatedLink href={`/collections/${collection.handle}`} className="text-primary hover:underline">
+										View Collection
+									</ValidatedLink>
+								</div>
 							</div>
 						))}
 					</div>
 				</div>
 			</section>
-		);
-	}
 
-	function AppleStyleHero({ product }: { product: ShopifyProduct | null }) {
-		return (
-			<section className="relative w-full h-[650px] overflow-hidden bg-black">
-				{/* Background image or video */}
-				<div className="absolute inset-0 w-full h-full">
-					<Image
-						src="/images/hero-mushrooms.jpg"
-						alt="Premium mushroom cultivation supplies"
-						fill
-						priority
-						className="object-cover"
-					/>
-					<div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/70" />
-				</div>
+			<BestSellers />
 
-				{/* Content */}
-				<div className="container mx-auto px-4 h-full flex flex-col justify-center items-center text-center text-white relative z-10">
-					<h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
-						Premium Mushroom Cultivation Supplies
+			<VideoSection />
+
+			<FeaturedProduct />
+
+			<BlogPreview />
+
+			<StoreFeatures />
+
+			<BulkDiscount />
+
+			<FAQSection />
+			<NewsletterSection />
+			<StructuredData />
+		</div>
+	);
+}
+
+// Hero Section Component
+function AppleStyleHero() {
+	return (
+		<section className="relative w-full min-h-[80vh] flex items-center">
+			<div className="absolute inset-0 z-0">
+				<Image
+					src="/mycelium-roots1.png"
+					alt="Glowing mycelium roots"
+					fill
+					className="object-cover brightness-[0.7]"
+					priority
+					sizes="100vw"
+					placeholder="blur"
+					blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEDQIHXG8H/QAAAABJRU5ErkJggg=="
+				/>
+			</div>
+			<div className="container relative z-10 mx-auto px-4 py-24 sm:px-6 lg:px-8">
+				<div className="max-w-2xl">
+					<h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">
+						<span className="block">Grow Your Own</span>
+						<span className="block text-primary">Gourmet Mushrooms</span>
 					</h1>
-					<p className="text-xl md:text-2xl max-w-3xl mb-8 text-gray-100">
-						Quality growing kits, substrates, and expert guidance for cultivators of all experience levels
+					<p className="mt-6 max-w-lg text-xl text-white">
+						Zugzology provides premium mushroom cultivation supplies for beginners and experts alike. Start your
+						mycology journey today.
 					</p>
-					<div className="flex flex-col sm:flex-row gap-4">
-						<Link
-							href="/products"
-							className="bg-white text-black px-8 py-3 rounded-md font-medium hover:bg-gray-100 transition"
-						>
-							Shop Now
-						</Link>
-						<Link
-							href="/blogs/guides/beginners-guide"
-							className="border border-white text-white px-8 py-3 rounded-md font-medium hover:bg-white/10 transition"
-						>
-							Beginner's Guide
-						</Link>
-					</div>
-				</div>
-			</section>
-		);
-	}
-
-	// Helper function to format price
-	function formatPrice(amount: number, currencyCode = "USD") {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: currencyCode,
-		}).format(amount);
-	}
-
-	function ProductShowcase({
-		title,
-		tagline,
-		products,
-		collectionHandle,
-	}: {
-		title: string;
-		tagline: string;
-		products: OptimizedProduct[] | ShopifyProduct[];
-		collectionHandle?: string;
-	}) {
-		return (
-			<section className="w-full py-20 bg-gray-50 dark:bg-gray-950">
-				<div className="container mx-auto px-4">
-					<div className="flex flex-col items-center text-center mb-12">
-						<h2 className="text-3xl md:text-4xl font-semibold mb-3">{title}</h2>
-						<p className="text-xl text-gray-600 dark:text-gray-400">{tagline}</p>
-					</div>
-
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-						{products.slice(0, 4).map((product) => (
-							<Link key={product.id} href={`/products/${product.handle}`} className="group">
-								<div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-									<div className="relative aspect-square">
-										{product.images?.nodes?.[0] && (
-											<Image
-												src={product.images.nodes[0].url}
-												alt={product.title}
-												fill
-												className="object-cover group-hover:scale-105 transition-transform duration-500"
-												sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
-											/>
-										)}
-									</div>
-									<div className="p-6">
-										<h3 className="font-medium mb-2 group-hover:text-primary transition-colors line-clamp-1">
-											{product.title}
-										</h3>
-										<p className="text-lg font-semibold">
-											{formatPrice(
-												parseFloat(product.variants?.nodes?.[0]?.price?.amount || "0"),
-												product.variants?.nodes?.[0]?.price?.currencyCode
-											)}
-										</p>
-									</div>
-								</div>
-							</Link>
-						))}
-					</div>
-
-					<div className="mt-12 text-center">
+					<div className="mt-10 flex flex-col sm:flex-row gap-4">
+						<Button size="lg" asChild>
+							<ValidatedLink href="/collections/all-products">Shop Now</ValidatedLink>
+						</Button>
 						<Button
-							size="lg"
 							variant="outline"
-							className="rounded-full h-11 px-8 border-gray-300 dark:border-gray-700"
+							size="lg"
+							className="bg-white/10 backdrop-blur-sm text-white border-white/20 hover:bg-white/20"
 							asChild
 						>
-							<Link href={`/collections/${collectionHandle || "all"}`}>
-								View All <ChevronRight className="h-4 w-4 ml-1" />
-							</Link>
+							<ValidatedLink href="/blogs/guides/getting-started">Learn More</ValidatedLink>
 						</Button>
 					</div>
 				</div>
-			</section>
-		);
-	}
+			</div>
+		</section>
+	);
+}
 
-	function CategoryShowcase({ categories }: { categories: SiteSettings["categories"] }) {
-		return (
-			<section className="w-full py-20 bg-white dark:bg-black">
-				<div className="container mx-auto px-4">
-					<div className="flex flex-col items-center text-center mb-12">
-						<h2 className="text-3xl md:text-4xl font-semibold mb-3">Shop by Category</h2>
-						<p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl">
-							Find everything you need for successful mushroom cultivation
-						</p>
-					</div>
+// Product Card Component
+function ProductCard({ product }: { product: OptimizedProduct }) {
+	return (
+		<ValidatedLink href={`/products/${product.handle}`} className="group block">
+			<div className="relative overflow-hidden rounded-lg mb-3 bg-gray-100">
+				<Image
+					src={product.featuredImage?.url || "/placeholder-product.png"}
+					alt={product.featuredImage?.altText || product.title}
+					width={300}
+					height={300}
+					className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+					sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+					loading="lazy"
+					blurDataURL={product.featuredImage?.blurDataURL}
+					placeholder={product.featuredImage?.blurDataURL ? "blur" : "empty"}
+				/>
+				{product.isOnSale && (
+					<div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">Sale</div>
+				)}
+			</div>
+			<h3 className="text-lg font-medium text-gray-900 group-hover:text-primary transition-colors">{product.title}</h3>
+			<div className="mt-1 flex items-center">
+				<span className={`text-gray-900 ${product.isOnSale ? "font-bold text-red-600" : ""}`}>
+					{formatProductPrice(product.price)}
+				</span>
+				{product.isOnSale && product.compareAtPrice && (
+					<span className="ml-2 text-sm text-gray-500 line-through">{formatProductPrice(product.compareAtPrice)}</span>
+				)}
+			</div>
+		</ValidatedLink>
+	);
+}
 
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-						{categories.map((category, index) => (
-							<Link
-								key={category.handle}
-								href={`/collections/${category.handle}`}
-								className="group relative overflow-hidden rounded-2xl aspect-[4/3] flex items-center justify-center"
-							>
-								<div
-									className={`absolute inset-0 bg-gradient-to-br ${
-										index % 4 === 0
-											? "from-blue-500/20 to-blue-700/40"
-											: index % 4 === 1
-											? "from-green-500/20 to-green-700/40"
-											: index % 4 === 2
-											? "from-purple-500/20 to-purple-700/40"
-											: "from-amber-500/20 to-amber-700/40"
-									}`}
-								/>
-								<div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity" />
-								<div className="relative z-10 text-center px-4">
-									<h3 className="text-2xl font-semibold text-white mb-3">{category.name}</h3>
-									<span className="inline-flex items-center px-5 py-2 bg-white/20 backdrop-blur-md rounded-full text-white text-sm group-hover:bg-white/30 transition-all">
-										Shop Now <ChevronRight className="h-4 w-4 ml-1" />
-									</span>
-								</div>
-							</Link>
-						))}
-					</div>
-				</div>
-			</section>
-		);
-	}
+// Helper function to format prices
+function formatProductPrice(price: string): string {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+		minimumFractionDigits: 2,
+	}).format(parseFloat(price));
+}
 
-	// Frequently asked questions for the homepage
+// Define the missing components
+function FAQSection() {
+	// Define FAQ data
 	const homepageFAQs = [
 		{
-			question: "What kinds of mushroom growing supplies do you offer?",
+			question: "What types of mushroom cultivation supplies do you offer?",
 			answer:
 				"We offer a complete range of mushroom cultivation supplies including substrates, spawn, growing kits, tools, equipment, and accessories for both beginners and experienced growers.",
 		},
@@ -446,288 +384,127 @@ export default async function Home() {
 				"Yes, we ship to most countries worldwide. International shipping rates are calculated at checkout based on weight and destination.",
 		},
 		{
-			question: "Do you offer free shipping?",
-			answer: "Yes! We offer free standard shipping on all domestic orders over $75.",
-		},
-		{
-			question: "I'm new to mushroom cultivation. Where should I start?",
-			answer:
-				"We recommend our beginner-friendly growing kits which include everything you need to get started. We also have comprehensive guides on our blog and dedicated customer support to help you along your journey.",
-		},
-		{
 			question: "How long does shipping take?",
 			answer:
 				"Domestic orders typically ship within 1-2 business days and arrive within 3-7 business days. International shipping times vary by location.",
 		},
 		{
-			question: "Do you offer bulk discounts?",
+			question: "Do you offer resources for beginners?",
 			answer:
-				"Yes, we offer volume discounts for bulk orders. Contact our sales team for custom quotes on large orders.",
+				"Yes, we provide comprehensive guides, tutorials, and support for growers of all experience levels. Check out our blog for helpful resources.",
 		},
 	];
 
 	return (
-		<>
-			{/* Enhanced SEO implementation */}
-			<SEO type="home" siteSettings={siteSettings} faq={homepageFAQs} />
-
-			{/* Apple-style Hero Section */}
-			<AppleStyleHero product={featuredProduct} />
-
-			{/* Trust Indicators - Based on Backlinko factors #86 (Trust signals) and #118 (Social proof) */}
-			<section className="py-8 bg-gray-50">
-				<div className="container mx-auto px-4">
-					<TrustIndicators variant="full" showQuickDelivery={true} showSustainable={true} />
-				</div>
-			</section>
-
-			{/* Feature Showcase */}
-			<FeatureShowcase features={siteSettings.features} />
-
-			{/* Category Showcase */}
-			<CategoryShowcase categories={siteSettings.categories} />
-
-			{/* Best Sellers Showcase */}
-			<ProductShowcase
-				title="Best Sellers"
-				tagline="Our most popular products, trusted by cultivators worldwide"
-				products={optimizedTopSellers}
-				collectionHandle="all"
-			/>
-
-			{/* Latest Products */}
-			<ProductShowcase
-				title="Latest Products"
-				tagline="Discover our newest additions to enhance your cultivation"
-				products={optimizedProducts}
-				collectionHandle="all"
-			/>
-
-			{/* Featured Bundle in Apple style */}
-			<section className="w-full py-20 bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20">
-				<div className="container mx-auto px-4">
-					<div className="flex flex-col md:flex-row gap-12 items-center">
-						<div className="md:w-1/2">
-							<Badge className="mb-4 bg-primary/10 text-primary">Special Offer</Badge>
-							<h2 className="text-3xl md:text-4xl font-semibold mb-4">Complete Cultivation Bundle</h2>
-							<p className="text-xl text-gray-600 dark:text-gray-400 mb-6">
-								Everything you need to start growing mushrooms at home in one convenient package
-							</p>
-							<Button size="lg" className="rounded-full h-11 px-8" asChild>
-								<Link href="/products/complete-cultivation-bundle">
-									Shop Bundle <ChevronRight className="h-4 w-4 ml-1" />
-								</Link>
-							</Button>
+		<section className="py-10 md:py-16">
+			<div className="container mx-auto px-4">
+				<h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Frequently Asked Questions</h2>
+				<div className="max-w-3xl mx-auto divide-y divide-gray-200 dark:divide-gray-700">
+					{homepageFAQs.map((faq, index) => (
+						<div key={index} className="py-5">
+							<h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{faq.question}</h3>
+							<p className="text-gray-600 dark:text-gray-300">{faq.answer}</p>
 						</div>
-						<div className="md:w-1/2 relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg">
-							<div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/50"></div>
-							<div className="absolute inset-0 flex items-center justify-center">
-								<Package className="h-24 w-24 text-white/80" />
-							</div>
-						</div>
-					</div>
+					))}
 				</div>
-			</section>
+			</div>
+		</section>
+	);
+}
 
-			{/* Sale Products */}
-			{optimizedSaleProducts.length > 0 && (
-				<ProductShowcase
-					title="Special Offers"
-					tagline="Limited time deals on premium cultivation supplies"
-					products={optimizedSaleProducts}
-					collectionHandle="all"
-				/>
-			)}
-
-			{/* Expert Content - Based on Backlinko factors #35 (Freshness/Quality content) and #40 (Content length) */}
-			<section className="w-full py-16 bg-white">
-				<div className="container mx-auto px-4">
-					<div className="flex flex-col items-center text-center mb-10">
-						<h2 className="text-3xl font-bold mb-3">Expert Mushroom Growing Resources</h2>
-						<p className="text-gray-600 max-w-3xl">
-							Learn from our comprehensive guides and tutorials created by experienced mycologists
-						</p>
-					</div>
-					<div className="prose prose-lg max-w-4xl mx-auto">
-						<p>
-							At Zugzology, we're committed to not just selling mushroom cultivation supplies, but to helping you
-							succeed with your growing projects. Our extensive guides cover topics from:
-						</p>
-						<ul>
-							<li>
-								<strong>Substrate preparation and sterilization techniques</strong> to ensure contamination-free growing
-							</li>
-							<li>
-								<strong>Optimal growing conditions</strong> for different mushroom varieties including temperature,
-								humidity, and lighting
-							</li>
-							<li>
-								<strong>Harvesting and storage methods</strong> to maximize your yields and preserve your mushrooms
-							</li>
-							<li>
-								<strong>Troubleshooting common issues</strong> that new growers encounter and how to solve them
-							</li>
-						</ul>
-						<p>
-							Our{" "}
-							<a href="/blogs/guides" className="text-primary hover:underline">
-								cultivation library
-							</a>{" "}
-							is constantly updated with new information based on the latest mycology research and techniques.
-						</p>
-					</div>
-					<div className="text-center mt-8">
-						<Button asChild>
-							<Link href="/blogs/guides" className="flex items-center">
-								Browse Our Guides <ArrowRight className="ml-2 h-4 w-4" />
-							</Link>
-						</Button>
-					</div>
-				</div>
-			</section>
-
-			{/* FAQ Section with structured data */}
-			<section className="py-12 bg-gray-50">
-				<div className="container mx-auto px-4">
-					<FAQSEO questions={homepageFAQs} />
-				</div>
-			</section>
-
-			{/* Newsletter Section */}
-			<section className="w-full py-20 bg-white dark:bg-black">
-				<div className="container mx-auto px-4">
-					<div className="max-w-3xl mx-auto text-center">
-						<h2 className="text-3xl md:text-4xl font-semibold mb-4">Stay Connected</h2>
-						<p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-							Subscribe to receive updates, growing tips, and exclusive offers
-						</p>
-						<form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-							<input
-								type="email"
-								placeholder="Your email address"
-								className="flex-1 h-11 px-4 rounded-full border border-gray-300 dark:border-gray-700 dark:bg-gray-900"
-								required
-							/>
-							<Button type="submit" className="h-11 px-6 rounded-full">
-								Subscribe
-							</Button>
-						</form>
-					</div>
-				</div>
-			</section>
-
-			{/* Structured data for SEO */}
-			<Suspense>
-				<script
-					type="application/ld+json"
-					dangerouslySetInnerHTML={{
-						__html: JSON.stringify([
-							{
-								"@context": "https://schema.org",
-								"@type": "WebSite",
-								name: siteSettings.title,
-								description: siteSettings.description,
-								url: "https://zugzology.com",
-								potentialAction: {
-									"@type": "SearchAction",
-									target: {
-										"@type": "EntryPoint",
-										urlTemplate: "https://zugzology.com/search?q={search_term_string}",
+function StructuredData() {
+	return (
+		<script
+			type="application/ld+json"
+			dangerouslySetInnerHTML={{
+				__html: JSON.stringify({
+					"@context": "https://schema.org",
+					"@graph": [
+						{
+							"@type": "WebSite",
+							"@id": "https://zugzology.com/#website",
+							url: "https://zugzology.com/",
+							name: "Zugzology",
+							description: "Premium Mushroom Cultivation Supplies",
+						},
+						{
+							"@type": "Organization",
+							"@id": "https://zugzology.com/#organization",
+							name: "Zugzology",
+							logo: {
+								"@type": "ImageObject",
+								url: "https://zugzology.com/logo.png",
+							},
+						},
+						{
+							"@type": "FAQPage",
+							"@id": "https://zugzology.com/#faq",
+							mainEntity: [
+								{
+									"@type": "Question",
+									name: "What types of mushroom cultivation supplies do you offer?",
+									acceptedAnswer: {
+										"@type": "Answer",
+										text: "We offer a complete range of mushroom cultivation supplies including substrates, spawn, growing kits, tools, equipment, and accessories for both beginners and experienced growers.",
 									},
-									"query-input": "required name=search_term_string",
 								},
-							},
-							{
-								"@context": "https://schema.org",
-								"@type": "Organization",
-								name: siteSettings.title,
-								url: "https://zugzology.com",
-								logo: {
-									"@type": "ImageObject",
-									url: "https://zugzology.com/logo.png",
+								{
+									"@type": "Question",
+									name: "Do you ship internationally?",
+									acceptedAnswer: {
+										"@type": "Answer",
+										text: "Yes, we ship to most countries worldwide. International shipping rates are calculated at checkout based on weight and destination.",
+									},
 								},
-								sameAs: [
-									"https://facebook.com/zugzology",
-									"https://twitter.com/zugzology",
-									"https://instagram.com/zugzology",
-								],
-								contactPoint: {
-									"@type": "ContactPoint",
-									telephone: process.env.NEXT_PUBLIC_CONTACT_PHONE,
-									contactType: "customer service",
-									availableLanguage: "English",
+								{
+									"@type": "Question",
+									name: "How long does shipping take?",
+									acceptedAnswer: {
+										"@type": "Answer",
+										text: "Domestic orders typically ship within 1-2 business days and arrive within 3-7 business days. International shipping times vary by location.",
+									},
 								},
-							},
-							{
-								"@context": "https://schema.org",
-								"@type": "ItemList",
-								itemListElement: optimizedTopSellers.slice(0, 3).map((product, index) => {
-									// Safely extract the rating and review count
-									const rating = (product as OptimizedProduct).rating || 4.5;
-									const reviewCount = (product as OptimizedProduct).reviewsCount || 10;
+								{
+									"@type": "Question",
+									name: "Do you offer resources for beginners?",
+									acceptedAnswer: {
+										"@type": "Answer",
+										text: "Yes, we provide comprehensive guides, tutorials, and support for growers of all experience levels. Check out our blog for helpful resources.",
+									},
+								},
+							],
+						},
+					],
+				}),
+			}}
+		/>
+	);
+}
 
-									return {
-										"@type": "ListItem",
-										position: index + 1,
-										item: {
-											"@type": "Product",
-											name: product.title,
-											description: product.description?.substring(0, 150) || "",
-											url: `https://zugzology.com/products/${product.handle}`,
-											image: product.images?.nodes[0]?.url || "",
-											identifier: product.variants?.nodes[0]?.id || "",
-											brand: {
-												"@type": "Brand",
-												name: "Zugzology",
-											},
-											offers: {
-												"@type": "Offer",
-												price: product.variants?.nodes[0]?.price.amount || "",
-												priceCurrency: product.variants?.nodes[0]?.price.currencyCode || "USD",
-												availability: product.availableForSale
-													? "https://schema.org/InStock"
-													: "https://schema.org/OutOfStock",
-												url: `https://zugzology.com/products/${product.handle}`,
-											},
-											aggregateRating: {
-												"@type": "AggregateRating",
-												ratingValue: rating.toFixed(1),
-												reviewCount: reviewCount,
-											},
-										},
-									};
-								}),
-							},
-							// Add LocalBusiness schema per Backlinko factor #193
-							{
-								"@context": "https://schema.org",
-								"@type": "LocalBusiness",
-								"@id": "https://zugzology.com",
-								name: "Zugzology",
-								image: "https://zugzology.com/logo.png",
-								url: "https://zugzology.com",
-								telephone: process.env.NEXT_PUBLIC_CONTACT_PHONE,
-								priceRange: "$$",
-								address: {
-									"@type": "PostalAddress",
-									addressCountry: "US",
-								},
-								geo: {
-									"@type": "GeoCoordinates",
-									latitude: 37.7749,
-									longitude: -122.4194,
-								},
-								openingHoursSpecification: {
-									"@type": "OpeningHoursSpecification",
-									dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-									opens: "09:00",
-									closes: "17:00",
-								},
-							},
-						]),
-					}}
-				/>
-			</Suspense>
-		</>
+// Add the NewsletterSection component
+function NewsletterSection() {
+	return (
+		<section className="bg-primary text-white py-10 md:py-16">
+			<div className="container mx-auto px-4 text-center">
+				<h2 className="text-2xl md:text-3xl font-bold mb-4">Stay Updated</h2>
+				<p className="max-w-md mx-auto mb-6">
+					Subscribe to our newsletter for growing tips, new product announcements, and exclusive offers.
+				</p>
+				<form className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+					<input
+						type="email"
+						placeholder="Your email address"
+						className="flex-grow px-4 py-3 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
+						required
+					/>
+					<button
+						type="submit"
+						className="bg-white text-primary px-6 py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
+					>
+						Subscribe
+					</button>
+				</form>
+			</div>
+		</section>
 	);
 }

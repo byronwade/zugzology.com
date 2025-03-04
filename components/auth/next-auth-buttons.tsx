@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuthContext } from "@/components/providers/auth-provider";
+import { User } from "lucide-react";
 
 export function LoginButton({ provider = "shopify", className = "" }: { provider?: string; className?: string }) {
 	const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +40,9 @@ export function LoginButton({ provider = "shopify", className = "" }: { provider
 				// Handle specific error cases
 				if (result.error.includes("invalid_client")) {
 					console.error("❌ [LoginButton] Invalid client error detected");
-					setError("Authentication failed: The Shopify app credentials are invalid or misconfigured. Please check your Shopify app settings.");
+					setError(
+						"Authentication failed: The Shopify app credentials are invalid or misconfigured. Please check your Shopify app settings."
+					);
 
 					// Log detailed debugging information
 					console.error("❌ [LoginButton] Debugging info for invalid_client error:", {
@@ -50,7 +53,9 @@ export function LoginButton({ provider = "shopify", className = "" }: { provider
 						shopifyShopId: process.env.NEXT_PUBLIC_SHOPIFY_SHOP_ID,
 					});
 				} else if (result.error.includes("callback")) {
-					setError("Authentication failed: Callback URL mismatch. Please ensure the redirect URI is correctly configured in your Shopify app.");
+					setError(
+						"Authentication failed: Callback URL mismatch. Please ensure the redirect URI is correctly configured in your Shopify app."
+					);
 				} else if (result.error.includes("OAuthCallbackError")) {
 					setError("Authentication was interrupted. Please try again.");
 				} else {
@@ -98,10 +103,14 @@ export function LoginButton({ provider = "shopify", className = "" }: { provider
 							<ul className="list-disc pl-5 mt-1 space-y-1">
 								<li>Your Shopify app credentials are correct</li>
 								<li>
-									The redirect URI in Shopify matches exactly: <code className="bg-gray-100 px-1 rounded">{process.env.NEXT_PUBLIC_NEXTAUTH_URL}/api/auth/callback/shopify</code>
+									The redirect URI in Shopify matches exactly:{" "}
+									<code className="bg-gray-100 px-1 rounded">
+										{process.env.NEXT_PUBLIC_NEXTAUTH_URL}/api/auth/callback/shopify
+									</code>
 								</li>
 								<li>
-									Your app has the required scopes: <code className="bg-gray-100 px-1 rounded">openid email customer-account-api:full</code>
+									Your app has the required scopes:{" "}
+									<code className="bg-gray-100 px-1 rounded">openid email customer-account-api:full</code>
 								</li>
 							</ul>
 						</div>
@@ -145,44 +154,16 @@ export function LogoutButton({ className = "" }: { className?: string }) {
 }
 
 export function UserAccountButton() {
-	const { data: session, status } = useSession();
-	const { user, isAuthenticated } = useAuthContext();
-	const router = useRouter();
-	const [isButtonLoading, setIsButtonLoading] = useState(false);
-
-	// Combined auth state
-	const isLoggedIn = status === "authenticated" || isAuthenticated;
-	const isSessionLoading = status === "loading";
-	const displayName = session?.user?.name || user?.firstName || "Account";
-
-	// Log authentication state for debugging
-	console.log("🔒 [UserAccountButton] Auth state:", {
-		nextAuthStatus: status,
-		nextAuthSession: !!session,
-		customAuthStatus: isAuthenticated,
-		customAuthUser: !!user,
-		combinedState: isLoggedIn,
-	});
-
-	const handleAccountClick = () => {
-		setIsButtonLoading(true);
-		if (isLoggedIn) {
-			router.push("/account");
-		} else {
-			router.push("/login");
-		}
-	};
+	const { data: session } = useSession();
 
 	return (
-		<Button variant="ghost" onClick={handleAccountClick} disabled={isButtonLoading} className="relative">
-			{isLoggedIn ? (
-				<>
-					{displayName}
-					<span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
-				</>
-			) : (
-				<>{isSessionLoading ? "Loading..." : "Sign in"}</>
-			)}
+		<Button
+			variant="ghost"
+			size="sm"
+			className="flex items-center gap-2 h-9 px-3 rounded-md text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+		>
+			<User className="h-5 w-5" />
+			<span className="text-sm font-medium">{session?.user?.name || "Account"}</span>
 		</Button>
 	);
 }

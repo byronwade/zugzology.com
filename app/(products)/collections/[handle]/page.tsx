@@ -18,6 +18,8 @@ export interface CollectionPageProps {
 
 // Cache the collection data
 const getCachedCollection = cache(async (handle: string, sort = "featured", page = 1) => {
+	"use cache";
+
 	try {
 		// Check if handle is valid
 		if (!handle || typeof handle !== "string") {
@@ -25,11 +27,27 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 			return null;
 		}
 
+		console.log(`[getCachedCollection] Fetching collection: ${handle}, page: ${page}, sort: ${sort}`);
+		const startTime = Date.now();
+
 		// Special case for the "all" collection - create a virtual collection
 		if (handle === "all") {
-			// Import the getProducts function which should fetch all products
-			const { getProducts } = await import("@/lib/actions/shopify");
-			const products = await getProducts();
+			// Import the getPaginatedProducts function which fetches products with pagination
+			// Use direct import instead of dynamic import to reduce overhead
+			const { getPaginatedProducts } = await import("@/lib/actions/shopify");
+
+			// Log pagination request for debugging
+			console.log(`[getCachedCollection] Fetching page ${page} of all products with sort: ${sort}`);
+
+			const { products, totalCount } = await getPaginatedProducts(page, sort, 24);
+
+			// Log the results for debugging
+			const endTime = Date.now();
+			console.log(
+				`[getCachedCollection] Received ${products?.length || 0} products out of ${totalCount} total in ${
+					endTime - startTime
+				}ms`
+			);
 
 			// Create a virtual collection object that matches the ShopifyCollectionWithPagination structure
 			return {
@@ -45,18 +63,21 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 						cursor: `product-${index}`, // Add a mock cursor value
 					})),
 					pageInfo: {
-						hasNextPage: false,
-						hasPreviousPage: false,
+						hasNextPage: page * 24 < totalCount,
+						hasPreviousPage: page > 1,
 						startCursor: "",
 						endCursor: "",
 					},
 				},
-				productsCount: products?.length || 0,
+				productsCount: totalCount,
 				image: null,
 			} as unknown as ShopifyCollectionWithPagination; // Use unknown to bypass type checking
 		}
 
 		// Normal case - call getCollection with the handle
+		// Log pagination request for debugging
+		console.log(`[getCachedCollection] Fetching page ${page} of collection ${handle} with sort: ${sort}`);
+
 		const collection = await getCollection(handle);
 
 		if (!collection) {
@@ -79,6 +100,8 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 			collection.products.pageInfo.endCursor = "";
 		}
 
+		const endTime = Date.now();
+		console.log(`[getCachedCollection] Completed in ${endTime - startTime}ms`);
 		return collection;
 	} catch (error) {
 		console.error("Error fetching collection:", error);
@@ -87,7 +110,10 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 });
 
 export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
-	const collection = await getCachedCollection(params.handle);
+	// Await params as required by Next.js 15
+	const awaitedParams = await params;
+
+	const collection = await getCachedCollection(awaitedParams.handle);
 	if (!collection)
 		return {
 			title: "Collection Not Found",
@@ -141,20 +167,24 @@ export async function generateMetadata({ params }: CollectionPageProps): Promise
 
 export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
 	try {
-		if (!params.handle) {
+		// Await params and searchParams as required by Next.js 15
+		const awaitedParams = await params;
+		const awaitedSearchParams = await searchParams;
+
+		if (!awaitedParams.handle) {
 			console.error("Collection handle is missing");
 			return notFound();
 		}
 
 		// Get sort and page from searchParams
-		const sort = searchParams?.sort || "featured";
-		const page = searchParams?.page ? parseInt(searchParams.page) : 1;
+		const sort = awaitedSearchParams?.sort || "featured";
+		const page = awaitedSearchParams?.page ? parseInt(awaitedSearchParams.page) : 1;
 
 		// Fetch collection data with proper error handling
-		const collection = await getCachedCollection(params.handle);
+		const collection = await getCachedCollection(awaitedParams.handle, sort, page);
 
 		if (!collection) {
-			console.error("Failed to load collection:", params.handle);
+			console.error("Failed to load collection:", awaitedParams.handle);
 			return notFound();
 		}
 

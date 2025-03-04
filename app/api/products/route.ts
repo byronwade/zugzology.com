@@ -1,63 +1,36 @@
-import { getProducts } from "@/lib/actions/shopify";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getProducts } from "@/lib/api/shopify/actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
 	try {
-		const allProducts = await getProducts();
+		// Get query parameters
+		const searchParams = request.nextUrl.searchParams;
+		const tag = searchParams.get("tag");
+		const limit = parseInt(searchParams.get("limit") || "10", 10);
 
-		// Ensure we have products and get 4 random ones
-		if (allProducts && Array.isArray(allProducts) && allProducts.length > 0) {
-			// Filter products that have variants and are available for sale
-			const availableProducts = allProducts.filter((product) => product.availableForSale && product.variants?.nodes?.[0]);
+		// Fetch all products
+		const products = await getProducts();
 
-			if (availableProducts.length === 0) {
-				return new NextResponse(JSON.stringify([]), {
-					status: 200,
-					headers: {
-						"Content-Type": "application/json",
-						"Access-Control-Allow-Origin": "*",
-						"Access-Control-Allow-Methods": "GET, OPTIONS",
-					},
-				});
-			}
-
-			const shuffled = [...availableProducts].sort(() => 0.5 - Math.random());
-			const fourProducts = shuffled.slice(0, 4).map((product) => ({
-				...product,
-				selectedVariantId: product.variants.nodes[0].id,
-			}));
-
-			return new NextResponse(JSON.stringify(fourProducts), {
-				status: 200,
-				headers: {
-					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*",
-					"Access-Control-Allow-Methods": "GET, OPTIONS",
-				},
-			});
+		// Filter products if tag is provided
+		let filteredProducts = products;
+		if (tag) {
+			filteredProducts = products.filter((product) => product.tags.includes(tag));
 		}
 
-		return new NextResponse(JSON.stringify([]), {
-			status: 200,
-			headers: {
-				"Content-Type": "application/json",
-				"Access-Control-Allow-Origin": "*",
-				"Access-Control-Allow-Methods": "GET, OPTIONS",
-			},
+		// Limit the number of products
+		const limitedProducts = filteredProducts.slice(0, limit);
+
+		// Return the products
+		return NextResponse.json({
+			products: limitedProducts,
+			count: limitedProducts.length,
 		});
 	} catch (error) {
 		console.error("Error fetching products:", error);
-		return new NextResponse(JSON.stringify({ error: "Failed to fetch products" }), {
-			status: 500,
-			headers: {
-				"Content-Type": "application/json",
-				"Access-Control-Allow-Origin": "*",
-				"Access-Control-Allow-Methods": "GET, OPTIONS",
-			},
-		});
+		return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
 	}
 }
 

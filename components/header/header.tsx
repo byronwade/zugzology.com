@@ -125,4 +125,4 @@ export default async function Header() {
 			</Suspense>
 		</div>
 	);
-}
+} 

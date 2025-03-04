@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { getBlogByHandle, getPaginatedBlogPostsByHandle, getProducts } from "@/lib/api/shopify/actions";
+import { getBlogByHandle, getPaginatedBlogPostsByHandle, getAllBlogPosts } from "@/lib/api/shopify/actions";
+import { getLimitedProducts } from "@/lib/actions/shopify/index";
 import type { ShopifyBlogArticle, ShopifyBlog } from "@/lib/types";
 import { BlogBreadcrumb } from "@/components/blog/blog-breadcrumb";
 import { jsonLdScriptProps } from "react-schemaorg";
@@ -79,41 +80,44 @@ function BlogCard({ article, blogHandle }: BlogCardProps) {
 	return (
 		<Link
 			href={`/blogs/${blogHandle}/${article.handle}`}
-			className="group block py-8 first:pt-0 last:pb-0 border-b border-[#e6e6e6] dark:border-[#2f2f2f] hover:bg-[#fafafa] dark:hover:bg-[#1a1a1a] transition-colors"
+			className="group block bg-white dark:bg-neutral-900 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-4px]"
 		>
-			<article className="flex flex-col md:flex-row gap-6">
-				<div className="w-full md:w-2/3 space-y-3">
-					<div className="flex items-center gap-2 text-sm">
-						<div className="w-6 h-6 rounded-full bg-[#f0f0f0] dark:bg-[#2f2f2f] flex items-center justify-center">
-							<span className="text-xs font-medium text-[#6b6b6b] dark:text-[#a8a8a8]">
-								{article.author.name.charAt(0)}
+			<article className="flex flex-col md:flex-row">
+				<div className="w-full md:w-2/3 p-6 flex flex-col justify-center">
+					<div className="space-y-4">
+						<div className="flex items-center gap-2 text-sm">
+							<div className="w-6 h-6 rounded-full bg-[#f0f0f0] dark:bg-[#2f2f2f] flex items-center justify-center">
+								<span className="text-xs font-medium text-[#6b6b6b] dark:text-[#a8a8a8]">
+									{article.author.name.charAt(0)}
+								</span>
+							</div>
+							<span className="text-[#6b6b6b] dark:text-[#a8a8a8]">{article.author.name}</span>
+							<span className="text-[#6b6b6b] dark:text-[#a8a8a8]">·</span>
+							<time dateTime={article.publishedAt} className="text-[#6b6b6b] dark:text-[#a8a8a8]">
+								{new Date(article.publishedAt).toLocaleDateString("en-US", {
+									month: "short",
+									day: "numeric",
+								})}
+							</time>
+							<span className="text-[#6b6b6b] dark:text-[#a8a8a8]">·</span>
+							<span className="text-[#6b6b6b] dark:text-[#a8a8a8]">
+								{Math.ceil((article.excerpt?.split(" ").length || 0) / 200)} min read
 							</span>
 						</div>
-						<span className="text-[#6b6b6b] dark:text-[#a8a8a8]">{article.author.name}</span>
-						<span className="text-[#6b6b6b] dark:text-[#a8a8a8]">·</span>
-						<time dateTime={article.publishedAt} className="text-[#6b6b6b] dark:text-[#a8a8a8]">
-							{new Date(article.publishedAt).toLocaleDateString("en-US", {
-								month: "short",
-								day: "numeric",
-							})}
-						</time>
-					</div>
-					<h3 className="text-xl md:text-2xl font-bold text-[#242424] dark:text-[#e6e6e6] group-hover:text-[#1a1a1a] dark:group-hover:text-white transition-colors">
-						{article.title}
-					</h3>
-					<p className="text-base text-[#6b6b6b] dark:text-[#a8a8a8] line-clamp-2">{article.excerpt}</p>
-					<div className="flex items-center gap-3">
-						<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f0f0f0] dark:bg-[#2f2f2f] text-[#6b6b6b] dark:text-[#a8a8a8]">
-							{article.blog?.title}
-						</span>
-						<span className="text-sm text-[#6b6b6b] dark:text-[#a8a8a8]">
-							{Math.ceil((article.excerpt?.split(" ").length || 0) / 200)} min read
-						</span>
+						<h3 className="text-xl md:text-2xl font-bold text-[#242424] dark:text-[#e6e6e6] group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+							{article.title}
+						</h3>
+						<p className="text-base text-[#6b6b6b] dark:text-[#a8a8a8] line-clamp-3">{article.excerpt}</p>
+						<div className="flex items-center gap-3">
+							<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+								{article.blog?.title}
+							</span>
+						</div>
 					</div>
 				</div>
 				{article.image && (
 					<div className="w-full md:w-1/3">
-						<div className="aspect-[4/3] relative overflow-hidden">
+						<div className="aspect-square md:aspect-auto md:h-full relative overflow-hidden">
 							<Image
 								src={article.image.url}
 								alt={article.image.altText || article.title}
@@ -197,9 +201,10 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
 	const remainingPosts =
 		currentPage === 1 ? posts.filter((post) => !featuredPosts.find((fp) => fp.id === post.id)) : posts;
 
-	// Get featured products for the category
-	const allProducts = await getProducts();
-	const featuredProducts = allProducts.slice(0, 4); // Get first 4 products
+	// Get featured products for the category - use optimized function
+	console.time("blogCategoryProductFetch");
+	const featuredProducts = await getLimitedProducts(4); // Get only 4 products
+	console.timeEnd("blogCategoryProductFetch");
 
 	const duration = performance.now() - startTime;
 	console.log(`⚡ [Blog Category ${blog.title}] ${duration.toFixed(2)}ms`, {
@@ -252,226 +257,209 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
 			{
 				"@type": "ListItem",
 				position: 1,
-				item: {
-					"@type": "Thing",
-					name: "Home",
-					"@id": "https://zugzology.com",
-				},
+				name: "Home",
+				item: "https://zugzology.com",
 			},
 			{
 				"@type": "ListItem",
 				position: 2,
-				item: {
-					"@type": "Thing",
-					name: "Blogs",
-					"@id": "https://zugzology.com/blogs",
-				},
+				name: "Blogs",
+				item: "https://zugzology.com/blogs",
 			},
 			{
 				"@type": "ListItem",
 				position: 3,
-				item: {
-					"@type": "Thing",
-					name: blog.title,
-					"@id": `https://zugzology.com/blogs/${blog.handle}`,
-				},
+				name: blog.title,
+				item: `https://zugzology.com/blogs/${blog.handle}`,
 			},
 		],
 	};
 
 	return (
 		<>
-			<script {...jsonLdScriptProps(blogStructuredData)} />
-			<script {...jsonLdScriptProps(breadcrumbStructuredData)} />
-			<div className="min-h-screen w-full">
-				<div className="max-w-[1800px] mx-auto px-4 py-8">
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(blogStructuredData),
+				}}
+			/>
+
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(breadcrumbStructuredData),
+				}}
+			/>
+
+			<div className="min-h-screen w-full bg-white dark:bg-black">
+				<div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 					<Suspense fallback={<div className="h-12 bg-neutral-200 dark:bg-neutral-700 rounded w-1/4 mb-8" />}>
 						<BlogBreadcrumb blogHandle={blog.handle} blogTitle={blog.title} />
 					</Suspense>
-					<section className="w-full bg-white dark:bg-[#121212]">
-						<div className="max-w-screen-md mx-auto px-4 sm:px-6 py-12">
-							<header className="mb-12 text-center">
-								<h1 className="text-3xl md:text-4xl font-bold text-[#242424] dark:text-[#e6e6e6] mb-4">{blog.title}</h1>
-								<p className="text-lg text-[#6b6b6b] dark:text-[#a8a8a8]">
-									Explore our {blog.title.toLowerCase()} articles. Find expert insights, tips, and guides about mushroom
-									cultivation and mycology.
+
+					{/* Hero Section */}
+					<section className="w-full py-12">
+						<div className="w-full">
+							<div className="text-center mb-16">
+								<h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#242424] dark:text-[#e6e6e6] mb-6">
+									{blog.title}
+								</h1>
+								<p className="text-xl md:text-2xl text-[#6b6b6b] dark:text-[#a8a8a8] max-w-3xl mx-auto">
+									Explore our collection of articles about {blog.title.toLowerCase()}. Find expert insights, tips, and
+									guides.
 								</p>
-							</header>
-
-							{/* Featured Products Section */}
-							{featuredProducts.length > 0 && (
-								<div className="mb-16 py-12 bg-[#f7f7f7] dark:bg-[#1a1a1a] -mx-4 sm:-mx-6">
-									<div className="max-w-screen-lg mx-auto px-4 sm:px-6">
-										<div className="text-center mb-8">
-											<h2 className="text-2xl font-bold text-[#242424] dark:text-[#e6e6e6] mb-2">Featured Products</h2>
-											<p className="text-[#6b6b6b] dark:text-[#a8a8a8]">
-												Get started with our most popular mushroom growing supplies
-											</p>
-										</div>
-										<div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-											{featuredProducts.map((product) => (
-												<Link
-													key={product.id}
-													href={`/products/${product.handle}`}
-													className="group block bg-white dark:bg-[#242424] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-												>
-													{product.images?.nodes[0] && (
-														<div className="aspect-square relative">
-															<Image
-																src={product.images.nodes[0].url}
-																alt={product.images.nodes[0].altText || product.title}
-																fill
-																className="object-cover transition-transform duration-300 group-hover:scale-105"
-																sizes="(max-width: 768px) 50vw, 25vw"
-															/>
-														</div>
-													)}
-													<div className="p-4">
-														<h3 className="font-medium text-[#242424] dark:text-[#e6e6e6] group-hover:text-[#1a1a1a] dark:group-hover:text-white transition-colors">
-															{product.title}
-														</h3>
-														<p className="text-[#6b6b6b] dark:text-[#a8a8a8] mt-1">
-															From {formatPrice(product.priceRange.minVariantPrice.amount)}
-														</p>
-													</div>
-												</Link>
-											))}
-										</div>
-										<div className="text-center mt-8">
-											<Link
-												href="/products"
-												className="inline-flex items-center px-6 py-3 rounded-full text-sm font-medium bg-[#242424] dark:bg-[#e6e6e6] text-white dark:text-[#242424] hover:bg-[#1a1a1a] dark:hover:bg-white transition-colors"
-											>
-												View All Products
-											</Link>
-										</div>
-									</div>
-								</div>
-							)}
-
-							{/* Featured Posts Section - Only show if there are featured posts */}
-							{featuredPosts.length > 0 && (
-								<section className="mb-16">
-									<div className="grid gap-8">
-										{featuredPosts.map((post) => (
-											<Link key={post.id} href={`/blogs/${blog.handle}/${post.handle}`} className="group block">
-												<article className="space-y-4">
-													<div className="aspect-[2/1] relative overflow-hidden rounded-lg">
-														{post.image ? (
-															<Image
-																src={post.image.url}
-																alt={post.image.altText || post.title}
-																fill
-																className="object-cover transition-transform duration-300 group-hover:scale-105"
-																sizes="(max-width: 768px) 100vw, 720px"
-																priority={post === featuredPosts[0]}
-															/>
-														) : (
-															<div className="absolute inset-0 bg-[#f0f0f0] dark:bg-[#2f2f2f] flex items-center justify-center">
-																<span className="text-[#6b6b6b] dark:text-[#a8a8a8]">No image available</span>
-															</div>
-														)}
-													</div>
-													<div className="space-y-3">
-														<div className="flex items-center gap-2 text-sm">
-															<div className="w-6 h-6 rounded-full bg-[#f0f0f0] dark:bg-[#2f2f2f] flex items-center justify-center">
-																<span className="text-xs font-medium text-[#6b6b6b] dark:text-[#a8a8a8]">
-																	{post.author.name.charAt(0)}
-																</span>
-															</div>
-															<span className="text-[#6b6b6b] dark:text-[#a8a8a8]">{post.author.name}</span>
-															<span className="text-[#6b6b6b] dark:text-[#a8a8a8]">·</span>
-															<time dateTime={post.publishedAt} className="text-[#6b6b6b] dark:text-[#a8a8a8]">
-																{new Date(post.publishedAt).toLocaleDateString("en-US", {
-																	month: "short",
-																	day: "numeric",
-																})}
-															</time>
-														</div>
-														<h3 className="text-2xl md:text-3xl font-bold text-[#242424] dark:text-[#e6e6e6] group-hover:text-[#1a1a1a] dark:group-hover:text-white transition-colors">
-															{post.title}
-														</h3>
-														<p className="text-lg text-[#6b6b6b] dark:text-[#a8a8a8]">{post.excerpt}</p>
-														<div className="flex items-center gap-3">
-															<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f0f0f0] dark:bg-[#2f2f2f] text-[#6b6b6b] dark:text-[#a8a8a8]">
-																Featured
-															</span>
-															<span className="text-sm text-[#6b6b6b] dark:text-[#a8a8a8]">
-																{Math.ceil((post.excerpt?.split(" ").length || 0) / 200)} min read
-															</span>
-														</div>
-													</div>
-												</article>
-											</Link>
-										))}
-									</div>
-								</section>
-							)}
-
-							{/* All Articles Section */}
-							{remainingPosts.length > 0 && (
-								<section>
-									<div className="border-t border-[#e6e6e6] dark:border-[#2f2f2f] mb-8">
-										<div className="flex items-center justify-between py-6">
-											<h2 className="text-xl font-bold text-[#242424] dark:text-[#e6e6e6]">Latest Articles</h2>
-											<p className="text-sm text-[#6b6b6b] dark:text-[#a8a8a8]">
-												{pagination.totalPosts > 0 ? `${pagination.totalPosts} articles` : "No articles available"}
-											</p>
-										</div>
-									</div>
-									<div className="divide-y divide-[#e6e6e6] dark:divide-[#2f2f2f]">
-										{remainingPosts.map((article) => (
-											<BlogCard key={article.id} article={article} blogHandle={blog.handle} />
-										))}
-									</div>
-
-									{/* Pagination */}
-									{pagination.totalPages > 1 && (
-										<div className="mt-12">
-											<PaginationControls
-												currentPage={pagination.currentPage}
-												totalPages={pagination.totalPages}
-												baseUrl={`/blogs/${blog.handle}`}
-											/>
-										</div>
-									)}
-								</section>
-							)}
-
-							{/* Show message if no posts at all */}
-							{posts.length === 0 && (
-								<div className="text-center py-12">
-									<p className="text-[#6b6b6b] dark:text-[#a8a8a8]">No articles found in this category.</p>
-								</div>
-							)}
-						</div>
-					</section>
-
-					{/* Final CTA Section */}
-					<section className="w-full bg-[#f7f7f7] dark:bg-[#1a1a1a] py-16 mt-12 -mx-4">
-						<div className="max-w-screen-md mx-auto px-4 sm:px-6 text-center">
-							<h2 className="text-3xl font-bold text-[#242424] dark:text-[#e6e6e6] mb-4">
-								Start Your Growing Journey Today
-							</h2>
-							<p className="text-lg text-[#6b6b6b] dark:text-[#a8a8a8] mb-8">
-								Browse our selection of high-quality mushroom cultivation supplies
-							</p>
-							<div className="flex flex-col sm:flex-row gap-4 justify-center">
-								<Link
-									href="/products"
-									className="inline-flex items-center px-8 py-4 rounded-full text-base font-medium bg-[#242424] dark:bg-[#e6e6e6] text-white dark:text-[#242424] hover:bg-[#1a1a1a] dark:hover:bg-white transition-colors"
-								>
-									Shop All Products
-								</Link>
-								<Link
-									href="/collections/starter-kits"
-									className="inline-flex items-center px-8 py-4 rounded-full text-base font-medium bg-white dark:bg-[#242424] text-[#242424] dark:text-[#e6e6e6] border border-[#e6e6e6] dark:border-[#2f2f2f] hover:bg-[#f7f7f7] dark:hover:bg-[#1a1a1a] transition-colors"
-								>
-									View Starter Kits
-								</Link>
 							</div>
 						</div>
 					</section>
+
+					{/* Featured Posts Section - Only show if there are featured posts */}
+					{featuredPosts.length > 0 && (
+						<section className="w-full mb-16">
+							<div className="w-full">
+								<div className="flex items-center justify-between mb-10">
+									<h2 className="text-3xl font-bold text-[#242424] dark:text-[#e6e6e6]">Featured Articles</h2>
+								</div>
+								<div className="grid gap-8 md:grid-cols-3">
+									{featuredPosts.map((post) => (
+										<Link
+											key={post.id}
+											href={`/blogs/${blog.handle}/${post.handle}`}
+											className="group block bg-white dark:bg-[#242424] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-4px]"
+										>
+											<article className="h-full flex flex-col">
+												{post.image && (
+													<div className="aspect-[16/9] relative overflow-hidden">
+														<Image
+															src={post.image.url}
+															alt={post.image.altText || post.title}
+															fill
+															className="object-cover transition-transform duration-300 group-hover:scale-105"
+															sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+														/>
+														<div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/0" />
+														<div className="absolute bottom-0 p-4 text-white">
+															<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-600/80 text-white mb-2">
+																Featured
+															</span>
+														</div>
+													</div>
+												)}
+												<div className="p-5 flex flex-col flex-grow">
+													<h3 className="text-xl font-bold text-[#242424] dark:text-[#e6e6e6] group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors mb-2">
+														{post.title}
+													</h3>
+													<p className="text-[#6b6b6b] dark:text-[#a8a8a8] line-clamp-3 mb-4 flex-grow">
+														{post.excerpt}
+													</p>
+													<div className="flex items-center gap-2 text-sm text-[#6b6b6b] dark:text-[#a8a8a8] pt-2 border-t border-[#e6e6e6] dark:border-[#2f2f2f]">
+														<span>{post.author.name}</span>
+														<span>•</span>
+														<time dateTime={post.publishedAt}>
+															{new Date(post.publishedAt).toLocaleDateString("en-US", {
+																month: "short",
+																day: "numeric",
+															})}
+														</time>
+														<span>•</span>
+														<span>{Math.ceil((post.excerpt?.split(" ").length || 0) / 200)} min read</span>
+													</div>
+												</div>
+											</article>
+										</Link>
+									))}
+								</div>
+							</div>
+						</section>
+					)}
+
+					{/* All Posts Section */}
+					<section className="w-full mb-16">
+						<div className="w-full">
+							<div className="flex items-center justify-between mb-10">
+								<div>
+									<h2 className="text-3xl font-bold text-[#242424] dark:text-[#e6e6e6]">All Articles</h2>
+									<p className="mt-2 text-lg text-[#6b6b6b] dark:text-[#a8a8a8]">
+										{pagination.totalPosts > 0
+											? `Showing ${(pagination.currentPage - 1) * pagination.postsPerPage + 1}-${Math.min(
+													pagination.currentPage * pagination.postsPerPage,
+													pagination.totalPosts
+											  )} of ${pagination.totalPosts} articles`
+											: "No articles available"}
+									</p>
+								</div>
+							</div>
+
+							{remainingPosts.length > 0 ? (
+								<div className="space-y-8">
+									{remainingPosts.map((article) => (
+										<BlogCard key={article.id} article={article} blogHandle={blog.handle} />
+									))}
+								</div>
+							) : (
+								<div className="text-center py-12 bg-[#f9f9f9] dark:bg-[#161616] rounded-xl">
+									<p className="text-[#6b6b6b] dark:text-[#a8a8a8]">No more articles available.</p>
+								</div>
+							)}
+
+							{/* Pagination */}
+							{pagination.totalPages > 1 && (
+								<div className="mt-16">
+									<PaginationControls {...pagination} />
+								</div>
+							)}
+						</div>
+					</section>
+
+					{/* Featured Products Section */}
+					{featuredProducts.length > 0 && (
+						<section className="w-full bg-[#f7f7f7] dark:bg-[#1a1a1a] py-16 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 my-16">
+							<div className="w-full">
+								<div className="text-center mb-10">
+									<h2 className="text-3xl font-bold text-[#242424] dark:text-[#e6e6e6] mb-3">Shop Our Best Sellers</h2>
+									<p className="text-lg text-[#6b6b6b] dark:text-[#a8a8a8] max-w-2xl mx-auto">
+										Discover our most popular mushroom growing supplies
+									</p>
+								</div>
+								<div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+									{featuredProducts.map((product) => (
+										<Link
+											key={product.id}
+											href={`/products/${product.handle}`}
+											className="group block bg-white dark:bg-[#242424] rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:translate-y-[-4px]"
+										>
+											{product.images?.nodes[0] && (
+												<div className="aspect-square relative">
+													<Image
+														src={product.images.nodes[0].url}
+														alt={product.images.nodes[0].altText || product.title}
+														fill
+														className="object-cover transition-transform duration-300 group-hover:scale-105"
+														sizes="(max-width: 768px) 50vw, 25vw"
+													/>
+												</div>
+											)}
+											<div className="p-4">
+												<h3 className="font-medium text-[#242424] dark:text-[#e6e6e6] group-hover:text-[#1a1a1a] dark:group-hover:text-white transition-colors">
+													{product.title}
+												</h3>
+												<p className="text-[#6b6b6b] dark:text-[#a8a8a8] mt-1">
+													From {formatPrice(product.priceRange.minVariantPrice.amount)}
+												</p>
+											</div>
+										</Link>
+									))}
+								</div>
+								<div className="text-center mt-10">
+									<Link
+										href="/products"
+										className="inline-flex items-center px-6 py-3 rounded-full text-sm font-medium bg-[#242424] dark:bg-[#e6e6e6] text-white dark:text-[#242424] hover:bg-[#1a1a1a] dark:hover:bg-white transition-colors"
+									>
+										View All Products
+									</Link>
+								</div>
+							</div>
+						</section>
+					)}
 				</div>
 			</div>
 		</>

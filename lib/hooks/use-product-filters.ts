@@ -12,6 +12,28 @@ const defaultFilters: Filters = {
 	sort: "featured",
 };
 
+/**
+ * Hook for filtering and sorting products.
+ * 
+ * IMPORTANT: This hook uses useSearchParams, so any component using it must be wrapped in a Suspense boundary:
+ * 
+ * ```tsx
+ * import { Suspense } from "react";
+ * 
+ * function ProductsPage() {
+ *   return (
+ *     <Suspense fallback={<div>Loading...</div>}>
+ *       <ProductsContent />
+ *     </Suspense>
+ *   );
+ * }
+ * 
+ * function ProductsContent() {
+ *   const { filteredProducts, filters, updateFilter } = useProductFilters(products);
+ *   // ...
+ * }
+ * ```
+ */
 export function useProductFilters(initialProducts: ShopifyProduct[]) {
 	const router = useRouter();
 	const searchParams = useSearchParams();

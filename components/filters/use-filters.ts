@@ -56,3 +56,25 @@ export function useFilters() {
 		isPending,
 	};
 }
+
+// Add a comment to remind developers to use Suspense
+/**
+ * IMPORTANT: When using the useFilters hook, make sure to wrap the component in a Suspense boundary:
+ * 
+ * ```tsx
+ * import { Suspense } from "react";
+ * 
+ * function MyComponent() {
+ *   return (
+ *     <Suspense fallback={<div>Loading...</div>}>
+ *       <MyFilterComponent />
+ *     </Suspense>
+ *   );
+ * }
+ * 
+ * function MyFilterComponent() {
+ *   const { filters, handleFilterChange } = useFilters();
+ *   // ...
+ * }
+ * ```
+ */

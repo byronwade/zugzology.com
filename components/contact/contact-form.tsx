@@ -4,8 +4,10 @@ import { useSearchParams } from "next/navigation";
 import { jsonLdScriptProps } from "react-schemaorg";
 import type { ContactPage, BreadcrumbList } from "schema-dts";
 import { WithContext } from "schema-dts";
+import { Suspense } from "react";
 
-export function ContactForm() {
+// Inner component that uses useSearchParams
+function ContactFormInner() {
 	const searchParams = useSearchParams();
 	const subject = searchParams.get("subject") || "";
 
@@ -57,7 +59,13 @@ export function ContactForm() {
 						<label htmlFor="subject" className="block text-sm font-medium mb-2">
 							Subject
 						</label>
-						<input type="text" id="subject" name="subject" defaultValue={subject} className="w-full p-2 border rounded-lg" />
+						<input
+							type="text"
+							id="subject"
+							name="subject"
+							defaultValue={subject}
+							className="w-full p-2 border rounded-lg"
+						/>
 					</div>
 					<div>
 						<label htmlFor="message" className="block text-sm font-medium mb-2">
@@ -71,5 +79,31 @@ export function ContactForm() {
 				</form>
 			</div>
 		</>
+	);
+}
+
+// Wrapper component with Suspense boundary
+export function ContactForm() {
+	return (
+		<Suspense
+			fallback={
+				<div className="max-w-2xl mx-auto p-4">
+					<h1 className="text-3xl font-bold mb-8">Contact Us</h1>
+					<div className="space-y-6">
+						<div>
+							<div className="block text-sm font-medium mb-2">Subject</div>
+							<div className="w-full h-10 bg-gray-200 animate-pulse rounded-lg"></div>
+						</div>
+						<div>
+							<div className="block text-sm font-medium mb-2">Message</div>
+							<div className="w-full h-32 bg-gray-200 animate-pulse rounded-lg"></div>
+						</div>
+						<div className="w-32 h-10 bg-gray-300 animate-pulse rounded-lg"></div>
+					</div>
+				</div>
+			}
+		>
+			<ContactFormInner />
+		</Suspense>
 	);
 }
