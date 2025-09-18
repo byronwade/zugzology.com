@@ -156,9 +156,10 @@ export const authConfig: AuthOptions = {
 
 // Create and export the auth functions
 const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+const { GET, POST } = handlers;
 
 // Export the auth functions individually
-export { handlers, auth, signIn, signOut };
+export { handlers, auth, signIn, signOut, GET, POST };
 
 // Extend the Session type to include Shopify access token and ID token
 declare module "next-auth" {
