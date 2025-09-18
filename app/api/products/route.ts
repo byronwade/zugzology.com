@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProducts } from "@/lib/api/shopify/actions";
+import { getProducts } from "@/lib/actions/shopify";
 
 // Dynamic rendering and revalidation handled by dynamicIO
 

@@ -1,4 +1,4 @@
-import { getProducts, getPaginatedProducts } from "@/lib/api/shopify/actions";
+import { getProducts, getPaginatedProducts } from "@/lib/actions/shopify";
 import { NextResponse } from "next/server";
 
 // Helper function to optimize product data for client consumption

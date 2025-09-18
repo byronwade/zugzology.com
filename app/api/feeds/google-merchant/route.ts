@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getProducts, getCollections } from '@/lib/actions/shopify';
+import { getProducts, getAllCollections } from '@/lib/actions/shopify';
 import { getStoreConfigSafe } from '@/lib/config/store-config';
 import type { ShopifyProduct } from '@/lib/types';
 
@@ -10,7 +10,7 @@ export async function GET() {
     
     // Fetch all products
     const products = await getProducts();
-    const collections = await getCollections();
+    const collections = await getAllCollections();
     
     // Create collection map for Google product categories
     const collectionMap = new Map(
