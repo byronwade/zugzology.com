@@ -1,6 +1,19 @@
 "use client";
 
+import { useEffect } from "react";
+import "./loading-types";
+
 export function HomeLoading() {
+	useEffect(() => {
+		// Track loading state analytics
+		if (typeof window !== 'undefined' && window.gtag) {
+			window.gtag('event', 'page_view', {
+				page_type: 'home_loading',
+				page_location: window.location.href,
+				content_category: 'loading_state'
+			});
+		}
+	}, []);
 	return (
 		<div className="w-full animate-pulse">
 			<div className="max-w-screen-xl mx-auto px-4 py-8">
@@ -21,6 +34,17 @@ export function HomeLoading() {
 }
 
 export function ProductLoading() {
+	useEffect(() => {
+		// Track product loading state analytics
+		if (typeof window !== 'undefined' && window.gtag) {
+			window.gtag('event', 'page_view', {
+				page_type: 'product_loading',
+				page_location: window.location.href,
+				content_category: 'loading_state'
+			});
+		}
+	}, []);
+	
 	return (
 		<div className="w-full animate-pulse">
 			<div className="max-w-screen-xl mx-auto px-4 py-8">
@@ -43,6 +67,17 @@ export function ProductLoading() {
 }
 
 export function CollectionLoading() {
+	useEffect(() => {
+		// Track collection loading state analytics
+		if (typeof window !== 'undefined' && window.gtag) {
+			window.gtag('event', 'page_view', {
+				page_type: 'collection_loading',
+				page_location: window.location.href,
+				content_category: 'loading_state'
+			});
+		}
+	}, []);
+	
 	return (
 		<div className="w-full animate-pulse">
 			<div className="max-w-screen-xl mx-auto px-4 py-8">

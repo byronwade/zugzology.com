@@ -1,110 +1,98 @@
 "use client";
 
 import { Award, Box, Clock, HeartHandshake, Leaf, ShieldCheck, Truck, Users } from "lucide-react";
-import { useEffect, useState } from "react";
 
 export default function StoreFeatures() {
-	// Track touch state for iOS-like feedback
-	const [touchedItem, setTouchedItem] = useState<number | null>(null);
-
-	// Detect iOS for specific optimizations
-	const [isIOS, setIsIOS] = useState(false);
-
-	useEffect(() => {
-		// Check if user is on iOS
-		const userAgent = window.navigator.userAgent.toLowerCase();
-		setIsIOS(/iphone|ipad|ipod/.test(userAgent));
-	}, []);
-
-	// Define all features with a priority flag for mobile
 	const features = [
 		{
-			icon: <Award className="h-6 w-6" />,
+			icon: <Award className="h-5 w-5" />,
 			title: "Quality Guaranteed",
-			description: "All our supplies are lab-tested for optimal growth success.",
-			priority: true, // Show on mobile
+			description: "Lab-tested supplies for optimal growth success.",
 		},
 		{
-			icon: <Leaf className="h-6 w-6" />,
+			icon: <Leaf className="h-5 w-5" />,
 			title: "Expert Support",
-			description: "Access our knowledge base for successful cultivation.",
-			priority: false,
+			description: "Access our knowledge base for cultivation success.",
 		},
 		{
-			icon: <Box className="h-6 w-6" />,
+			icon: <Box className="h-5 w-5" />,
 			title: "Discreet Shipping",
-			description: "All orders shipped in plain, unmarked packaging.",
-			priority: true, // Show on mobile
+			description: "Plain, unmarked packaging for all orders.",
 		},
 		{
-			icon: <Truck className="h-6 w-6" />,
+			icon: <Truck className="h-5 w-5" />,
 			title: "Fast & Free Shipping",
-			description: "Free shipping on orders over $50 with quick delivery.",
-			priority: true, // Show on mobile
+			description: "Free shipping on orders over $50.",
 		},
 		{
-			icon: <ShieldCheck className="h-6 w-6" />,
+			icon: <ShieldCheck className="h-5 w-5" />,
 			title: "Premium Products",
-			description: "Carefully selected products for best cultivation results.",
-			priority: false,
+			description: "Carefully selected for best results.",
 		},
 		{
-			icon: <Clock className="h-6 w-6" />,
+			icon: <Clock className="h-5 w-5" />,
 			title: "24/7 Support",
-			description: "Get help anytime with our knowledge base and forums.",
-			priority: false,
+			description: "Help available through our knowledge base.",
 		},
 		{
-			icon: <Users className="h-6 w-6" />,
+			icon: <Users className="h-5 w-5" />,
 			title: "Growing Community",
-			description: "Join our community to share experiences and tips.",
-			priority: false,
+			description: "Share experiences and tips with growers.",
 		},
 		{
-			icon: <HeartHandshake className="h-6 w-6" />,
-			title: "Satisfaction Guarantee",
-			description: "30-day money-back guarantee on all purchases.",
-			priority: true, // Show on mobile
+			icon: <HeartHandshake className="h-5 w-5" />,
+			title: "30-Day Guarantee",
+			description: "Money-back guarantee on all purchases.",
 		},
 	];
 
 	return (
-		<section className="w-full py-8 bg-background border-y border-border dark:border-border/20">
-			<div className="w-full max-w-[1800px] mx-auto px-4 md:px-6">
-				<div className="w-full grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8">
-					{features.map((feature, index) => (
-						<div
-							key={index}
-							className={`
-								flex flex-col items-center text-center space-y-3 p-4 
-								rounded-2xl transition-all duration-200
-								${isIOS ? "active:scale-[0.97] active:bg-muted/80" : "hover:bg-muted/50"}
-								${touchedItem === index ? "bg-muted/80" : "bg-background"}
-								dark:hover:bg-muted/20 dark:active:bg-muted/30
-								${isIOS ? "shadow-[0_0.5px_2px_rgba(0,0,0,0.05)]" : ""}
-								dark:shadow-none
-								${!feature.priority ? "hidden md:flex" : "flex"}
-							`}
-							onTouchStart={() => setTouchedItem(index)}
-							onTouchEnd={() => setTouchedItem(null)}
-							style={{
-								WebkitTapHighlightColor: "transparent",
-								fontFamily: isIOS
-									? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"'
-									: "inherit",
-							}}
-						>
-							<div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 dark:bg-primary/20 shrink-0">
-								<div className="text-primary dark:text-primary/90">{feature.icon}</div>
-							</div>
-							<div className="space-y-1.5">
-								<h3 className="text-base font-semibold text-foreground dark:text-foreground/90">{feature.title}</h3>
-								<p className="text-xs text-muted-foreground dark:text-muted-foreground/80 max-w-[180px]">
+		<section className="relative overflow-hidden bg-gradient-to-b from-gray-50/50 to-white dark:from-gray-900/50 dark:to-gray-950">
+			{/* Subtle background pattern */}
+			<div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
+				<div className="absolute inset-0" style={{
+					backgroundImage: `radial-gradient(circle at 1px 1px, rgb(0 0 0) 1px, transparent 0)`,
+					backgroundSize: '20px 20px'
+				}}></div>
+			</div>
+			
+			<div className="relative py-16 sm:py-20">
+				<div className="container mx-auto px-4 md:px-6">
+					<div className="text-center mb-12">
+						<h2 className="text-2xl sm:text-3xl font-light text-gray-900 dark:text-white mb-4">
+							Why Choose Zugzology?
+						</h2>
+						<p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+							Premium mushroom cultivation supplies with the support and quality you need to succeed.
+						</p>
+					</div>
+
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+						{features.map((feature, index) => (
+							<div
+								key={index}
+								className="group relative bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm border border-gray-200/50 dark:border-gray-800/50 rounded-2xl p-6 hover:bg-white/80 dark:hover:bg-gray-900/80 hover:border-gray-300/50 dark:hover:border-gray-700/50 transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/25 dark:hover:shadow-gray-900/25 hover:-translate-y-1"
+							>
+								{/* Icon */}
+								<div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-gray-100 to-gray-200/70 dark:from-gray-800 dark:to-gray-700/70 mb-4 group-hover:scale-110 transition-transform duration-300">
+									<div className="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors duration-300">
+										{feature.icon}
+									</div>
+								</div>
+
+								{/* Content */}
+								<h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-gray-900 dark:group-hover:text-white transition-colors duration-300">
+									{feature.title}
+								</h3>
+								<p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-300">
 									{feature.description}
 								</p>
+
+								{/* Hover effect overlay */}
+								<div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
 							</div>
-						</div>
-					))}
+						))}
+					</div>
 				</div>
 			</div>
 		</section>

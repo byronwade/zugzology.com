@@ -10,8 +10,10 @@ import type {
 	CartItem,
 	ShopifyBlog,
 	ShopifyBlogArticle,
+	ShopifyMenuItem,
+	ShopifyPage,
 } from "@/lib/types";
-import { PRODUCTS_FRAGMENT, COLLECTION_FRAGMENT, CART_FRAGMENT, BLOG_FRAGMENT, ARTICLE_FRAGMENT } from "./fragments";
+import { PRODUCTS_FRAGMENT, COLLECTION_FRAGMENT, CART_FRAGMENT, BLOG_FRAGMENT, ARTICLE_FRAGMENT, MENU_ITEM_FRAGMENT } from "./fragments";
 import { CACHE_TIMES, CACHE_TAGS } from "./cache-config";
 import { headerQuery, type HeaderQueryResponse, type HeaderData } from "./queries/header";
 import { SHOPIFY_STOREFRONT_ACCESS_TOKEN, SHOPIFY_STORE_DOMAIN } from "@/lib/constants";
@@ -77,7 +79,7 @@ export const getProducts = cache(async () => {
 	// Otherwise, create a new promise
 	productsPromise = (async () => {
 		try {
-			console.log("Server", "⚡ [Products] Starting fetch from Shopify...");
+			// Removed console.log for performance
 			lastFetchTime = now;
 			let allProducts: ShopifyProduct[] = [];
 			let hasNextPage = true;
@@ -172,13 +174,7 @@ export const getProducts = cache(async () => {
 
 				const batchTime = Date.now() - batchStartTime;
 				const batchSize = (JSON.stringify(products).length / 1024).toFixed(2);
-				console.log(
-					"Server",
-					`⚡ [Products] Batch #${batchCount} | ${batchTime}ms | Size: ${batchSize}KB
-- Fetched: ${products.length}
-- Total so far: ${allProducts.length}
-- Has more: ${hasNextPage ? "Yes" : "No"}`
-				);
+				// Removed console.log for performance
 
 				// Add a delay between batches to prevent rate limiting
 				if (hasNextPage) {
@@ -189,12 +185,7 @@ export const getProducts = cache(async () => {
 			const totalTime = Date.now() - startTime;
 			const totalSize = (JSON.stringify(allProducts).length / 1024).toFixed(2);
 
-			console.log(
-				"Server",
-				`⚡ [Products] Complete | ${totalTime}ms | Size: ${totalSize}KB
-- Batches: ${batchCount}
-- Total Products: ${allProducts.length}`
-			);
+			// Removed console.log for performance
 
 			return allProducts;
 		} catch (error) {
@@ -488,6 +479,58 @@ export const getCollectionDiscounts = unstable_cache(
 		tags: [CACHE_TAGS.COLLECTION],
 	}
 );
+
+export async function getMenu(handle: string): Promise<ShopifyMenuItem[]> {
+	try {
+		const { data } = await shopifyFetch<{ menu: { items: ShopifyMenuItem[] } | null }>({
+			query: `
+				query getMenu($handle: String!) {
+					menu(handle: $handle) {
+						items {
+							...MenuItemFragment
+						}
+					}
+				}
+				${MENU_ITEM_FRAGMENT}
+			`,
+			variables: { handle },
+			tags: [`menu-${handle}`],
+		});
+
+		return data?.menu?.items ?? [];
+	} catch (error) {
+		console.error("Error fetching menu:", error);
+		return [];
+	}
+}
+
+export async function getPages(): Promise<ShopifyPage[]> {
+	try {
+		const { data } = await shopifyFetch<{ pages: { edges: { node: ShopifyPage }[] } | null }>({
+			query: `
+				query getPages {
+					pages(first: 100) {
+						edges {
+							node {
+								id
+								title
+								handle
+								bodySummary
+								onlineStoreUrl
+							}
+						}
+					}
+				}
+			`,
+			tags: ["pages"],
+		});
+
+		return data?.pages?.edges?.map((edge) => edge.node) ?? [];
+	} catch (error) {
+		console.error("Error fetching pages:", error);
+		return [];
+	}
+}
 
 // Cart Actions
 export async function createCart(): Promise<ShopifyCart | null> {
@@ -833,7 +876,7 @@ export const getPaginatedBlogPostsByHandle = unstable_cache(
 );
 
 export async function getBlogByHandle(handle: string) {
-	"use cache";
+	
 
 	if (!handle) {
 		console.error("Blog handle is required");
@@ -1297,34 +1340,90 @@ export async function getAllProducts(sort = "featured", page = 1, perPage = PROD
 			let after = null;
 			if (page > 1) {
 				// For pages beyond the first, we need to get the cursor for the previous page
-				// We'll fetch just the cursor for the last item of the previous page
-				const cursorResponse = await shopifyFetch<{
-					products: {
-						edges: Array<{
-							cursor: string;
-						}>;
-					};
-				}>({
-					query: `
-						query getProductCursor($first: Int!, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
-							products(first: $first, sortKey: $sortKey, reverse: $reverse) {
-								edges {
-									cursor
+				// We'll use pagination to navigate through pages without exceeding Shopify's 250 limit
+				const targetItems = (page - 1) * perPage;
+				
+				// If we need more than 250 items to reach our target, we'll need to paginate
+				if (targetItems > 250) {
+					// Fetch in chunks of 250 until we reach our target
+					let currentItems = 0;
+					let cursor = null;
+					
+					while (currentItems < targetItems) {
+						const remainingItems = targetItems - currentItems;
+						const fetchSize = Math.min(250, remainingItems);
+						
+						const cursorResponse = await shopifyFetch<{
+							products: {
+								edges: Array<{
+									cursor: string;
+								}>;
+								pageInfo: {
+									hasNextPage: boolean;
+								};
+							};
+						}>({
+							query: `
+								query getProductCursor($first: Int!, $after: String, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
+									products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
+										edges {
+											cursor
+										}
+										pageInfo {
+											hasNextPage
+										}
+									}
+								}
+							`,
+							variables: {
+								first: fetchSize,
+								after: cursor,
+								sortKey,
+								reverse,
+							},
+							cache: "force-cache",
+						});
+
+						const edges = cursorResponse.data?.products?.edges || [];
+						if (edges.length === 0) break;
+						
+						cursor = edges[edges.length - 1].cursor;
+						currentItems += edges.length;
+						
+						if (!cursorResponse.data?.products?.pageInfo?.hasNextPage) break;
+					}
+					
+					after = cursor;
+				} else {
+					// For smaller requests (≤250 items), we can fetch directly
+					const cursorResponse = await shopifyFetch<{
+						products: {
+							edges: Array<{
+								cursor: string;
+							}>;
+						};
+					}>({
+						query: `
+							query getProductCursor($first: Int!, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
+								products(first: $first, sortKey: $sortKey, reverse: $reverse) {
+									edges {
+										cursor
+									}
 								}
 							}
-						}
-					`,
-					variables: {
-						first: (page - 1) * perPage,
-						sortKey,
-						reverse,
-					},
-					cache: "force-cache",
-				});
+						`,
+						variables: {
+							first: targetItems,
+							sortKey,
+							reverse,
+						},
+						cache: "force-cache",
+					});
 
-				const edges = cursorResponse.data?.products?.edges || [];
-				if (edges.length > 0) {
-					after = edges[edges.length - 1].cursor;
+					const edges = cursorResponse.data?.products?.edges || [];
+					if (edges.length > 0) {
+						after = edges[edges.length - 1].cursor;
+					}
 				}
 			}
 
@@ -1655,6 +1754,6 @@ export const getProductsByIds = unstable_cache(
 
 // For the functions that need to cache data with specific keys, use the new "use cache" directive
 async function cacheProductBatch(products: any[], batchKey: string) {
-	"use cache";
+	
 	return products;
 }

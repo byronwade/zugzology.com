@@ -1,0 +1,251 @@
+import path from 'path';
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+	// Latest Next.js 15 experimental features for maximum performance
+	experimental: {
+		// Core performance features
+		// ppr: true,                        // Partial Prerendering for instant loading - requires canary
+		// reactCompiler: true,              // React 19 compiler for automatic optimizations
+		// useCache: true,                   // Advanced caching mechanisms
+		// inlineCss: true,                  // Inline critical CSS
+		
+		// Development performance
+		serverComponentsHmrCache: true,    // Server component HMR caching
+		
+		// Build optimizations
+		optimizePackageImports: [         // Tree shake package imports
+			'@radix-ui/react-icons',
+			'lucide-react',
+			'@headlessui/react',
+		],
+		
+		// Advanced caching (Next.js 15.2+)
+		// cacheComponents: true,            // Renamed from dynamicIO - requires canary
+		
+		// Memory and performance optimizations enabled via other settings
+		
+		// Future features
+		optimizeServerReact: true,        // Optimize server React rendering
+	},
+	
+	// Turbopack configuration (moved from experimental.turbo)
+	turbopack: {
+		resolveAlias: {
+			'@/*': './src/*',
+		},
+	},
+	
+	// Core performance settings
+	typescript: {
+		ignoreBuildErrors: true,          // Skip TS errors for faster builds
+	},
+	eslint: {
+		ignoreDuringBuilds: true,         // Skip ESLint for faster builds
+	},
+	
+	// Production optimizations
+	productionBrowserSourceMaps: false,  // Disable source maps for smaller bundles
+	poweredByHeader: false,               // Remove X-Powered-By header
+	compress: true,                       // Enable gzip compression
+	generateEtags: false,                 // Disable ETags for better caching control
+	
+	// HTTP optimizations
+	httpAgentOptions: {
+		keepAlive: true,                  // Keep HTTP connections alive
+	},
+	
+	// Advanced webpack configuration
+	webpack: (config: any, { dev, isServer, nextRuntime }: { dev: boolean; isServer: boolean; nextRuntime?: string }) => {
+		// Development optimizations
+		if (dev) {
+			// Use filesystem caching with absolute path
+			config.cache = {
+				type: 'filesystem',
+				buildDependencies: {
+					config: [__filename],
+				},
+				cacheDirectory: path.resolve('.next/cache/webpack'),
+			};
+			
+			// Optimize for development speed
+			config.optimization = {
+				...config.optimization,
+				removeAvailableModules: false,
+				removeEmptyChunks: false,
+				splitChunks: false,
+			};
+			
+			// Disable source maps for Bun runtime
+			if (process.env.BUN_RUNTIME) {
+				config.devtool = false;
+			}
+		}
+
+		// Production optimizations
+		if (!dev) {
+			// Advanced bundle splitting for better caching
+			config.optimization = {
+				...config.optimization,
+				moduleIds: 'deterministic',
+				chunkIds: 'deterministic',
+				mangleExports: 'deterministic',
+				
+				splitChunks: {
+					chunks: 'all',
+					minSize: 20000,
+					maxSize: 244000,
+					cacheGroups: {
+						// Framework chunk (React, Next.js)
+						framework: {
+							test: /[\\/]node_modules[\\/](react|react-dom|next|scheduler)[\\/]/,
+							name: 'framework',
+							chunks: 'all',
+							priority: 40,
+							enforce: true,
+						},
+						
+						// Vendor libraries
+						vendor: {
+							test: /[\\/]node_modules[\\/]/,
+							name: 'vendors',
+							chunks: 'all',
+							priority: 20,
+							minChunks: 2,
+						},
+						
+						// UI components
+						ui: {
+							test: /[\\/]node_modules[\\/](@radix-ui|@headlessui|lucide-react|class-variance-authority)[\\/]/,
+							name: 'ui',
+							chunks: 'all',
+							priority: 30,
+						},
+						
+						// Shopify/API modules
+						api: {
+							test: /[\\/](lib|components)[\\/](api|shopify|utils)[\\/]/,
+							name: 'api',
+							chunks: 'all',
+							priority: 25,
+							minChunks: 1,
+						},
+						
+						// Common components used across pages
+						common: {
+							test: /[\\/]components[\\/]/,
+							name: 'common',
+							chunks: 'all',
+							priority: 15,
+							minChunks: 2,
+						},
+						
+						// Default chunk for shared modules
+						default: {
+							minChunks: 2,
+							priority: 10,
+							reuseExistingChunk: true,
+						},
+					},
+				},
+			};
+
+			// Advanced tree shaking
+			config.optimization.usedExports = true;
+			config.optimization.sideEffects = false;
+			config.optimization.concatenateModules = true;
+			
+			// Minimize CSS
+			if (config.optimization.minimizer) {
+				const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+				config.optimization.minimizer.push(new CssMinimizerPlugin());
+			}
+		}
+
+		// Client-side specific optimizations
+		if (!isServer) {
+			// Optimize bundle size
+			config.resolve.alias = {
+				...config.resolve.alias,
+				// Use ES modules for better tree shaking
+				'lodash': 'lodash-es',
+				// Optimize specific imports
+				'@radix-ui/react-icons': '@radix-ui/react-icons/dist/index.js',
+			};
+			
+			// Polyfill management
+			config.resolve.fallback = {
+				...config.resolve.fallback,
+				fs: false,
+				net: false,
+				tls: false,
+			};
+		}
+
+		// Server-side optimizations
+		if (isServer) {
+			// Externalize heavy packages for server bundles
+			config.externals = [
+				...config.externals || [],
+				'canvas',
+				'jsdom',
+				'sharp',
+				// Externalize packages that aren't needed on server
+				...(nextRuntime === 'edge' ? [] : ['@swc/helpers']),
+			];
+		}
+
+		// Performance monitoring in development
+		if (dev && process.env.ANALYZE) {
+			const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+			config.plugins.push(
+				new BundleAnalyzerPlugin({
+					analyzerMode: 'server',
+					openAnalyzer: false,
+				})
+			);
+		}
+
+		return config;
+	},
+	images: {
+		minimumCacheTTL: 31536000,
+		remotePatterns: [
+			{
+				protocol: "https",
+				hostname: "cdn.shopify.com",
+				pathname: "/**",
+			},
+			{
+				protocol: "https",
+				hostname: "images.unsplash.com",
+				pathname: "/**",
+			},
+			{
+				protocol: "https",
+				hostname: "placehold.co",
+			},
+			{
+				protocol: "https",
+				hostname: "img.youtube.com",
+				pathname: "/**",
+			},
+			{
+				protocol: "https",
+				hostname: "hebbkx1anhila5yf.public.blob.vercel-storage.com",
+				pathname: "/**",
+			},
+			{
+				protocol: "https",
+				hostname: "**",
+				pathname: "/**",
+			},
+		],
+		dangerouslyAllowSVG: true,
+		deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+		imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+	},
+};
+
+export default nextConfig;
+

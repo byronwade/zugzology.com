@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AUTH_CONFIG, logAuthEvent } from "@/lib/config/auth";
 
-export const dynamic = "force-dynamic";
+// Dynamic rendering handled by dynamicIO experimental feature
 
 export async function GET(request: Request) {
 	try {

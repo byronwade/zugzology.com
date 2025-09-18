@@ -10,7 +10,7 @@ export function BlogPreview() {
 			title: "5 Common Mistakes Beginners Make When Growing Mushrooms",
 			excerpt:
 				"Learn how to avoid the most common pitfalls that new growers encounter and set yourself up for success from the start.",
-			image: "/placeholder.svg?height=400&width=600",
+			image: "/placeholder.svg",
 			date: "March 15, 2023",
 			readTime: "8 min read",
 			slug: "common-beginner-mistakes",
@@ -20,7 +20,7 @@ export function BlogPreview() {
 			title: "The Ultimate Guide to Substrate Preparation",
 			excerpt:
 				"Discover the science behind creating the perfect growing medium for different mushroom varieties and how it affects your yields.",
-			image: "/placeholder.svg?height=400&width=600",
+			image: "/placeholder.svg",
 			date: "April 2, 2023",
 			readTime: "12 min read",
 			slug: "substrate-preparation-guide",
@@ -30,7 +30,7 @@ export function BlogPreview() {
 			title: "Medicinal Mushrooms: Benefits and Growing Tips",
 			excerpt:
 				"Explore the health benefits of medicinal mushrooms like reishi, lion's mane, and turkey tail, plus how to cultivate them at home.",
-			image: "/placeholder.svg?height=400&width=600",
+			image: "/placeholder.svg",
 			date: "May 10, 2023",
 			readTime: "10 min read",
 			slug: "medicinal-mushroom-benefits",
@@ -63,6 +63,7 @@ export function BlogPreview() {
 									src={post.image || "/placeholder.svg"}
 									alt={post.title}
 									fill
+									sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
 									className="object-cover transition-transform group-hover:scale-105"
 								/>
 							</div>

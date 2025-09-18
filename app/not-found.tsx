@@ -1,15 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { jsonLdScriptProps } from "react-schemaorg";
-import type { WebPage, BreadcrumbList } from "schema-dts";
-import { WithContext } from "schema-dts";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-import { ProductCard } from "@/components/products/product-card";
+import { ProductCard } from "@/components/features/products/product-card";
 import type { ShopifyProduct } from "@/lib/types";
+import Script from "next/script";
 
 interface NotFoundContentProps {
 	storeName: string;
@@ -20,39 +18,53 @@ interface ExtendedShopifyProduct extends ShopifyProduct {
 	selectedVariantId?: string;
 }
 
-// Structured data for 404 page
+// Enhanced structured data for 404 page
 function getStructuredData(storeName: string, storeUrl: string) {
-	const pageStructuredData: WithContext<WebPage> = {
+	const pageStructuredData = {
 		"@context": "https://schema.org",
 		"@type": "WebPage",
-		name: `Page Not Found - 404 Error | ${storeName}`,
-		description: `The requested page could not be found on ${storeName}.`,
-		url: `${storeUrl}/404`,
-		publisher: {
+		"name": `Page Not Found - 404 Error | ${storeName}`,
+		"description": `The requested page could not be found on ${storeName}. Try searching for what you're looking for or browse our popular products.`,
+		"url": `${storeUrl}/404`,
+		"publisher": {
 			"@type": "Organization",
-			name: storeName,
-			logo: {
+			"name": storeName,
+			"logo": {
 				"@type": "ImageObject",
-				url: `${storeUrl}/logo.png`,
+				"url": `${storeUrl}/logo.png`,
 			},
 		},
+		"potentialAction": [
+			{
+				"@type": "SearchAction",
+				"target": {
+					"@type": "EntryPoint",
+					"urlTemplate": `${storeUrl}/search?q={search_term_string}`
+				},
+				"query-input": "required name=search_term_string"
+			}
+		],
+		"mainEntity": {
+			"@type": "ErrorPage",
+			"description": "HTTP 404 - Page Not Found"
+		}
 	};
 
-	const breadcrumbStructuredData: WithContext<BreadcrumbList> = {
+	const breadcrumbStructuredData = {
 		"@context": "https://schema.org",
 		"@type": "BreadcrumbList",
-		itemListElement: [
+		"itemListElement": [
 			{
 				"@type": "ListItem",
-				position: 1,
-				name: "Home",
-				item: storeUrl,
+				"position": 1,
+				"name": "Home",
+				"item": storeUrl,
 			},
 			{
 				"@type": "ListItem",
-				position: 2,
-				name: "404 Not Found",
-				item: `${storeUrl}/404`,
+				"position": 2,
+				"name": "404 Not Found",
+				"item": `${storeUrl}/404`,
 			},
 		],
 	};
@@ -60,7 +72,7 @@ function getStructuredData(storeName: string, storeUrl: string) {
 	return { pageStructuredData, breadcrumbStructuredData };
 }
 
-export default function NotFound() {
+function NotFoundContent() {
 	const [settings, setSettings] = useState({
 		storeName: "Zugzology",
 		storeUrl: "https://zugzology.com",
@@ -72,26 +84,24 @@ export default function NotFound() {
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
+				// Track 404 error in analytics
+				if (typeof window !== 'undefined' && window.gtag) {
+					window.gtag('event', 'page_view', {
+						page_type: '404_error',
+						page_location: window.location.href,
+						page_title: 'Page Not Found'
+					});
+				}
+
 				// Fetch settings and products in parallel
 				const [settingsRes, productsRes] = await Promise.all([
-					fetch("/api/settings"),
-					fetch("/api/products", {
-						method: "GET",
-						headers: {
-							"Content-Type": "application/json",
-						},
-					}),
+					fetch("/api/settings").catch(() => ({ json: () => null })),
+					fetch("/api/products?limit=4").catch(() => ({ json: () => [] })),
 				]);
-
-				// Log responses for debugging
-				console.log("Settings response:", settingsRes.status);
-				console.log("Products response:", productsRes.status);
 
 				// Parse the JSON responses
 				const settingsData = await settingsRes.json().catch(() => null);
 				const productsData = await productsRes.json().catch(() => []);
-
-				console.log("Products data:", productsData);
 
 				// Update settings if we have valid data
 				if (settingsData) {
@@ -132,13 +142,49 @@ export default function NotFound() {
 
 	return (
 		<>
-			<script {...jsonLdScriptProps(pageStructuredData)} />
-			<script {...jsonLdScriptProps(breadcrumbStructuredData)} />
+			{/* JSON-LD Structured Data */}
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(pageStructuredData),
+				}}
+			/>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(breadcrumbStructuredData),
+				}}
+			/>
+			
+			{/* Google Analytics for 404 Tracking */}
+			<Script id="notfound-analytics" strategy="afterInteractive">
+				{`
+					window.dataLayer = window.dataLayer || [];
+					window.dataLayer.push({
+						'event': 'page_view',
+						'page_type': '404_not_found',
+						'page_location': window.location.href,
+						'page_title': 'Page Not Found - 404',
+						'error_type': 'page_not_found'
+					});
+				`}
+			</Script>
+			
 			<div className="container mx-auto px-4 py-12 max-w-7xl">
+				{/* Breadcrumb Navigation */}
+				<nav className="mb-8" aria-label="Breadcrumb">
+					<ol className="flex items-center space-x-2 text-sm text-gray-600">
+						<li>
+							<Link href="/" className="hover:text-gray-900">Home</Link>
+						</li>
+						<li className="text-gray-400">/</li>
+						<li className="text-gray-900 font-medium">404 Not Found</li>
+					</ol>
+				</nav>
 				<div className="text-center mb-12">
 					<h1 className="text-8xl font-bold text-primary mb-4">404</h1>
 					<h2 className="text-3xl font-semibold mb-4">Oops! Page Not Found</h2>
-					<p className="text-neutral-600 dark:text-neutral-400 text-lg mb-8">The page you're looking for doesn't exist or has been moved.</p>
+						<p className="text-neutral-600 dark:text-neutral-400 text-lg mb-8">The page you&apos;re looking for doesn&apos;t exist or has been moved.</p>
 
 					{/* Search Section */}
 					<div className="max-w-xl mx-auto mb-12">
@@ -174,11 +220,19 @@ export default function NotFound() {
 									))}
 								</div>
 							) : (
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-									{recommendedProducts.map((product) => (
-										<ProductCard key={product.id} product={product} variantId={product.selectedVariantId} />
-									))}
-								</div>
+								<Suspense fallback={
+									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+										{[...Array(4)].map((_, i) => (
+											<div key={i} className="h-64 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg" />
+										))}
+									</div>
+								}>
+									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+										{recommendedProducts.map((product) => (
+											<ProductCard key={product.id} product={product} variantId={product.selectedVariantId} />
+										))}
+									</div>
+								</Suspense>
 							)}
 						</div>
 					)}
@@ -191,5 +245,20 @@ export default function NotFound() {
 				</div>
 			</div>
 		</>
+	);
+}
+
+export default function NotFound() {
+	return (
+		<Suspense fallback={
+			<div className="container mx-auto px-4 py-12 max-w-7xl">
+				<div className="text-center">
+					<h1 className="text-8xl font-bold text-primary mb-4">404</h1>
+					<h2 className="text-3xl font-semibold mb-4">Loading...</h2>
+				</div>
+			</div>
+		}>
+			<NotFoundContent />
+		</Suspense>
 	);
 }

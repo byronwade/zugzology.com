@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { updateCustomer, updateCustomerAddress, createCustomerAddress } from "@/lib/services/shopify-customer";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
-import { SignOutButton } from "@/components/auth/sign-out-button";
+import { SignOutButton } from "@/components/features/auth/sign-out-button";
 
 interface Address {
 	id: string;

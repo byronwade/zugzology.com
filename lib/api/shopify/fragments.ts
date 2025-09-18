@@ -262,3 +262,24 @@ export const CART_FRAGMENT = `
     }
   }
 `;
+
+export const MENU_ITEM_FRAGMENT = `
+  fragment MenuItemFragment on MenuItem {
+    id
+    title
+    url
+    resourceId
+    items {
+      id
+      title
+      url
+      resourceId
+      items {
+        id
+        title
+        url
+        resourceId
+      }
+    }
+  }
+`;

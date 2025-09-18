@@ -1,0 +1,14 @@
+
+> zugzology-store@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.3
+   - Environments: .env.local
+   - Experiments (use with caution):
+     ✓ useCache
+     ✓ inlineCss
+     ✓ reactCompiler
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies

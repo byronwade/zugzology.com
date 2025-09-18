@@ -1,13 +1,20 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductPageData } from "@/lib/actions/shopify";
-import { ProductServerWrapper } from "@/components/products/product-server-wrapper";
+import Script from "next/script";
+import { getProductPageData } from "@/lib/api/shopify/actions";
+import { ProductServerWrapper } from "@/components/features/products/product-server-wrapper";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { getEnhancedProductMetadata } from "@/lib/seo/standardized-jsonld";
-import { SEOProductWrapper } from "@/components/products/seo-product-wrapper";
+import { SEOProductWrapper } from "@/components/features/products/seo-product-wrapper";
+import { generateEnhancedProductMetadata, generateBreadcrumbItems } from "@/lib/seo/seo-utils";
+import { 
+  getEnhancedProductSchema, 
+  getEnhancedBreadcrumbSchema,
+  getEnhancedFAQSchema,
+  getEnhancedOrganizationSchema 
+} from "@/lib/seo/enhanced-jsonld";
 
-// Tell Next.js this is a dynamic route that shouldn't be prerendered
-export const dynamic = "force-dynamic";
+// Dynamic rendering handled by dynamicIO experimental feature
 
 // Define the props for the page
 export interface ProductPageProps {
@@ -23,19 +30,19 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 		if (!product) {
 			return {
-				title: "Product Not Found",
-				description: "The requested product could not be found.",
+				title: "Product Not Found | Zugzology",
+				description: "The requested product could not be found. Browse our collection of premium mushroom cultivation supplies.",
 				robots: { index: false, follow: true },
 			};
 		}
 
-		// Get enhanced metadata for better conversions
-		return getEnhancedProductMetadata(product);
+		// Use comprehensive SEO metadata generator
+		return generateEnhancedProductMetadata(product);
 	} catch (error) {
 		console.error("Error generating metadata:", error);
 		return {
-			title: "Product - Zugzology",
-			description: "View our premium mushroom cultivation supplies.",
+			title: "Premium Mushroom Supplies | Zugzology",
+			description: "Explore our collection of premium mushroom cultivation supplies. Expert support, free shipping on orders over $75.",
 			robots: { index: true, follow: true },
 		};
 	}
@@ -59,17 +66,99 @@ function ProductError() {
 export default async function ProductPage({ params }: ProductPageProps) {
 	try {
 		const { handle } = await params;
+		console.log(`[ProductPage] Loading product with handle: ${handle}`);
+		
 		const { product, relatedProducts } = await getProductPageData(handle);
+		console.log(`[ProductPage] Product found: ${product ? 'Yes' : 'No'}`, product ? { id: product.id, title: product.title } : null);
 
 		if (!product) {
+			console.log(`[ProductPage] Product not found for handle: ${handle}, calling notFound()`);
 			notFound();
 		}
 
+		// Generate breadcrumb items
+		const breadcrumbs = generateBreadcrumbItems(`/products/${handle}`, product.title);
+		
+		// Generate product FAQs
+		const productFAQs = [
+			{
+				question: `What is included with the ${product.title}?`,
+				answer: product.description || `The ${product.title} includes everything you need for successful mushroom cultivation. Check the product details for specific contents.`,
+			},
+			{
+				question: "How long does shipping take?",
+				answer: "Orders typically ship within 1-2 business days. Standard shipping takes 3-5 business days. We offer free shipping on orders over $75.",
+			},
+			{
+				question: "What is your return policy?",
+				answer: "We offer a 30-day satisfaction guarantee. If you're not completely satisfied with your purchase, contact us for a full refund or replacement.",
+			},
+			{
+				question: "Is this product suitable for beginners?",
+				answer: "Yes! All our products come with detailed instructions and we provide free expert support to help ensure your success.",
+			},
+		];
+
+		// Generate structured data
+		const structuredData = {
+			organization: getEnhancedOrganizationSchema(),
+			product: getEnhancedProductSchema(product),
+			breadcrumb: getEnhancedBreadcrumbSchema(breadcrumbs),
+			faq: getEnhancedFAQSchema(productFAQs),
+		};
+
 		return (
 			<ErrorBoundary fallback={<ProductError />}>
-				<SEOProductWrapper product={product}>
-					<ProductServerWrapper product={product} relatedProducts={relatedProducts} />
-				</SEOProductWrapper>
+				<>
+					{/* JSON-LD Structured Data */}
+					<script
+						type="application/ld+json"
+						dangerouslySetInnerHTML={{
+							__html: JSON.stringify({
+								"@context": "https://schema.org",
+								"@graph": Object.values(structuredData).filter(Boolean),
+							}),
+						}}
+					/>
+					
+					{/* Google Analytics Enhanced Ecommerce */}
+					<Script id="product-analytics" strategy="afterInteractive">
+						{`
+							window.dataLayer = window.dataLayer || [];
+							window.dataLayer.push({
+								'event': 'view_item',
+								'ecommerce': {
+									'items': [{
+										'item_id': '${product.id}',
+										'item_name': '${product.title.replace(/'/g, "\\'")}',
+										'price': ${product.priceRange?.minVariantPrice?.amount || 0},
+										'currency': '${product.priceRange?.minVariantPrice?.currencyCode || 'USD'}',
+										'item_category': '${product.productType || ''}',
+										'item_brand': '${product.vendor || 'Zugzology'}',
+										'quantity': 1
+									}]
+								}
+							});
+						`}
+					</Script>
+
+					{/* Dynamic OG Image */}
+					<link
+						rel="preload"
+						as="image"
+						href={`/api/og?title=${encodeURIComponent(product.title)}&description=${encodeURIComponent(
+							product.description?.substring(0, 100) || ''
+						)}&price=${encodeURIComponent(
+							`$${product.priceRange?.minVariantPrice?.amount || '0'}`
+						)}&image=${encodeURIComponent(
+							product.images?.nodes?.[0]?.url || ''
+						)}&type=product`}
+					/>
+
+					<SEOProductWrapper product={product}>
+						<ProductServerWrapper product={product} relatedProducts={relatedProducts} />
+					</SEOProductWrapper>
+				</>
 			</ErrorBoundary>
 		);
 	} catch (error) {

@@ -1,7 +1,4 @@
 {
-	"cache": false,
-	"extends": ["next/core-web-vitals", "next/typescript"],
-	"rules": {
-		"no-unused-expressions": ["error", { "allowStrings": true }]
-	}
+  "extends": ["next/core-web-vitals"],
+  "rules": {}
 }

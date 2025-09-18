@@ -4,7 +4,7 @@ import { getProducts } from "@/lib/actions/shopify";
  * Get search results with caching
  */
 export async function getSearchData(query: string, sort = "featured", page = 1) {
-	"use cache"; // No semicolon to avoid formatter issues
+	 // No semicolon to avoid formatter issues
 
 	if (!query || typeof query !== "string") {
 		return { products: [], totalProducts: 0 };

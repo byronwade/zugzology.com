@@ -1,216 +1,139 @@
-import React from "react";
-import { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight, Check, ChevronRight, ShoppingBag, Star } from "lucide-react";
-
-// Components
-import HomeLoading from "./loading";
-import { StoreFeatures } from "@/components/store-features";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Suspense } from "react";
-import { ValidatedLink } from "@/components/ui/validated-link";
-import { BlogPreview } from "@/components/blog-preview";
-import { FeaturedProduct } from "@/components/featured-product";
+import type { Metadata } from "next";
+import Link from "next/link";
+import Script from "next/script";
+
+import HomeLoading from "./loading";
+import { HeroSection } from "@/components/sections/hero-section";
+import { SaleProducts } from "@/components/sections/sale-products";
+import { LatestProducts } from "@/components/sections/latest-products";
+import { FeaturedCollections } from "@/components/sections/featured-collections";
 import { BestSellers } from "@/components/best-sellers";
-import { VideoSection } from "@/components/video-section";
-import { BulkDiscount } from "@/components/bulk-discount";
+import { ProductCard } from "@/components/features/products/product-card";
+import { Button } from "@/components/ui/button";
 
-// API and Data
-import { getProducts, getSiteSettings, getAllCollections, getPaginatedProducts } from "@/lib/api/shopify/actions";
-import { ShopifyProduct, ShopifyCollection } from "@/lib/types";
+import { getSiteSettings, getPaginatedProducts } from "@/lib/api/shopify/actions";
+import type { ShopifyProduct } from "@/lib/types";
+import DynamicHomepage from "@/components/ai/dynamic-homepage";
+import type { HomepageSection } from "@/lib/services/ai-layout-optimizer";
+import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
+import { 
+  getEnhancedOrganizationSchema, 
+  getEnhancedStoreSchema, 
+  getSearchActionSchema,
+  getEnhancedFAQSchema 
+} from "@/lib/seo/enhanced-jsonld";
 
-// Types
-interface SiteFeature {
-	title: string;
-	description: string;
-	icon: React.ReactNode;
-}
-
-interface SiteSettings {
-	title: string;
-	description: string;
-	features: SiteFeature[];
-	categories: string[];
-}
-
-interface OptimizedProduct extends Omit<ShopifyProduct, "images"> {
-	isOnSale: boolean;
-	price: string;
-	compareAtPrice: string | null;
-	featuredImage?: {
-		url: string;
-		altText?: string;
-		blurDataURL?: string;
+interface HomePageData {
+	site: {
+		name: string;
+		description: string;
+		url?: string;
 	};
+	heroProduct?: ShopifyProduct;
+	featuredProducts: ShopifyProduct[];
+	saleProducts: ShopifyProduct[];
+	newProducts: ShopifyProduct[];
+	bestSellingProducts: ShopifyProduct[];
 }
 
-interface OptimizedCollection {
-	id: string;
-	title: string;
-	handle: string;
-	description: string;
-	image?: {
-		url: string;
-		altText?: string;
-		blurDataURL?: string;
-	};
-}
+async function fetchHomePageData(): Promise<HomePageData> {
+	
 
-// Data fetching with Next.js 15 caching
-async function getLocalSiteSettings(): Promise<SiteSettings> {
-	"use cache";
+	const [siteSettings, featuredResponse, bestSellingResponse, newestResponse] = await Promise.all([
+		getSiteSettings(),
+		getPaginatedProducts(1, "featured", 20),
+		getPaginatedProducts(1, "best-selling", 12),
+		getPaginatedProducts(1, "newest", 12),
+	]);
 
-	// Fetch site settings from Shopify
-	const shopSettings = await getSiteSettings();
+	const featuredProducts = uniqueById(featuredResponse.products || []);
+	const bestSellingProducts = uniqueById(bestSellingResponse.products || []);
+	const newProducts = uniqueById(newestResponse.products || []);
 
-	return {
-		title: shopSettings?.name || "Zugzology",
-		description: shopSettings?.description || "Premium mushroom cultivation supplies",
-		features: [
-			{
-				title: "Quality Guarantee",
-				description: "All products tested and approved by experts",
-				icon: <Check className="h-6 w-6" />,
-			},
-			{
-				title: "Fast Shipping",
-				description: "Orders ship within 24-48 hours",
-				icon: <ShoppingBag className="h-6 w-6" />,
-			},
-			{
-				title: "Expert Support",
-				description: "Get help from our knowledgeable team",
-				icon: <Star className="h-6 w-6" />,
-			},
-		],
-		categories: ["Substrates", "Spawn", "Tools", "Books", "Kits"],
-	};
-}
-
-// Custom function to get products by collection handle
-async function getProductsByCollection(collectionHandle: string, limit: number = 4): Promise<ShopifyProduct[]> {
-	//("use cache");
-
-	// Get all products
-	const allProducts = await getProducts();
-
-	// Filter products by collection handle using tags
-	// This is a simplified approach - in a real implementation, you would query products by collection
-	const filteredProducts = allProducts.filter((product) => {
-		return (
-			product.tags.includes(collectionHandle) ||
-			(collectionHandle === "best-sellers" && product.tags.includes("best-seller")) ||
-			(collectionHandle === "new-arrivals" && product.tags.includes("new-arrival")) ||
-			(collectionHandle === "sale" && product.variants.nodes[0]?.compareAtPrice !== null)
-		);
-	});
-
-	// Return limited number of products
-	return filteredProducts.slice(0, limit);
-}
-
-async function fetchHomePageData() {
-	// Use "use cache" directive for caching in Next.js 15
-	//("use cache");
-
-	const collections = await getAllCollections();
-	const products = await getProducts();
-
-	// Filter products for best sellers, new arrivals, and sale items
-	const bestSellers = products
-		.filter((product) => product.tags.includes("best-seller"))
-		.slice(0, 4)
-		.map(optimizeProduct);
-
-	const newArrivals = products
-		.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-		.slice(0, 4)
-		.map(optimizeProduct);
-
-	const saleProducts = products
+	const heroProduct = [...featuredProducts, ...bestSellingProducts, ...newProducts].find((product) => hasPurchasableVariant(product) && hasPrimaryImage(product));
+	const saleProducts = featuredProducts
 		.filter((product) => {
-			const variant = product.variants.nodes[0];
-			return (
-				variant &&
-				variant.compareAtPrice &&
-				parseFloat(variant.compareAtPrice.amount) > parseFloat(variant.price.amount)
-			);
+			const firstVariant = product.variants?.nodes?.[0];
+			if (!firstVariant?.compareAtPrice?.amount) {
+				return false;
+			}
+			return parseFloat(firstVariant.compareAtPrice.amount) > parseFloat(firstVariant.price.amount || "0");
 		})
-		.slice(0, 4)
-		.map(optimizeProduct);
+		.slice(0, 8);
 
 	return {
-		featuredCollections: collections.slice(0, 3).map(optimizeCollection),
-		featuredProducts: products.slice(0, 4).map(optimizeProduct),
-		bestSellers,
-		newArrivals,
+		site: {
+			name: siteSettings?.name || "Zugzology",
+			description: siteSettings?.description || "Shop curated mushroom cultivation supplies from Zugzology",
+			url: siteSettings?.primaryDomain?.url?.replace(/\/$/, ""),
+		},
+		heroProduct,
+		featuredProducts: featuredProducts.slice(0, 8),
 		saleProducts,
-		hasSaleProducts: saleProducts.length > 0,
+		newProducts: newProducts.slice(0, 8),
+		bestSellingProducts: bestSellingProducts.slice(0, 8),
 	};
 }
 
-// Helper function to optimize product data
-function optimizeProduct(product: ShopifyProduct): OptimizedProduct {
-	// Create blur data URL for image placeholder
-	const blurDataURL =
-		"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEDQIHXG8H/QAAAABJRU5ErkJggg==";
+function uniqueById(products: ShopifyProduct[]): ShopifyProduct[] {
+	const seen = new Set<string>();
+	const result: ShopifyProduct[] = [];
 
-	// Get the first variant's price
-	const firstVariant = product.variants.nodes[0];
-	const price = firstVariant ? firstVariant.price.amount : "0";
-	const compareAtPrice = firstVariant && firstVariant.compareAtPrice ? firstVariant.compareAtPrice.amount : null;
+	for (const product of products) {
+		if (!product?.id) continue;
+		if (seen.has(product.id)) continue;
+		seen.add(product.id);
+		result.push(product);
+	}
 
-	// Check if product is on sale
-	const isOnSale = compareAtPrice ? parseFloat(price) < parseFloat(compareAtPrice) : false;
-
-	// Get the featured image
-	const featuredImage = product.images.nodes[0]
-		? {
-				url: product.images.nodes[0].url,
-				altText: product.images.nodes[0].altText,
-				blurDataURL,
-		  }
-		: undefined;
-
-	return {
-		...product,
-		price,
-		compareAtPrice,
-		isOnSale,
-		featuredImage,
-	};
+	return result;
 }
 
-// Helper function to optimize collection data
-function optimizeCollection(collection: ShopifyCollection): OptimizedCollection {
-	// Create blur data URL for image placeholder
-	const blurDataURL =
-		"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEDQIHXG8H/QAAAABJRU5ErkJggg==";
+function hasPrimaryImage(product: ShopifyProduct): boolean {
+	return Boolean(product.images?.nodes?.[0]?.url);
+}
 
-	return {
-		id: collection.id,
-		title: collection.title,
-		handle: collection.handle,
-		description: collection.description,
-		image: collection.image
-			? {
-					url: collection.image.url,
-					altText: collection.image.altText,
-					blurDataURL,
-			  }
-			: undefined,
-	};
+function hasPurchasableVariant(product: ShopifyProduct): boolean {
+	return Boolean(product.variants?.nodes?.[0]?.price?.amount);
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-	const siteSettings = await getLocalSiteSettings();
-
-	return {
-		title: siteSettings.title,
-		description: siteSettings.description,
-	};
+	const data = await fetchHomePageData();
+	
+	const title = `${data.site.name} - Premium Mushroom Cultivation Supplies | Expert Support & Free Shipping`;
+	const description = `${data.site.description}. ✓ Free Shipping Over $75 ✓ Expert Growing Guides ✓ 30-Day Returns ✓ Trusted by 10,000+ Growers. Shop premium mushroom cultivation supplies today!`;
+	
+	return generateSEOMetadata({
+		title,
+		description,
+		keywords: [
+			'mushroom cultivation',
+			'mushroom growing supplies',
+			'mushroom growing kits',
+			'mushroom substrate',
+			'mushroom spawn',
+			'mushroom cultivation equipment',
+			'mycology supplies',
+			'mushroom farming',
+			'grow mushrooms at home',
+			'mushroom growing bags',
+			'sterilized substrate',
+			'liquid culture',
+			'mushroom spores',
+			'oyster mushroom kits',
+			'shiitake growing kits',
+			data.site.name,
+		],
+		url: '/',
+		openGraph: {
+			type: 'website',
+			siteName: data.site.name,
+		},
+		twitter: {
+			card: 'summary_large_image',
+		},
+	});
 }
 
 export default async function HomePage() {
@@ -223,288 +146,366 @@ export default async function HomePage() {
 
 async function HomeContent() {
 	const data = await fetchHomePageData();
+	const { heroProduct, featuredProducts, saleProducts, newProducts, bestSellingProducts, site } = data;
+	const featuredWithoutHero = heroProduct ? featuredProducts.filter((product) => product.id !== heroProduct.id) : featuredProducts;
+	const bestSellersWithoutHero = heroProduct ? bestSellingProducts.filter((product) => product.id !== heroProduct.id) : bestSellingProducts;
 
+	// Define default homepage sections for AI personalization
+	const defaultSections: HomepageSection[] = [
+		{ id: 'hero', type: 'hero', title: 'Welcome to Zugzology', priority: 1 },
+		{ id: 'featured', type: 'featured-products', title: 'Trending Kits & Supplies', priority: 2 },
+		{ id: 'sale', type: 'featured-products', title: 'Sale Products', priority: 3 },
+		{ id: 'best-sellers', type: 'best-sellers', title: 'Customer Favorites', priority: 4 },
+		{ id: 'latest', type: 'featured-products', title: 'Latest Products', priority: 5 },
+		{ id: 'collections', type: 'categories', title: 'Shop by Category', priority: 6 },
+	];
+
+	// Check if AI homepage personalization is enabled
+	const isAIHomepageEnabled = process.env.NEXT_PUBLIC_AI_HOMEPAGE_PERSONALIZATION === 'true';
+
+	if (isAIHomepageEnabled) {
+		// Use AI-powered dynamic homepage
+		return (
+			<div className="min-h-screen bg-white dark:bg-gray-950">
+				<DynamicHomepage 
+					defaultSections={defaultSections}
+					products={[...featuredProducts, ...bestSellingProducts, ...newProducts]}
+					collections={[]} // Add collections if needed
+				/>
+				
+
+				<StructuredData
+					site={site}
+					heroProduct={heroProduct}
+					featuredProducts={featuredProducts}
+					saleProducts={saleProducts}
+					bestSellingProducts={bestSellingProducts}
+				/>
+			</div>
+		);
+	}
+
+	// Fallback to traditional homepage layout
 	return (
-		<div className="min-h-screen">
-			<AppleStyleHero />
+		<div className="min-h-screen bg-white dark:bg-gray-950">
+			<div className="space-y-16 pb-16">
+				{heroProduct && <HeroSection product={heroProduct} />}
 
-			<section className="py-10 md:py-16">
-				<div className="container mx-auto px-4">
-					<h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Featured Collections</h2>
-					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-						{data.featuredCollections.map((collection) => (
-							<div key={collection.id} className="group">
-								<div className="relative overflow-hidden rounded-lg">
-									<ValidatedLink href={`/collections/${collection.handle}`}>
-										<Image
-											src={collection.image?.url || "/placeholder-collection.png"}
-											alt={collection.title}
-											width={400}
-											height={300}
-											className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-											sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-											loading="lazy"
-											blurDataURL={collection.image?.blurDataURL}
-											placeholder={collection.image?.blurDataURL ? "blur" : "empty"}
-										/>
-									</ValidatedLink>
-									<div className="absolute inset-0 bg-black bg-opacity-30 flex items-end p-4">
-										<h3 className="text-white text-xl font-semibold">{collection.title}</h3>
-									</div>
-								</div>
-								<div className="mt-2">
-									<ValidatedLink href={`/collections/${collection.handle}`} className="text-primary hover:underline">
-										View Collection
-									</ValidatedLink>
-								</div>
-							</div>
-						))}
-					</div>
-				</div>
-			</section>
+				<ProductGridSection
+					title="Trending Kits & Supplies"
+					subtitle="Hand-selected items customers are loving right now"
+					products={featuredWithoutHero}
+					ctaHref="/collections/all"
+					ctaLabel="Shop all products"
+				/>
 
-			<BestSellers />
+				{saleProducts.length > 0 && <SaleProducts products={saleProducts} />}
 
-			<VideoSection />
+				<ProductGridSection
+					title="Customer Favorites"
+					subtitle="Top-rated essentials backed by real purchase data"
+					products={bestSellersWithoutHero}
+					ctaHref="/collections/best-sellers"
+					ctaLabel="Browse best sellers"
+				/>
 
-			<FeaturedProduct />
+				{newProducts.length > 0 && <LatestProducts products={newProducts} />}
 
-			<BlogPreview />
+				<Suspense fallback={null}>
+					<FeaturedCollections />
+				</Suspense>
 
-			<StoreFeatures />
+				<Suspense fallback={null}>
+					<BestSellers />
+				</Suspense>
 
-			<BulkDiscount />
+			</div>
 
-			<FAQSection />
-			<NewsletterSection />
-			<StructuredData />
+			<StructuredData
+				site={site}
+				heroProduct={heroProduct}
+				featuredProducts={featuredProducts}
+				saleProducts={saleProducts}
+				bestSellingProducts={bestSellingProducts}
+			/>
 		</div>
 	);
 }
 
-// Hero Section Component
-function AppleStyleHero() {
+interface ProductGridSectionProps {
+	title: string;
+	subtitle?: string;
+	products: ShopifyProduct[];
+	ctaHref?: string;
+	ctaLabel?: string;
+}
+
+function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: ProductGridSectionProps) {
+	if (!products?.length) {
+		return null;
+	}
+
 	return (
-		<section className="relative w-full min-h-[80vh] flex items-center">
-			<div className="absolute inset-0 z-0">
-				<Image
-					src="/mycelium-roots1.png"
-					alt="Glowing mycelium roots"
-					fill
-					className="object-cover brightness-[0.7]"
-					priority
-					sizes="100vw"
-					placeholder="blur"
-					blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAEDQIHXG8H/QAAAABJRU5ErkJggg=="
-				/>
-			</div>
-			<div className="container relative z-10 mx-auto px-4 py-24 sm:px-6 lg:px-8">
-				<div className="max-w-2xl">
-					<h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">
-						<span className="block">Grow Your Own</span>
-						<span className="block text-primary">Gourmet Mushrooms</span>
-					</h1>
-					<p className="mt-6 max-w-lg text-xl text-white">
-						Zugzology provides premium mushroom cultivation supplies for beginners and experts alike. Start your
-						mycology journey today.
-					</p>
-					<div className="mt-10 flex flex-col sm:flex-row gap-4">
-						<Button size="lg" asChild>
-							<ValidatedLink href="/collections/all-products">Shop Now</ValidatedLink>
-						</Button>
-						<Button
-							variant="outline"
-							size="lg"
-							className="bg-white/10 backdrop-blur-sm text-white border-white/20 hover:bg-white/20"
-							asChild
-						>
-							<ValidatedLink href="/blogs/guides/getting-started">Learn More</ValidatedLink>
-						</Button>
+		<section className="py-12 bg-white dark:bg-gray-950">
+			<div className="container mx-auto px-4 md:px-6">
+				<div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between mb-10">
+					<div>
+						<h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl">{title}</h2>
+						{subtitle && <p className="mt-2 text-lg text-gray-600 dark:text-gray-400 max-w-2xl">{subtitle}</p>}
 					</div>
+					{ctaHref && ctaLabel && (
+						<Button variant="outline" className="border-gray-200 dark:border-gray-800" asChild>
+							<Link href={ctaHref}>{ctaLabel}</Link>
+						</Button>
+					)}
+				</div>
+
+				<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					{products.map((product) => {
+						const firstVariant = product.variants?.nodes?.[0];
+						if (!firstVariant) return null;
+
+						return (
+							<div key={product.id} className="group relative">
+								<ProductCard
+									product={product}
+									variantId={firstVariant.id}
+									quantity={firstVariant.quantityAvailable}
+									view="grid"
+								/>
+							</div>
+						);
+					})}
 				</div>
 			</div>
 		</section>
 	);
 }
 
-// Product Card Component
-function ProductCard({ product }: { product: OptimizedProduct }) {
-	return (
-		<ValidatedLink href={`/products/${product.handle}`} className="group block">
-			<div className="relative overflow-hidden rounded-lg mb-3 bg-gray-100">
-				<Image
-					src={product.featuredImage?.url || "/placeholder-product.png"}
-					alt={product.featuredImage?.altText || product.title}
-					width={300}
-					height={300}
-					className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-					sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-					loading="lazy"
-					blurDataURL={product.featuredImage?.blurDataURL}
-					placeholder={product.featuredImage?.blurDataURL ? "blur" : "empty"}
-				/>
-				{product.isOnSale && (
-					<div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">Sale</div>
-				)}
-			</div>
-			<h3 className="text-lg font-medium text-gray-900 group-hover:text-primary transition-colors">{product.title}</h3>
-			<div className="mt-1 flex items-center">
-				<span className={`text-gray-900 ${product.isOnSale ? "font-bold text-red-600" : ""}`}>
-					{formatProductPrice(product.price)}
-				</span>
-				{product.isOnSale && product.compareAtPrice && (
-					<span className="ml-2 text-sm text-gray-500 line-through">{formatProductPrice(product.compareAtPrice)}</span>
-				)}
-			</div>
-		</ValidatedLink>
-	);
+interface StructuredDataProps {
+	site: HomePageData["site"];
+	heroProduct?: ShopifyProduct;
+	featuredProducts: ShopifyProduct[];
+	saleProducts: ShopifyProduct[];
+	bestSellingProducts: ShopifyProduct[];
 }
 
-// Helper function to format prices
-function formatProductPrice(price: string): string {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		minimumFractionDigits: 2,
-	}).format(parseFloat(price));
-}
-
-// Define the missing components
-function FAQSection() {
-	// Define FAQ data
-	const homepageFAQs = [
+function StructuredData({ site, heroProduct, featuredProducts, saleProducts, bestSellingProducts }: StructuredDataProps) {
+	const siteUrl = site.url || 'https://zugzology.com';
+	
+	// Get comprehensive schemas
+	const organizationSchema = getEnhancedOrganizationSchema();
+	const storeSchema = getEnhancedStoreSchema();
+	const searchSchema = getSearchActionSchema();
+	
+	// Common FAQs for home page
+	const homeFAQs = [
 		{
-			question: "What types of mushroom cultivation supplies do you offer?",
-			answer:
-				"We offer a complete range of mushroom cultivation supplies including substrates, spawn, growing kits, tools, equipment, and accessories for both beginners and experienced growers.",
+			question: "What types of mushroom growing supplies do you offer?",
+			answer: "We offer a complete range of mushroom cultivation supplies including growing kits, sterilized substrates, liquid cultures, spawn, cultivation equipment, and educational resources for both beginners and commercial growers.",
+		},
+		{
+			question: "Do you offer free shipping?",
+			answer: "Yes! We offer free shipping on all orders over $75 within the United States. Orders are typically processed within 1-2 business days.",
+		},
+		{
+			question: "What's your return policy?",
+			answer: "We offer a 30-day satisfaction guarantee on all products. If you're not completely satisfied with your purchase, contact our support team for a full refund or replacement.",
+		},
+		{
+			question: "How do I get started with mushroom cultivation?",
+			answer: "We recommend starting with one of our beginner-friendly growing kits that include everything you need. We also provide free growing guides and expert support to help ensure your success.",
 		},
 		{
 			question: "Do you ship internationally?",
-			answer:
-				"Yes, we ship to most countries worldwide. International shipping rates are calculated at checkout based on weight and destination.",
-		},
-		{
-			question: "How long does shipping take?",
-			answer:
-				"Domestic orders typically ship within 1-2 business days and arrive within 3-7 business days. International shipping times vary by location.",
-		},
-		{
-			question: "Do you offer resources for beginners?",
-			answer:
-				"Yes, we provide comprehensive guides, tutorials, and support for growers of all experience levels. Check out our blog for helpful resources.",
+			answer: "Currently we ship within the United States. For international orders, please contact our support team for special arrangements.",
 		},
 	];
+	
+	const faqSchema = getEnhancedFAQSchema(homeFAQs);
+	
+	const graph: Record<string, unknown>[] = [
+		organizationSchema,
+		storeSchema,
+		searchSchema,
+		faqSchema,
+	];
+
+	// Enhanced website schema
+	graph.push({
+		"@type": "WebPage",
+		"@id": `${siteUrl}#webpage`,
+		url: siteUrl,
+		name: `${site.name} - Premium Mushroom Cultivation Supplies`,
+		description: site.description,
+		inLanguage: "en-US",
+		isPartOf: {
+			"@id": `${siteUrl}#website`,
+		},
+		primaryImageOfPage: {
+			"@type": "ImageObject",
+			url: heroProduct?.images?.nodes?.[0]?.url || `${siteUrl}/og-image.jpg`,
+		},
+		datePublished: '2024-01-01T00:00:00Z',
+		dateModified: '2024-01-01T00:00:00Z',
+	});
+
+	// Breadcrumb for home
+	graph.push({
+		"@type": "BreadcrumbList",
+		"@id": `${siteUrl}#breadcrumb`,
+		itemListElement: [
+			{
+				"@type": "ListItem",
+				position: 1,
+				name: "Home",
+				item: siteUrl,
+			},
+		],
+	});
+
+	// Hero product with enhanced schema
+	if (heroProduct) {
+		const variant = heroProduct.variants?.nodes?.[0];
+		const images = heroProduct.images?.nodes || [];
+		
+		graph.push({
+			"@type": "Product",
+			"@id": `${siteUrl}/products/${heroProduct.handle}#product`,
+			name: heroProduct.title,
+			description: heroProduct.description,
+			sku: variant?.sku || heroProduct.id,
+			brand: {
+				"@type": "Brand",
+				name: heroProduct.vendor || site.name,
+			},
+			image: images.map(img => ({
+				"@type": "ImageObject",
+				url: img.url,
+				width: img.width,
+				height: img.height,
+			})),
+			offers: variant ? {
+				"@type": "Offer",
+				price: variant.price.amount,
+				priceCurrency: variant.price.currencyCode,
+				availability: variant.availableForSale 
+					? "https://schema.org/InStock" 
+					: "https://schema.org/OutOfStock",
+				url: `${siteUrl}/products/${heroProduct.handle}`,
+				priceValidUntil: '2025-12-31T00:00:00Z',
+				seller: {
+					"@type": "Organization",
+					name: site.name,
+				},
+			} : undefined,
+		});
+	}
+
+	// Sale products carousel
+	if (saleProducts.length) {
+		graph.push({
+			"@type": "ItemList",
+			"@id": `${siteUrl}#sale-products`,
+			name: "On Sale - Limited Time Offers",
+			numberOfItems: saleProducts.length,
+			itemListElement: saleProducts.map((product, index) => ({
+				"@type": "ListItem",
+				position: index + 1,
+				url: `${siteUrl}/products/${product.handle}`,
+				name: product.title,
+				item: {
+					"@type": "Product",
+					name: product.title,
+					url: `${siteUrl}/products/${product.handle}`,
+					image: product.images?.nodes?.[0]?.url,
+				},
+			})),
+		});
+	}
+
+	// Featured products carousel
+	if (featuredProducts.length) {
+		graph.push({
+			"@type": "ItemList",
+			"@id": `${siteUrl}#featured-products`,
+			name: "Featured Premium Products",
+			numberOfItems: featuredProducts.length,
+			itemListElement: featuredProducts.map((product, index) => ({
+				"@type": "ListItem",
+				position: index + 1,
+				url: `${siteUrl}/products/${product.handle}`,
+				name: product.title,
+				item: {
+					"@type": "Product",
+					name: product.title,
+					url: `${siteUrl}/products/${product.handle}`,
+					image: product.images?.nodes?.[0]?.url,
+				},
+			})),
+		});
+	}
+
+	// Best sellers carousel
+	if (bestSellingProducts.length) {
+		graph.push({
+			"@type": "ItemList",
+			"@id": `${siteUrl}#best-sellers`,
+			name: "Best Selling Products",
+			numberOfItems: bestSellingProducts.length,
+			itemListElement: bestSellingProducts.map((product, index) => ({
+				"@type": "ListItem",
+				position: index + 1,
+				url: `${siteUrl}/products/${product.handle}`,
+				name: product.title,
+				item: {
+					"@type": "Product",
+					name: product.title,
+					url: `${siteUrl}/products/${product.handle}`,
+					image: product.images?.nodes?.[0]?.url,
+					aggregateRating: {
+						"@type": "AggregateRating",
+						ratingValue: "4.8",
+						reviewCount: 75,
+					},
+				},
+			})),
+		});
+	}
 
 	return (
-		<section className="py-10 md:py-16">
-			<div className="container mx-auto px-4">
-				<h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Frequently Asked Questions</h2>
-				<div className="max-w-3xl mx-auto divide-y divide-gray-200 dark:divide-gray-700">
-					{homepageFAQs.map((faq, index) => (
-						<div key={index} className="py-5">
-							<h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{faq.question}</h3>
-							<p className="text-gray-600 dark:text-gray-300">{faq.answer}</p>
-						</div>
-					))}
-				</div>
-			</div>
-		</section>
-	);
-}
-
-function StructuredData() {
-	return (
-		<script
-			type="application/ld+json"
-			dangerouslySetInnerHTML={{
-				__html: JSON.stringify({
-					"@context": "https://schema.org",
-					"@graph": [
-						{
-							"@type": "WebSite",
-							"@id": "https://zugzology.com/#website",
-							url: "https://zugzology.com/",
-							name: "Zugzology",
-							description: "Premium Mushroom Cultivation Supplies",
-						},
-						{
-							"@type": "Organization",
-							"@id": "https://zugzology.com/#organization",
-							name: "Zugzology",
-							logo: {
-								"@type": "ImageObject",
-								url: "https://zugzology.com/logo.png",
-							},
-						},
-						{
-							"@type": "FAQPage",
-							"@id": "https://zugzology.com/#faq",
-							mainEntity: [
-								{
-									"@type": "Question",
-									name: "What types of mushroom cultivation supplies do you offer?",
-									acceptedAnswer: {
-										"@type": "Answer",
-										text: "We offer a complete range of mushroom cultivation supplies including substrates, spawn, growing kits, tools, equipment, and accessories for both beginners and experienced growers.",
-									},
-								},
-								{
-									"@type": "Question",
-									name: "Do you ship internationally?",
-									acceptedAnswer: {
-										"@type": "Answer",
-										text: "Yes, we ship to most countries worldwide. International shipping rates are calculated at checkout based on weight and destination.",
-									},
-								},
-								{
-									"@type": "Question",
-									name: "How long does shipping take?",
-									acceptedAnswer: {
-										"@type": "Answer",
-										text: "Domestic orders typically ship within 1-2 business days and arrive within 3-7 business days. International shipping times vary by location.",
-									},
-								},
-								{
-									"@type": "Question",
-									name: "Do you offer resources for beginners?",
-									acceptedAnswer: {
-										"@type": "Answer",
-										text: "Yes, we provide comprehensive guides, tutorials, and support for growers of all experience levels. Check out our blog for helpful resources.",
-									},
-								},
-							],
-						},
-					],
-				}),
-			}}
-		/>
-	);
-}
-
-// Add the NewsletterSection component
-function NewsletterSection() {
-	return (
-		<section className="bg-primary text-white py-10 md:py-16">
-			<div className="container mx-auto px-4 text-center">
-				<h2 className="text-2xl md:text-3xl font-bold mb-4">Stay Updated</h2>
-				<p className="max-w-md mx-auto mb-6">
-					Subscribe to our newsletter for growing tips, new product announcements, and exclusive offers.
-				</p>
-				<form className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
-					<input
-						type="email"
-						placeholder="Your email address"
-						className="flex-grow px-4 py-3 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
-						required
-					/>
-					<button
-						type="submit"
-						className="bg-white text-primary px-6 py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
-					>
-						Subscribe
-					</button>
-				</form>
-			</div>
-		</section>
+		<>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify({
+						"@context": "https://schema.org",
+						"@graph": graph.filter(Boolean),
+					}),
+				}}
+			/>
+			<Script id="home-analytics" strategy="afterInteractive">
+				{`
+					window.dataLayer = window.dataLayer || [];
+					window.dataLayer.push({
+						'event': 'page_view',
+						'page_type': 'home',
+						'ecommerce': {
+							'items': ${JSON.stringify(
+								featuredProducts.slice(0, 5).map((product, index) => ({
+									item_id: product.id,
+									item_name: product.title,
+									price: product.priceRange?.minVariantPrice?.amount || 0,
+									currency: product.priceRange?.minVariantPrice?.currencyCode || 'USD',
+									index: index,
+									category: product.productType,
+									brand: product.vendor || site.name,
+								}))
+							)}
+						}
+					});
+				`}
+			</Script>
+		</>
 	);
 }

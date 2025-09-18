@@ -1,22 +1,10 @@
 "use client";
 
-import { ThemeProvider } from "next-themes";
-import { SearchProvider } from "@/lib/providers/search-provider";
-import { CartProvider } from "@/lib/providers/cart-provider";
-import { PromoProvider } from "@/lib/providers/promo-provider";
+import { Providers as CentralizedProviders } from "@/components/providers";
 import { ReactNode } from "react";
-import { SessionProvider } from "next-auth/react";
 
+// Optimized providers using NextMaster-inspired patterns
+// Now using centralized provider organization
 export function Providers({ children }: { children: ReactNode }) {
-	return (
-		<SessionProvider>
-			<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-				<SearchProvider>
-					<CartProvider>
-						<PromoProvider>{children}</PromoProvider>
-					</CartProvider>
-				</SearchProvider>
-			</ThemeProvider>
-		</SessionProvider>
-	);
+	return <CentralizedProviders>{children}</CentralizedProviders>;
 }

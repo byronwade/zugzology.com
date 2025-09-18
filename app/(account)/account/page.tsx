@@ -1,5 +1,3 @@
-"use server";
-
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getCustomer } from "@/lib/services/shopify-customer";
@@ -8,6 +6,32 @@ import OrderHistory from "./order-history";
 import { cookies } from "next/headers";
 import { AUTH_CONFIG } from "@/lib/config/auth";
 import { getSession } from "@/lib/actions/session";
+import { Metadata } from "next";
+import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
+import { getEnhancedBreadcrumbSchema, getEnhancedPersonSchema } from "@/lib/seo/enhanced-jsonld";
+import Script from "next/script";
+import { UniversalBreadcrumb, BreadcrumbConfigs } from "@/components/navigation/universal-breadcrumb";
+
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = generateSEOMetadata({
+  title: "My Account - Account Dashboard",
+  description: "Manage your account information, view order history, track shipments, and update your preferences. Secure customer portal for mushroom cultivation supplies.",
+  keywords: [
+    "account dashboard",
+    "customer account",
+    "order history",
+    "account settings",
+    "customer portal",
+    "profile management",
+    "order tracking"
+  ],
+  url: "/account",
+  noindex: true, // Account pages shouldn't be indexed for privacy
+  openGraph: {
+    type: "website",
+  },
+});
 
 export default async function AccountPage() {
 	// Use the custom session management instead of Next.js auth
@@ -57,44 +81,129 @@ export default async function AccountPage() {
 
 		console.log("✅ [Account] Customer data fetched using " + tokenUsed + " token:", customer.email);
 
+		// Generate breadcrumbs
+		const breadcrumbs = [
+			{ name: "Home", url: "/" },
+			{ name: "My Account", url: "/account" },
+		];
+		
+		const breadcrumbSchema = getEnhancedBreadcrumbSchema(breadcrumbs);
+		
+		// Generate customer schema
+		const customerSchema = getEnhancedPersonSchema({
+			name: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Customer',
+			email: customer.email,
+		});
+
 		// Render the account page with customer data
 		return (
-			<div className="min-h-screen bg-muted/50">
-				<div className="flex flex-col lg:flex-row w-full gap-8 p-4 pb-16">
-					{/* Account Info Sidebar */}
-					<div className="w-full lg:w-1/3">
-						<AccountInfo customer={customer} />
+			<>
+				{/* JSON-LD Structured Data */}
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify(breadcrumbSchema),
+					}}
+				/>
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify(customerSchema),
+					}}
+				/>
+				
+				{/* Google Analytics for Account View */}
+				<Script id="account-analytics" strategy="afterInteractive">
+					{`
+						window.dataLayer = window.dataLayer || [];
+						window.dataLayer.push({
+							'event': 'page_view',
+							'page_type': 'account_dashboard',
+							'page_location': window.location.href,
+							'user_id': '${customer.id}',
+							'customer_type': 'returning'
+						});
+					`}
+				</Script>
+				
+				<div className="min-h-screen bg-muted/50">
+					{/* Breadcrumb Navigation */}
+					<div className="pt-4 px-4">
+						<UniversalBreadcrumb items={BreadcrumbConfigs.account()} />
 					</div>
+					
+					<div className="flex flex-col lg:flex-row w-full gap-8 p-4 pb-16">
+						{/* Account Info Sidebar */}
+						<div className="w-full lg:w-1/3">
+							<AccountInfo customer={customer} />
+						</div>
 
-					{/* Order History */}
-					<div className="w-full lg:w-2/3">
-						<OrderHistory orders={customer.orders.edges.map(({ node }) => node)} />
+						{/* Order History */}
+						<div className="w-full lg:w-2/3">
+							<OrderHistory orders={customer.orders.edges.map(({ node }) => node)} />
+						</div>
 					</div>
 				</div>
-			</div>
+			</>
 		);
 	} catch (error) {
 		console.error("❌ [Account] Failed to fetch account data:", error);
 
+		// Generate basic breadcrumbs for error state
+		const errorBreadcrumbs = [
+			{ name: "Home", url: "/" },
+			{ name: "My Account", url: "/account" },
+		];
+		
+		const errorBreadcrumbSchema = getEnhancedBreadcrumbSchema(errorBreadcrumbs);
+
 		// If we couldn't get customer data, show simplified account page with session info
 		return (
-			<div className="min-h-screen bg-muted/50 p-8">
-				<div className="max-w-4xl mx-auto">
-					<h1 className="text-3xl font-bold mb-6">Your Account</h1>
-
-					<div className="bg-white rounded-lg shadow p-6 mb-6">
-						<h2 className="text-xl font-semibold mb-4">Account Information</h2>
-						<p className="mb-2">
-							<strong>Email:</strong> {session?.user?.accessToken ? "Authenticated" : "Not provided"}
-						</p>
-						<p className="text-sm text-muted-foreground mt-4">We're having trouble loading your detailed account information.</p>
+			<>
+				{/* JSON-LD Structured Data for Error State */}
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify(errorBreadcrumbSchema),
+					}}
+				/>
+				
+				{/* Google Analytics for Account Error */}
+				<Script id="account-error-analytics" strategy="afterInteractive">
+					{`
+						window.dataLayer = window.dataLayer || [];
+						window.dataLayer.push({
+							'event': 'page_view',
+							'page_type': 'account_error',
+							'page_location': window.location.href,
+							'error_type': 'customer_data_fetch_failed'
+						});
+					`}
+				</Script>
+				
+				<div className="min-h-screen bg-muted/50 p-8">
+					{/* Breadcrumb Navigation */}
+					<div className="mb-8">
+						<UniversalBreadcrumb items={BreadcrumbConfigs.account()} />
 					</div>
+					
+					<div className="max-w-4xl mx-auto">
+						<h1 className="text-3xl font-bold mb-6">Your Account</h1>
 
-					<Button variant="outline" onClick={() => redirect("/")}>
-						Return to Home
-					</Button>
+						<div className="bg-white rounded-lg shadow p-6 mb-6">
+							<h2 className="text-xl font-semibold mb-4">Account Information</h2>
+							<p className="mb-2">
+								<strong>Email:</strong> {session?.user?.accessToken ? "Authenticated" : "Not provided"}
+							</p>
+								<p className="text-sm text-muted-foreground mt-4">We&apos;re having trouble loading your detailed account information.</p>
+						</div>
+
+						<Button variant="outline" onClick={() => redirect("/")}>
+							Return to Home
+						</Button>
+					</div>
 				</div>
-			</div>
+			</>
 		);
 	}
 }

@@ -38,6 +38,11 @@ export function getTimestamp(): number {
 	if (typeof performance !== "undefined") {
 		return performance.now();
 	}
+	// For server-side usage with dynamicIO, avoid Date.now() 
+	// This should only be used in client-side or API contexts
+	if (typeof window === "undefined") {
+		return 0; // Return 0 for server-side to avoid dynamicIO conflicts
+	}
 	return Date.now();
 }
 
@@ -84,6 +89,8 @@ function cleanupCache() {
 }
 
 // Run cache cleanup every minute, but only on the server
-if (typeof process !== "undefined" && process.env.NEXT_RUNTIME === "nodejs") {
-	setInterval(cleanupCache, 60 * 1000);
-}
+// Note: With dynamicIO, avoid setInterval during module initialization
+// This should be moved to an API route or background job if needed
+// if (typeof process !== "undefined" && process.env.NEXT_RUNTIME === "nodejs") {
+// 	setInterval(cleanupCache, 60 * 1000);
+// }

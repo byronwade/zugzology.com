@@ -34,7 +34,7 @@ export {
  * Get a product by handle using the new use cache directive
  */
 export async function getProductByHandle(handle: string): Promise<ShopifyProduct | null> {
-	"use cache";
+	
 
 	if (!handle) return null;
 
@@ -63,7 +63,7 @@ export async function getProductByHandle(handle: string): Promise<ShopifyProduct
  * Get a collection by handle using the new use cache directive
  */
 export async function getCollectionByHandle(handle: string): Promise<any> {
-	"use cache";
+	
 
 	if (!handle) return null;
 
@@ -92,7 +92,7 @@ export async function getCollectionByHandle(handle: string): Promise<any> {
  * Get all collections using the new use cache directive
  */
 export async function getAllCollections(): Promise<ShopifyCollection[]> {
-	"use cache";
+	
 
 	try {
 		const { data } = await shopifyFetch<{ collections: { nodes: ShopifyCollection[] } }>({
@@ -335,7 +335,7 @@ function storeCachedCursor(key: string, cursor: string): void {
  */
 export async function getPaginatedProducts(page = 1, sort = "featured", perPage = 24) {
 	// Use the new Next.js 15 cache directive
-	"use cache";
+	
 
 	try {
 		console.log(`[getPaginatedProducts] Starting for page ${page}, sort: ${sort}, perPage: ${perPage}`);
@@ -371,7 +371,7 @@ export async function getPaginatedProducts(page = 1, sort = "featured", perPage 
  * Get total product count using the new use cache directive
  */
 export async function getProductCount() {
-	"use cache";
+	
 
 	try {
 		const { data } = await shopifyFetch<{ products: { totalCount: number } }>({
@@ -396,7 +396,7 @@ export async function getProductCount() {
  * This optimized version only fetches the exact number of products needed
  */
 export async function getLimitedProducts(limit = 4) {
-	"use cache";
+	
 	
 	try {
 		console.log(`[getLimitedProducts] Fetching ${limit} products for blog page`);
@@ -460,7 +460,7 @@ export async function getLimitedProducts(limit = 4) {
  * This is optimized for blog pages that need to show related products
  */
 export async function getProductsByTags(tags: string[], limit = 3) {
-	"use cache";
+	
 	
 	if (!tags || tags.length === 0) {
 		console.log("[getProductsByTags] No tags provided, returning empty array");

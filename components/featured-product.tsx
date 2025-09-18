@@ -11,7 +11,7 @@ export function FeaturedProduct() {
 		description:
 			"Our flagship all-in-one mushroom cultivation system designed for consistent, high-yield harvests with minimal effort. Perfect for both beginners and experienced growers.",
 		price: 149.99,
-		image: "/placeholder.svg?height=600&width=600",
+		image: "/placeholder.svg",
 		features: [
 			"Temperature and humidity controlled environment",
 			"Automated lighting and air exchange system",
@@ -31,6 +31,7 @@ export function FeaturedProduct() {
 							src={featuredProduct.image || "/placeholder.svg"}
 							alt={featuredProduct.name}
 							fill
+							sizes="(max-width: 1024px) 100vw, 50vw"
 							className="object-cover"
 						/>
 					</div>

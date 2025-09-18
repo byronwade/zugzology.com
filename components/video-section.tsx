@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export function VideoSection() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -47,6 +47,12 @@ export function VideoSection() {
 								</Button>
 							</DialogTrigger>
 							<DialogContent className="max-w-4xl p-0 bg-black">
+								<DialogHeader className="sr-only">
+									<DialogTitle>Mushroom Growing Video Guide</DialogTitle>
+									<DialogDescription>
+										A comprehensive video guide showing how to grow mushrooms from start to finish
+									</DialogDescription>
+								</DialogHeader>
 								<div className="aspect-video w-full">
 									{/* In a real implementation, this would be a YouTube or Vimeo embed */}
 									<div className="w-full h-full flex items-center justify-center bg-gray-800 text-white">

@@ -88,7 +88,7 @@ export function EmptyState({
 										<Sparkles className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform" />
 									</div>
 									<h3 className="font-medium text-lg mb-2">Featured Collection</h3>
-									<p className="text-sm text-muted-foreground">Handpicked selections you'll love</p>
+										<p className="text-sm text-muted-foreground">Handpicked selections you&apos;ll love</p>
 								</div>
 							</Link>
 						</div>
@@ -99,9 +99,9 @@ export function EmptyState({
 							<h3 className="font-medium text-lg mb-3">Search Tips</h3>
 							<ul className="text-sm text-muted-foreground space-y-2 text-left list-disc pl-5">
 								<li>Check the spelling of your search terms</li>
-								<li>Try using more general keywords (e.g., "shirt" instead of "blue cotton shirt")</li>
+										<li>Try using more general keywords (e.g., &quot;shirt&quot; instead of &quot;blue cotton shirt&quot;)</li>
 								<li>Search for related terms or alternative product names</li>
-								<li>Remove filters if you're using any</li>
+										<li>Remove filters if you&apos;re using any</li>
 							</ul>
 						</div>
 					)}

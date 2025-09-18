@@ -4,37 +4,49 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { getBlogs, getPaginatedBlogPosts } from "@/lib/api/shopify/actions";
 import type { ShopifyBlogArticle, ShopifyBlog } from "@/lib/types";
-import { jsonLdScriptProps } from "react-schemaorg";
-import { WithContext, Blog, BreadcrumbList } from "schema-dts";
 import { notFound } from "next/navigation";
 import { PaginationControlsSSR } from "@/components/ui/pagination";
+import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
+import { getEnhancedBreadcrumbSchema, getSearchActionSchema, getEnhancedOrganizationSchema } from "@/lib/seo/enhanced-jsonld";
+import Script from "next/script";
 
-export const metadata: Metadata = {
-	title: "Blog - Mushroom Cultivation Insights & Guides | Zugzology",
-	description:
-		"Explore expert insights, guides, and tips about mushroom cultivation. Learn about growing techniques, equipment, and best practices from Zugzology's knowledge base.",
-	openGraph: {
-		title: "Mushroom Cultivation Blog | Zugzology",
-		description:
-			"Expert insights, guides, and tips about mushroom cultivation. Learn about growing techniques, equipment, and best practices.",
-		type: "website",
-		images: [
-			{
-				url: "https://zugzology.com/blog-og-image.jpg",
-				width: 1200,
-				height: 630,
-				alt: "Zugzology Blog",
-			},
+interface BlogsPageProps {
+	searchParams?: Promise<{
+		page?: string;
+	}>;
+}
+
+export async function generateMetadata({ searchParams }: BlogsPageProps): Promise<Metadata> {
+	const nextjs15SearchParams = await searchParams;
+	const currentPage = nextjs15SearchParams?.page ? parseInt(nextjs15SearchParams.page) : 1;
+	
+	const baseTitle = "Expert Mushroom Cultivation Blog - Growing Guides & Tips";
+	const title = currentPage > 1 ? `${baseTitle} - Page ${currentPage}` : baseTitle;
+	
+	const description = "Discover expert insights, comprehensive guides, and professional tips about mushroom cultivation. Learn advanced growing techniques, equipment recommendations, and best practices from industry experts.";
+
+	return generateSEOMetadata({
+		title,
+		description,
+		keywords: [
+			"mushroom cultivation blog",
+			"mushroom growing guides",
+			"cultivation techniques",
+			"mushroom farming tips",
+			"growing equipment guides",
+			"expert mushroom advice",
+			"cultivation tutorials",
+			"mushroom growing insights",
+			"professional growing tips",
+			"mushroom cultivation resources"
 		],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Mushroom Cultivation Blog | Zugzology",
-		description:
-			"Expert insights, guides, and tips about mushroom cultivation. Learn about growing techniques, equipment, and best practices.",
-		images: ["https://zugzology.com/blog-twitter-image.jpg"],
-	},
-};
+		url: `/blogs${currentPage > 1 ? `?page=${currentPage}` : ''}`,
+		openGraph: {
+			type: "website",
+		},
+		...(currentPage > 1 && { noindex: true }), // Don't index pagination pages beyond page 1
+	});
+}
 
 interface BlogPost extends ShopifyBlogArticle {
 	blogHandle: string;
@@ -113,12 +125,6 @@ function getRandomFeaturedPosts(posts: ShopifyBlogArticle[], count: number = 2) 
 // Constants for pagination
 const POSTS_PER_PAGE = 12;
 
-interface BlogsPageProps {
-	searchParams?: Promise<{
-		page?: string;
-	}>;
-}
-
 export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 	// Always await searchParams in Next.js 15
 	const nextjs15SearchParams = await searchParams;
@@ -139,41 +145,51 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 		return notFound();
 	}
 
-	// Generate structured data
-	const blogStructuredData: WithContext<Blog> = {
+	// Generate enhanced structured data
+	const breadcrumbs = [
+		{ name: "Home", url: "/" },
+		{ name: "Blog", url: "/blogs" },
+	];
+	
+	const breadcrumbSchema = getEnhancedBreadcrumbSchema(breadcrumbs);
+	const websiteSchema = getSearchActionSchema();
+	const organizationSchema = getEnhancedOrganizationSchema();
+	
+	// Enhanced blog schema with more comprehensive data
+	const blogSchema = {
 		"@context": "https://schema.org",
 		"@type": "Blog",
-		name: "Zugzology Blog",
-		description:
-			"Expert insights, guides, and tips about mushroom cultivation. Learn about growing techniques, equipment, and best practices.",
+		"@id": "https://zugzology.com/blogs#blog",
+		name: "Zugzology Blog - Mushroom Cultivation Insights",
+		description: "Expert insights, comprehensive guides, and professional tips about mushroom cultivation. Learn advanced growing techniques, equipment recommendations, and best practices from industry experts.",
 		url: "https://zugzology.com/blogs",
-		publisher: {
-			"@type": "Organization",
-			name: "Zugzology",
-			logo: {
-				"@type": "ImageObject",
-				url: "https://zugzology.com/logo.png",
-			},
+		inLanguage: "en-US",
+		publisher: organizationSchema,
+		mainEntityOfPage: {
+			"@type": "WebPage",
+			"@id": "https://zugzology.com/blogs",
 		},
-	};
-
-	const breadcrumbStructuredData: WithContext<BreadcrumbList> = {
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "Home",
-				item: "https://zugzology.com",
+		potentialAction: {
+			"@type": "SearchAction",
+			target: {
+				"@type": "EntryPoint",
+				urlTemplate: "https://zugzology.com/blogs?search={search_term_string}",
 			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "Blogs",
-				item: "https://zugzology.com/blogs",
+			"query-input": "required name=search_term_string",
+		},
+		author: organizationSchema,
+		numberOfPages: pagination.totalPages,
+		itemListElement: allPosts.slice(0, 5).map((post, index) => ({
+			"@type": "BlogPosting",
+			position: index + 1,
+			name: post.title,
+			url: `https://zugzology.com/blogs/${post.blog?.handle || 'news'}/${post.handle}`,
+			datePublished: post.publishedAt,
+			author: {
+				"@type": "Person",
+				name: post.author?.name || "Expert Team",
 			},
-		],
+		})),
 	};
 
 	// Get featured posts (only on first page)
@@ -191,8 +207,61 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 
 	return (
 		<>
-			<script {...jsonLdScriptProps<WithContext<Blog>>(blogStructuredData)} key="blog-jsonld" />
-			<script {...jsonLdScriptProps<WithContext<BreadcrumbList>>(breadcrumbStructuredData)} key="breadcrumb-jsonld" />
+			{/* JSON-LD Structured Data */}
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(breadcrumbSchema),
+				}}
+			/>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(blogSchema),
+				}}
+			/>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(websiteSchema),
+				}}
+			/>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(organizationSchema),
+				}}
+			/>
+			
+			{/* Google Analytics for Blog Listing */}
+			<Script id="blog-listing-analytics" strategy="afterInteractive">
+				{`
+					window.dataLayer = window.dataLayer || [];
+					window.dataLayer.push({
+						'event': 'page_view',
+						'page_type': 'blog_listing',
+						'page_location': window.location.href,
+						'content_category': 'blog',
+						'total_posts': ${pagination.totalPosts},
+						'current_page': ${currentPage},
+						'total_pages': ${pagination.totalPages}
+					});
+					
+					// Track blog view event
+					window.dataLayer.push({
+						'event': 'view_item_list',
+						'item_list_id': 'blog_listing',
+						'item_list_name': 'Blog Articles',
+						'items': ${JSON.stringify(allPosts.slice(0, 10).map((post, index) => ({
+							item_id: post.id,
+							item_name: post.title,
+							item_category: 'blog_post',
+							item_brand: 'Zugzology',
+							index: index,
+						})))}
+					});
+				`}
+			</Script>
 
 			<div className="bg-white dark:bg-black min-h-screen">
 				{/* Breadcrumb */}
@@ -223,9 +292,9 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 						<div className="flex flex-col md:flex-row items-center justify-between mb-6">
 							<div>
 								<h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Browse by Category</h2>
-								<p className="mt-1 text-neutral-600 dark:text-neutral-400">
-									Explore our specialized blog categories to find exactly what you're looking for
-								</p>
+									<p className="mt-1 text-neutral-600 dark:text-neutral-400">
+										Explore our specialized blog categories to find exactly what you&apos;re looking for
+									</p>
 							</div>
 						</div>
 

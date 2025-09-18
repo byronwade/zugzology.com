@@ -1,9 +1,9 @@
-"use server";
-
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { AUTH_CONFIG } from "@/lib/config/auth";
 import { getSession } from "@/lib/actions/session";
+
+export const dynamic = 'force-dynamic';
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
 	try {

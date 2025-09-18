@@ -34,23 +34,16 @@ export const PaginationControls = React.memo(function PaginationControls({
 	const hookSearchParams = useSearchParams();
 
 	const pathname = propPathname || hookPathname;
-	const searchParams = searchParamsString ? new URLSearchParams(searchParamsString) : hookSearchParams;
+	const searchParamsValue = React.useMemo(() => (searchParamsString ? searchParamsString : hookSearchParams.toString()), [hookSearchParams, searchParamsString]);
 
-	// Don't render pagination if there's only one page
-	if (totalPages <= 1) return null;
-
-	// Log pagination information for debugging
-	React.useEffect(() => {
-		console.log(`[PaginationControls] Rendered with currentPage: ${currentPage}, totalPages: ${totalPages}`);
-		console.log(`[PaginationControls] pathname: ${pathname}, baseUrl: ${baseUrl || "undefined"}`);
-	}, [currentPage, totalPages, pathname, baseUrl]);
+	// Removed console.log for performance
 
 	// Handle page change with client-side navigation if onPageChange is provided
 	// Memoize the handler to prevent unnecessary re-renders
 	const handlePageChange = React.useCallback(
 		(page: number) => {
 			if (onPageChange) {
-				console.log(`[PaginationControls] Handling page change to ${page} with onPageChange`);
+				// Removed console.log for performance
 				onPageChange(page);
 			}
 		},
@@ -61,13 +54,13 @@ export const PaginationControls = React.memo(function PaginationControls({
 	// Memoize the function to prevent unnecessary re-renders
 	const createPageUrl = React.useCallback(
 		(page: number) => {
-			const params = new URLSearchParams(searchParams.toString());
+			const params = new URLSearchParams(searchParamsValue);
 			params.set(searchParamName, page.toString());
 			const url = `${baseUrl || pathname}?${params.toString()}`;
-			console.log(`[PaginationControls] Created URL for page ${page}: ${url}`);
+			// Removed console.log for performance
 			return url;
 		},
-		[baseUrl, pathname, searchParams, searchParamName]
+		[baseUrl, pathname, searchParamName, searchParamsValue]
 	);
 
 	// Calculate page range to display
@@ -110,6 +103,11 @@ export const PaginationControls = React.memo(function PaginationControls({
 		return pages;
 	}, [currentPage, totalPages]);
 
+	// Don't render pagination if there's only one page
+	if (totalPages <= 1) {
+		return null;
+	}
+
 	return (
 		<div className="flex items-center justify-center mt-12 mb-8 space-x-2">
 			{/* Previous page button */}
@@ -126,7 +124,7 @@ export const PaginationControls = React.memo(function PaginationControls({
 			) : (
 				<Button variant="outline" size="icon" asChild disabled={currentPage <= 1} aria-label="Previous page">
 					{currentPage > 1 ? (
-						<Link href={createPageUrl(currentPage - 1)} scroll={true} prefetch={true}>
+						<Link href={createPageUrl(currentPage - 1)} scroll={true} prefetch={false}>
 							<ChevronLeft className="h-4 w-4" />
 						</Link>
 					) : (
@@ -164,7 +162,7 @@ export const PaginationControls = React.memo(function PaginationControls({
 							aria-label={`Page ${page}`}
 							aria-current={currentPage === page ? "page" : undefined}
 						>
-							<Link href={createPageUrl(page as number)} scroll={true} prefetch={true}>
+							<Link href={createPageUrl(page as number)} scroll={true} prefetch={false}>
 								{page}
 							</Link>
 						</Button>
@@ -186,7 +184,7 @@ export const PaginationControls = React.memo(function PaginationControls({
 			) : (
 				<Button variant="outline" size="icon" asChild disabled={currentPage >= totalPages} aria-label="Next page">
 					{currentPage < totalPages ? (
-						<Link href={createPageUrl(currentPage + 1)} scroll={true} prefetch={true}>
+						<Link href={createPageUrl(currentPage + 1)} scroll={true} prefetch={false}>
 							<ChevronRight className="h-4 w-4" />
 						</Link>
 					) : (

@@ -7,12 +7,12 @@ import { getBlogByHandle, getPaginatedBlogPostsByHandle, getAllBlogPosts } from 
 import { getLimitedProducts } from "@/lib/actions/shopify/index";
 import type { ShopifyBlogArticle, ShopifyBlog } from "@/lib/types";
 import { BlogBreadcrumb } from "@/components/blog/blog-breadcrumb";
-import { jsonLdScriptProps } from "react-schemaorg";
-import type { WithContext } from "schema-dts";
-import { Blog, BreadcrumbList } from "schema-dts";
 import { unstable_noStore as noStore } from "next/cache";
 import { PaginationControls } from "@/components/ui/pagination";
 import { formatPrice } from "@/lib/utils";
+import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
+import { getEnhancedBreadcrumbSchema, getSearchActionSchema, getEnhancedOrganizationSchema } from "@/lib/seo/enhanced-jsonld";
+import Script from "next/script";
 
 // Constants for pagination
 const POSTS_PER_PAGE = 12;
@@ -23,52 +23,65 @@ async function getBlogData(handle: string) {
 	return getBlogByHandle(handle);
 }
 
-export async function generateMetadata({ params }: { params: { blog: string } }): Promise<Metadata> {
+interface BlogCategoryPageProps {
+	params: Promise<{
+		blog: string;
+	}>;
+	searchParams?: Promise<{
+		page?: string;
+	}>;
+}
+
+export async function generateMetadata({ params, searchParams }: BlogCategoryPageProps): Promise<Metadata> {
 	const nextParams = await params;
+	const nextSearchParams = await searchParams;
 
 	// Check if blog handle is undefined
 	if (!nextParams.blog || nextParams.blog === "undefined") {
-		return {
-			title: "Blog Not Found",
+		return generateSEOMetadata({
+			title: "Blog Category Not Found",
 			description: "The requested blog category could not be found.",
-		};
+			noindex: true,
+		});
 	}
 
 	const blog = await getBlogData(nextParams.blog);
 
 	if (!blog) {
-		return {
-			title: "Blog Not Found",
+		return generateSEOMetadata({
+			title: "Blog Category Not Found",
 			description: "The requested blog category could not be found.",
-		};
+			noindex: true,
+		});
 	}
 
-	const title = `${blog.title} - Zugzology Blog`;
-	const description = `Explore our ${blog.title} articles. Find expert insights, tips, and guides about mushroom cultivation and mycology.`;
+	const currentPage = nextSearchParams?.page ? parseInt(nextSearchParams.page) : 1;
+	const baseTitle = `${blog.title} Articles - Expert Mushroom Cultivation Blog`;
+	const title = currentPage > 1 ? `${baseTitle} - Page ${currentPage}` : baseTitle;
+	
+	const description = `Explore our comprehensive ${blog.title.toLowerCase()} articles. Find expert insights, tips, and professional guides about mushroom cultivation, growing techniques, and mycology from industry experts.`;
 
-	return {
+	return generateSEOMetadata({
 		title,
 		description,
+		keywords: [
+			`${blog.title.toLowerCase()} blog`,
+			`${blog.title.toLowerCase()} articles`,
+			"mushroom cultivation",
+			"growing guides",
+			"cultivation techniques", 
+			"expert insights",
+			"mushroom farming",
+			"growing tips",
+			"cultivation tutorials",
+			"mushroom growing advice"
+		],
+		url: `/blogs/${blog.handle}${currentPage > 1 ? `?page=${currentPage}` : ''}`,
 		openGraph: {
-			title,
-			description,
 			type: "website",
-			images: [
-				{
-					url: "https://zugzology.com/blog-og-image.jpg",
-					width: 1200,
-					height: 630,
-					alt: title,
-				},
-			],
 		},
-		twitter: {
-			card: "summary_large_image",
-			title,
-			description,
-			images: ["https://zugzology.com/blog-twitter-image.jpg"],
-		},
-	};
+		...(currentPage > 1 && { noindex: true }), // Don't index pagination pages beyond page 1
+	});
 }
 
 interface BlogCardProps {
@@ -157,15 +170,6 @@ function getRandomFeaturedPosts(posts: ShopifyBlogArticle[], count: number = 3) 
 	return shuffled.slice(0, count);
 }
 
-interface BlogCategoryPageProps {
-	params: Promise<{
-		blog: string;
-	}>;
-	searchParams?: Promise<{
-		page?: string;
-	}>;
-}
-
 export default async function BlogCategoryPage({ params, searchParams }: BlogCategoryPageProps) {
 	const startTime = performance.now();
 
@@ -214,29 +218,46 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
 		totalPages: pagination.totalPages,
 	});
 
-	// Generate structured data
-	const blogStructuredData: WithContext<Blog> = {
+	// Generate enhanced structured data
+	const breadcrumbs = [
+		{ name: "Home", url: "/" },
+		{ name: "Blog", url: "/blogs" },
+		{ name: blog.title, url: `/blogs/${blog.handle}` },
+	];
+	
+	const breadcrumbSchema = getEnhancedBreadcrumbSchema(breadcrumbs);
+	const websiteSchema = getSearchActionSchema();
+	const organizationSchema = getEnhancedOrganizationSchema();
+	
+	// Enhanced blog category schema
+	const blogCategorySchema = {
 		"@context": "https://schema.org",
 		"@type": "Blog",
+		"@id": `https://zugzology.com/blogs/${blog.handle}#blog`,
 		name: `${blog.title} - Zugzology Blog`,
-		description: `Explore our ${blog.title} articles. Find expert insights, tips, and guides about mushroom cultivation and mycology.`,
+		description: `Explore our comprehensive ${blog.title.toLowerCase()} articles. Find expert insights, tips, and professional guides about mushroom cultivation, growing techniques, and mycology from industry experts.`,
 		url: `https://zugzology.com/blogs/${blog.handle}`,
-		publisher: {
-			"@type": "Organization",
-			name: "Zugzology",
-			logo: {
-				"@type": "ImageObject",
-				url: "https://zugzology.com/logo.png",
-			},
+		inLanguage: "en-US",
+		publisher: organizationSchema,
+		mainEntityOfPage: {
+			"@type": "WebPage",
+			"@id": `https://zugzology.com/blogs/${blog.handle}`,
 		},
-		blogPost: posts.map((article: ShopifyBlogArticle) => ({
+		author: organizationSchema,
+		numberOfPages: pagination.totalPages,
+		about: {
+			"@type": "Thing",
+			name: blog.title,
+			description: `Everything related to ${blog.title.toLowerCase()} in mushroom cultivation`,
+		},
+		blogPost: posts.slice(0, 10).map((article: ShopifyBlogArticle) => ({
 			"@type": "BlogPosting",
 			headline: article.title,
-			description: article.excerpt,
+			description: article.excerpt || "",
 			datePublished: article.publishedAt,
 			author: {
 				"@type": "Person",
-				name: article.author.name,
+				name: article.author?.name || "Expert Team",
 			},
 			url: `https://zugzology.com/blogs/${blog.handle}/${article.handle}`,
 			...(article.image && {
@@ -250,46 +271,65 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
 		})),
 	};
 
-	const breadcrumbStructuredData: WithContext<BreadcrumbList> = {
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "Home",
-				item: "https://zugzology.com",
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "Blogs",
-				item: "https://zugzology.com/blogs",
-			},
-			{
-				"@type": "ListItem",
-				position: 3,
-				name: blog.title,
-				item: `https://zugzology.com/blogs/${blog.handle}`,
-			},
-		],
-	};
-
 	return (
 		<>
+			{/* JSON-LD Structured Data */}
 			<script
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{
-					__html: JSON.stringify(blogStructuredData),
+					__html: JSON.stringify(breadcrumbSchema),
 				}}
 			/>
-
 			<script
 				type="application/ld+json"
 				dangerouslySetInnerHTML={{
-					__html: JSON.stringify(breadcrumbStructuredData),
+					__html: JSON.stringify(blogCategorySchema),
 				}}
 			/>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(websiteSchema),
+				}}
+			/>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(organizationSchema),
+				}}
+			/>
+			
+			{/* Google Analytics for Blog Category */}
+			<Script id="blog-category-analytics" strategy="afterInteractive">
+				{`
+					window.dataLayer = window.dataLayer || [];
+					window.dataLayer.push({
+						'event': 'page_view',
+						'page_type': 'blog_category',
+						'page_location': window.location.href,
+						'content_category': 'blog',
+						'blog_category': '${blog.title.replace(/'/g, "\\'")}',
+						'blog_handle': '${blog.handle}',
+						'total_posts': ${pagination.totalPosts},
+						'current_page': ${currentPage},
+						'total_pages': ${pagination.totalPages}
+					});
+					
+					// Track blog category view event
+					window.dataLayer.push({
+						'event': 'view_item_list',
+						'item_list_id': '${blog.handle}',
+						'item_list_name': '${blog.title.replace(/'/g, "\\'")} Articles',
+						'items': ${JSON.stringify(posts.slice(0, 10).map((post, index) => ({
+							item_id: post.id,
+							item_name: post.title,
+							item_category: 'blog_post',
+							item_brand: 'Zugzology',
+							index: index,
+						})))}
+					});
+				`}
+			</Script>
 
 			<div className="min-h-screen w-full bg-white dark:bg-black">
 				<div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">

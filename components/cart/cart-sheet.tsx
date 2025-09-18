@@ -2,13 +2,13 @@
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { useCart } from "@/lib/providers/cart-provider";
+import { useCart } from "@/components/providers/cart-provider";
 import { Loader2, ShoppingCart, Trash2, X, Check, Heart } from "lucide-react";
 import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
 import { useEffect, useCallback, useMemo, useState, useRef, useTransition } from "react";
-import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcut";
-import { useWishlist } from "@/lib/providers/wishlist-provider";
+import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { useWishlist } from "@/components/providers";
 import { getProduct, addToCart } from "@/lib/actions/shopify";
 import { toast } from "sonner";
 

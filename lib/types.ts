@@ -273,6 +273,22 @@ export interface Cart {
 
 export type ShopifyCart = Cart;
 
+export interface ShopifyMenuItem {
+	id: string;
+	title: string;
+	url: string;
+	resourceId?: string | null;
+	items?: ShopifyMenuItem[];
+}
+
+export interface ShopifyPage {
+	id: string;
+	title: string;
+	handle: string;
+	bodySummary?: string | null;
+	onlineStoreUrl?: string | null;
+}
+
 export interface ProductsQueryOptions {
 	first?: number;
 	sortKey?: "TITLE" | "PRICE" | "BEST_SELLING" | "CREATED" | "ID" | "MANUAL" | "COLLECTION_DEFAULT" | "RELEVANCE";

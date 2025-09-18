@@ -6,23 +6,34 @@ import { nanoid } from "nanoid";
 import type { ShopifyCart, CartItem } from "@/lib/types";
 import { createCart, getCart, addToCart, updateCartLine, removeFromCart } from "@/lib/actions/shopify";
 import { toast } from "sonner";
+import { useAIPredictionStore } from "@/stores/ai-prediction-store";
 
 interface CartContext {
 	cart: ShopifyCart | null;
 	cartId: string | null;
 	isUpdating: boolean;
+	isLoading: boolean;
+	isOpen: boolean;
 	addItem: (item: CartItem) => Promise<void>;
 	removeItem: (itemId: string) => Promise<void>;
 	updateItemQuantity: (itemId: string, quantity: number) => Promise<void>;
+	updateItem: (itemId: string, quantity: number) => Promise<void>;
+	openCart: () => void;
+	closeCart: () => void;
 }
 
 export const CartContext = createContext<CartContext>({
 	cart: null,
 	cartId: null,
 	isUpdating: false,
+	isLoading: false,
+	isOpen: false,
 	addItem: async () => {},
 	removeItem: async () => {},
 	updateItemQuantity: async () => {},
+	updateItem: async () => {},
+	openCart: () => {},
+	closeCart: () => {},
 });
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -33,16 +44,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 	const [shouldInitialize, setShouldInitialize] = useState(true);
 	const mountedRef = useRef(false);
 	const initializingRef = useRef(false);
-	const sessionId = useRef(nanoid(7));
+	const sessionId = useRef<string | null>(null);
 	const attemptsRef = useRef(0);
 	const [isUpdating, setIsUpdating] = useState(false);
+	const [isOpen, setIsOpen] = useState(false);
+
+	// AI tracking
+	const { trackInteraction } = useAIPredictionStore();
+
+	const initialCartIdRef = useRef(cartId);
+	const sessionIdValueRef = useRef<string | null>(null);
 
 	// Mounting effect
 	useEffect(() => {
-		console.log(`[Cart Provider ${sessionId.current}] Mounting component, cartId:`, cartId || "none");
+		// Generate sessionId on mount to avoid server-side crypto issues
+		if (!sessionId.current) {
+			sessionId.current = nanoid(7);
+			sessionIdValueRef.current = sessionId.current;
+		}
+		
+		const sessionIdLabel = sessionIdValueRef.current;
+		const initialCartId = initialCartIdRef.current;
+		console.log(`[Cart Provider ${sessionIdLabel}] Mounting component, cartId:`, initialCartId || "none");
 		mountedRef.current = true;
 		return () => {
-			console.log(`[Cart Provider ${sessionId.current}] Unmounting component`);
+			console.log(`[Cart Provider ${sessionIdLabel}] Unmounting component`);
 			mountedRef.current = false;
 		};
 	}, []);
@@ -123,20 +149,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 						setShouldInitialize(false);
 					}
 				}
-			} finally {
-				if (mountedRef.current) {
-					setIsLoading(false);
-					if (!error && cart) {
+				} finally {
+					if (mountedRef.current) {
+						setIsLoading(false);
 						initializingRef.current = false;
 					}
 				}
 			}
-		}
 
-		if (shouldInitialize) {
-			initCart();
-		}
-	}, [shouldInitialize, cartId]);
+			if (shouldInitialize) {
+				initCart();
+			}
+		}, [shouldInitialize, cartId, setCartId]);
 
 	// Reset initialization when cartId changes externally
 	useEffect(() => {
@@ -154,7 +178,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 			return;
 		}
 
-		setIsLoading(true);
+		setIsUpdating(true);
 		try {
 			const merchandiseId = item.merchandiseId.includes("gid://shopify/ProductVariant/") ? item.merchandiseId : `gid://shopify/ProductVariant/${item.merchandiseId}`;
 
@@ -182,6 +206,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
 			setCart(updatedCart);
 			toast.success(item.isPreOrder ? "Pre-order added to cart" : "Added to cart");
+			
+			// Track cart add with AI prediction store
+			trackInteraction({
+				productId: item.productId,
+				type: 'cart_add',
+				context: 'cart-action',
+				metadata: {
+					quantity: item.quantity,
+					variantId: item.merchandiseId,
+					isPreOrder: item.isPreOrder
+				}
+			});
+			
+			// Emit cart add event for other systems
+			window.dispatchEvent(new CustomEvent('cart-add', {
+				detail: {
+					productId: item.productId,
+					quantity: item.quantity,
+					variant: item.merchandiseId
+				}
+			}));
 		} catch (error) {
 			console.error("Error adding item to cart:", error);
 			if (error instanceof Error && error.message.includes("cart not found")) {
@@ -192,11 +237,118 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 				toast.error("Failed to add item to cart");
 			}
 		} finally {
-			setIsLoading(false);
+			setIsUpdating(false);
 		}
 	};
 
-	return <CartContext.Provider value={{ cart, cartId, isUpdating, addItem, removeItem: async () => {}, updateItemQuantity: async () => {} }}>{children}</CartContext.Provider>;
+	const removeItem = async (itemId: string) => {
+		if (!cart?.id) {
+			console.error("No cart ID available");
+			toast.error("Unable to remove item from cart");
+			return;
+		}
+
+		// Find the product ID before removing
+		const cartLine = cart.lines.edges.find(({ node }) => node.id === itemId);
+		const productId = cartLine?.node.merchandise.product?.id;
+
+		setIsUpdating(true);
+		try {
+			const updatedCart = await removeFromCart(cart.id, itemId);
+			if (!updatedCart) {
+				throw new Error("Failed to remove item from cart");
+			}
+			setCart(updatedCart);
+			toast.success("Item removed from cart");
+			
+			// Track cart remove with AI prediction store
+			if (productId) {
+				trackInteraction({
+					productId,
+					type: 'cart_remove',
+					context: 'cart-action',
+					metadata: {
+						itemId,
+						variantId: cartLine?.node.merchandise.id
+					}
+				});
+			}
+			
+			// Emit cart remove event
+			window.dispatchEvent(new CustomEvent('cart-remove', {
+				detail: { itemId, productId }
+			}));
+		} catch (error) {
+			console.error("Error removing item from cart:", error);
+			if (error instanceof Error && error.message.includes("cart not found")) {
+				setCart(null);
+				setCartId(null);
+				toast.error("Cart expired, please try again");
+			} else {
+				toast.error("Failed to remove item from cart");
+			}
+		} finally {
+			setIsUpdating(false);
+		}
+	};
+
+	const updateItemQuantity = async (itemId: string, quantity: number) => {
+		if (!cart?.id) {
+			console.error("No cart ID available");
+			toast.error("Unable to update cart");
+			return;
+		}
+
+		setIsUpdating(true);
+		try {
+			const updatedCart = await updateCartLine(cart.id, itemId, quantity);
+			if (!updatedCart) {
+				throw new Error("Failed to update cart");
+			}
+			setCart(updatedCart);
+			toast.success("Cart updated");
+			
+			// Emit cart update event
+			window.dispatchEvent(new CustomEvent('cart-update', {
+				detail: { itemId, quantity }
+			}));
+		} catch (error) {
+			console.error("Error updating cart:", error);
+			if (error instanceof Error && error.message.includes("cart not found")) {
+				setCart(null);
+				setCartId(null);
+				toast.error("Cart expired, please try again");
+			} else {
+				toast.error("Failed to update cart");
+			}
+		} finally {
+			setIsUpdating(false);
+		}
+	};
+
+	const updateItem = updateItemQuantity; // Alias for compatibility
+	const openCart = () => setIsOpen(true);
+	const closeCart = () => setIsOpen(false);
+
+	return (
+		<CartContext.Provider
+			value={{
+				cart,
+				cartId,
+				isUpdating,
+				isLoading,
+				isOpen,
+				addItem,
+				removeItem,
+				updateItemQuantity,
+				updateItem,
+				openCart,
+				closeCart,
+			}}
+		>
+			{children}
+		</CartContext.Provider>
+	);
 }
 
 export function useCart() {

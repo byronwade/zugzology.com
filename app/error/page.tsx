@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoginButton } from "@/components/auth/next-auth-buttons";
+import { LoginButton } from "@/components/features/auth/next-auth-buttons";
 
 export const metadata: Metadata = {
 	title: "Authentication Error | Zugzology",
@@ -81,7 +81,7 @@ export default async function AuthErrorPage({ searchParams }: { searchParams: { 
 							<p className="font-medium text-amber-800">Troubleshooting Tips:</p>
 							<ul className="list-disc pl-5 mt-1 text-amber-700 space-y-1">
 								<li>Verify that your Shopify API credentials are correct</li>
-								<li>Ensure the redirect URI matches what's configured in Shopify</li>
+									<li>Ensure the redirect URI matches what&apos;s configured in Shopify</li>
 								<li>Check that your Shopify app has the necessary scopes</li>
 								<li>Verify that the NEXTAUTH_URL environment variable is set correctly</li>
 								<li>Make sure your Shopify app is properly configured in the Shopify Partner Dashboard</li>

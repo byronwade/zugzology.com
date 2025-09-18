@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
-import { ProductGallery } from "@/components/products/sections/product-gallery";
+import { ProductGallery } from "@/components/features/products/sections/product-gallery";
 import { ShopifyProduct, ShopifyProductVariant, ShopifyMediaImage, ShopifyMediaVideo } from "@/lib/types";
-import { ProductInfo } from "@/components/products/sections/product-info";
-import { ProductActions } from "@/components/products/sections/product-actions";
+import { ProductInfo } from "@/components/features/products/sections/product-info";
+import { ProductActions } from "@/components/features/products/sections/product-actions";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { getProducts } from "@/lib/actions/shopify";

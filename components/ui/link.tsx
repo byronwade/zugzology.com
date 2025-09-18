@@ -38,7 +38,7 @@ const imageCache = new Map<string, PrefetchImage[]>();
 export const Link: typeof NextLink = (({ children, ...props }) => {
 	const linkRef = useRef<HTMLAnchorElement>(null);
 	const router = useRouter();
-	let prefetchTimeout: NodeJS.Timeout | null = null;
+	const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	useEffect(() => {
 		if (props.prefetch === false) return;
@@ -50,7 +50,7 @@ export const Link: typeof NextLink = (({ children, ...props }) => {
 			(entries) => {
 				const entry = entries[0];
 				if (entry.isIntersecting) {
-					prefetchTimeout = setTimeout(async () => {
+					prefetchTimeoutRef.current = setTimeout(async () => {
 						router.prefetch(String(props.href));
 						await sleep(0);
 
@@ -62,9 +62,9 @@ export const Link: typeof NextLink = (({ children, ...props }) => {
 
 						observer.unobserve(entry.target);
 					}, 300);
-				} else if (prefetchTimeout) {
-					clearTimeout(prefetchTimeout);
-					prefetchTimeout = null;
+				} else if (prefetchTimeoutRef.current) {
+					clearTimeout(prefetchTimeoutRef.current);
+					prefetchTimeoutRef.current = null;
 				}
 			},
 			{ rootMargin: "0px", threshold: 0.1 }
@@ -72,13 +72,14 @@ export const Link: typeof NextLink = (({ children, ...props }) => {
 
 		observer.observe(linkElement);
 
-		return () => {
-			observer.disconnect();
-			if (prefetchTimeout) {
-				clearTimeout(prefetchTimeout);
-			}
+			return () => {
+				observer.disconnect();
+				if (prefetchTimeoutRef.current) {
+					clearTimeout(prefetchTimeoutRef.current);
+					prefetchTimeoutRef.current = null;
+				}
 		};
-	}, [props.href, props.prefetch]);
+		}, [props.href, props.prefetch, router]);
 
 	return (
 		<NextLink

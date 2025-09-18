@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import type { ShopifyCollection, ShopifyProduct } from "@/lib/types";
-import { ProductsContent } from "@/components/products/products-content";
+import { ProductsContent } from "@/components/features/products/products-content";
 
 interface CollectionContentClientProps {
 	collection: ShopifyCollection & {

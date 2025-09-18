@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 				// If we have a timeout or graphQL error, try the faster fallback if cache is empty
 				if (cachedProducts.length === 0) {
 					debugLog("RandomProductsAPI", "Using simplified fallback for empty cache");
-					await useFallbackProducts();
+					await loadFallbackProducts();
 				} else {
 					// Otherwise, just use the existing cache but don't update the timestamp
 					debugLog("RandomProductsAPI", "Error occurred, using existing cache", cachedProducts.length);
@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
 		if (filteredProducts.length === 0) {
 			debugLog("RandomProductsAPI", "No products found after filtering, using fallback");
 
-			// Try one more time with a simplified approach
-			await useFallbackProducts();
+		// Try one more time with a simplified approach
+		await loadFallbackProducts();
 
 			// After fallback, check again
 			const fallbackFiltered = cachedProducts.filter((product) => product.id !== excludeId);
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Simplified fallback method to get products
-async function useFallbackProducts() {
+async function loadFallbackProducts() {
 	try {
 		// Get just enough products without variants and other complex data
 		const products = await getProducts();

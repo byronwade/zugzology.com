@@ -1,256 +1,248 @@
-import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight, CheckCircle, Shield, Star, TrendingUp } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
+import type { ShopifyProduct } from "@/lib/types";
 
 interface HeroSectionProps {
-	product: {
-		title: string;
-		description?: string;
-		excerpt?: string;
-		images: { nodes: { url: string }[] };
-		handle: string;
-		variants: {
-			nodes: {
-				id: string;
-				price: { amount: string; currencyCode: string };
-			}[];
-		};
+	product?: ShopifyProduct & {
+		excerpt?: string | null;
 	};
 }
 
 export function HeroSection({ product }: HeroSectionProps) {
-	const price = parseFloat(product.variants.nodes[0]?.price.amount || "0");
-	const currencyCode = product.variants.nodes[0]?.price.currencyCode;
-
-	// Get a clean, concise description
-	const shortDescription =
-		product.excerpt ||
-		(product.description ? product.description.split(".")[0] + "." : "Premium quality mushroom cultivation supplies.");
-
-	// Ensure we have a valid image URL
-	const imageUrl = product.images?.nodes?.[0]?.url || "/placeholder.svg";
-
-	// Log for debugging purposes
-	console.log("Hero product image:", {
-		imageUrl,
-		hasImages: Boolean(product.images),
-		nodesLength: product.images?.nodes?.length,
-		firstNode: product.images?.nodes?.[0],
-	});
-
-	return (
-		<section className="relative overflow-hidden">
-			{/* Background elements */}
-			<div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900"></div>
-			<div className="absolute top-0 inset-x-0 h-40 bg-gradient-to-b from-gray-100 to-transparent dark:from-gray-800/20 dark:to-transparent"></div>
-			<div className="absolute -top-48 -right-48 w-96 h-96 bg-gradient-radial from-gray-200/40 to-transparent dark:from-gray-700/20 rounded-full blur-3xl"></div>
-			<div className="absolute -bottom-24 -left-24 w-72 h-72 bg-gradient-radial from-gray-200/30 to-transparent dark:from-gray-700/10 rounded-full blur-3xl"></div>
-
-			<div className="container relative mx-auto px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-32 xl:py-40">
-				<div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-					{/* Left content: Text and CTA */}
-					<div className="lg:col-span-5 lg:pr-8 max-w-xl mx-auto lg:mx-0">
-						<div>
-							<div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 mb-6">
-								<span className="flex h-2 w-2 rounded-full bg-green-500 mr-2"></span>
-								Featured Product
+	// Return a default hero section if no product is provided
+	if (!product) {
+		return (
+			<section className="relative min-h-screen bg-background overflow-hidden">
+				<div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-background to-primary/5" />
+				<div className="absolute top-1/4 right-0 w-1/2 h-1/2 bg-primary/10 rounded-full blur-3xl transform translate-x-1/4" />
+				
+				<div className="container relative mx-auto px-4 py-16 sm:px-6 lg:px-8">
+					<div className="relative min-h-[80vh] flex flex-col justify-center">
+						<div className="text-center space-y-8">
+							<div className="space-y-4">
+								<h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[0.95] tracking-tight">
+									Premium Mushroom Growing Supplies
+								</h1>
+								<p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+									Everything you need for successful mushroom cultivation, from spawn to harvest.
+								</p>
 							</div>
 
-							<h1 className="text-4xl sm:text-5xl lg:text-6xl font-light tracking-tight text-gray-900 dark:text-white mb-6 leading-[1.1]">
-								{product.title}
-							</h1>
-
-							<p className="text-lg text-gray-600 dark:text-gray-300 mb-8 font-light leading-relaxed">
-								{shortDescription}
-							</p>
-
-							<div className="flex flex-wrap items-center gap-4 mb-8">
-								<div className="flex items-baseline">
-									<span className="text-3xl font-medium text-gray-900 dark:text-white mr-2">
-										{formatPrice(price, currencyCode)}
-									</span>
-									<span className="text-sm text-gray-500 dark:text-gray-400">Free shipping</span>
-								</div>
-							</div>
-
-							<div className="flex flex-col sm:flex-row gap-4 sm:items-center">
-								<Button
-									size="lg"
-									className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:text-black dark:hover:bg-gray-200 rounded-full px-8 h-14"
-									asChild
-								>
-									<Link href={`/products/${product.handle}`}>Shop Now</Link>
+							<div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+								<Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
+									<Link href="/collections/all">
+										Shop Now <ArrowRight className="ml-2 h-4 w-4" />
+									</Link>
 								</Button>
-
-								<Button
-									variant="ghost"
-									className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800 -ml-2 pl-2 h-11 sm:h-12"
-									asChild
-								>
-									<Link href="/collections/all" className="flex items-center">
-										Browse Collection <ArrowRight className="ml-2 h-4 w-4" />
+								<Button variant="outline" size="lg" className="h-12 px-8 text-base" asChild>
+									<Link href="/products">
+										Browse Products
 									</Link>
 								</Button>
 							</div>
-						</div>
 
-						{/* Trust badges */}
-						<div className="hidden sm:grid grid-cols-3 gap-4 mt-12 border-t border-gray-200 dark:border-gray-800 pt-8">
-							<div className="flex flex-col items-center text-center">
-								<div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="20"
-										height="20"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										className="text-gray-700 dark:text-gray-300"
-									>
-										<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-									</svg>
-								</div>
-								<span className="text-xs font-medium text-gray-700 dark:text-gray-300">Quality Guaranteed</span>
-							</div>
-							<div className="flex flex-col items-center text-center">
-								<div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="20"
-										height="20"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										className="text-gray-700 dark:text-gray-300"
-									>
-										<rect width="20" height="14" x="2" y="3" rx="2" />
-										<line x1="8" x2="16" y1="21" y2="21" />
-										<line x1="12" x2="12" y1="17" y2="21" />
-									</svg>
-								</div>
-								<span className="text-xs font-medium text-gray-700 dark:text-gray-300">Expert Support</span>
-							</div>
-							<div className="flex flex-col items-center text-center">
-								<div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="20"
-										height="20"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										className="text-gray-700 dark:text-gray-300"
-									>
-										<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-										<circle cx="12" cy="10" r="3" />
-									</svg>
-								</div>
-								<span className="text-xs font-medium text-gray-700 dark:text-gray-300">Worldwide Shipping</span>
+							<div className="flex items-center justify-center gap-2 text-sm text-primary">
+								<CheckCircle className="h-4 w-4" />
+								<span className="font-medium">Free shipping on orders over $50</span>
 							</div>
 						</div>
 					</div>
+				</div>
+			</section>
+		);
+	}
 
-					{/* Right content: Image showcase */}
-					<div className="lg:col-span-7 relative">
-						{/* Main image container */}
-						<div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-white dark:from-gray-800 dark:to-gray-900 aspect-[4/3] sm:aspect-[16/10] lg:aspect-[16/9] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)]">
-							{/* Decorative elements */}
-							<div className="absolute top-5 left-5 h-20 w-20 rounded-full border-8 border-gray-100 dark:border-gray-700 opacity-30"></div>
-							<div className="absolute bottom-12 right-12 h-16 w-16 rounded-full border-4 border-gray-200 dark:border-gray-600 opacity-20"></div>
-							<div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 dark:from-white/10 dark:to-black/30 z-10"></div>
+	const primaryVariant = product.variants?.nodes?.[0];
+	const priceAmount = primaryVariant?.price?.amount ?? product.priceRange?.minVariantPrice?.amount ?? "0";
+	const currencyCode = primaryVariant?.price?.currencyCode ?? product.priceRange?.minVariantPrice?.currencyCode ?? "USD";
+	const compareAtPrice = primaryVariant?.compareAtPrice?.amount;
 
-							{/* Product image */}
-							<div className="absolute inset-0 flex items-center justify-center p-8">
-								<img
-									src={imageUrl}
-									alt={product.title}
-									className="w-full h-full object-contain transition-all duration-700 ease-out hover:scale-[1.02] z-20"
-								/>
+	const formattedPrice = formatPrice(priceAmount, currencyCode);
+	const formattedCompareAtPrice = compareAtPrice ? formatPrice(compareAtPrice, currencyCode) : null;
+	const hasDiscount = compareAtPrice ? parseFloat(compareAtPrice) > parseFloat(priceAmount) : false;
+	const discountPercentage = hasDiscount
+		? Math.round(((parseFloat(compareAtPrice ?? "0") - parseFloat(priceAmount)) / parseFloat(compareAtPrice ?? "1")) * 100)
+		: null;
+
+	const quantityAvailable = typeof primaryVariant?.quantityAvailable === "number" ? primaryVariant.quantityAvailable : null;
+	const isInStock = primaryVariant?.availableForSale && (quantityAvailable === null || quantityAvailable > 0);
+
+	const ratingMetafield = product.metafields?.find(
+		(field) => field?.namespace === "custom" && field?.key === "rating"
+	);
+	const ratingCountMetafield = product.metafields?.find(
+		(field) => field?.namespace === "custom" && field?.key === "rating_count"
+	);
+
+	const ratingValue = ratingMetafield ? Number.parseFloat(ratingMetafield.value) : null;
+	const ratingCount = ratingCountMetafield ? Number.parseInt(ratingCountMetafield.value, 10) : null;
+
+	const primaryImage = product.images?.nodes?.[0];
+	const shortDescription = buildShortDescription(product);
+
+	return (
+		<section className="relative min-h-screen bg-background overflow-hidden">
+			{/* Background Elements */}
+			<div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-background to-primary/5" />
+			<div className="absolute top-1/4 right-0 w-1/2 h-1/2 bg-primary/10 rounded-full blur-3xl transform translate-x-1/4" />
+			
+			<div className="container relative mx-auto px-4 py-16 sm:px-6 lg:px-8">
+				{/* Hero Content */}
+				<div className="relative min-h-[80vh] flex flex-col justify-center">
+					{/* Top Bar - Trust Indicators */}
+					{(product.productType || (ratingValue && ratingCount)) && (
+						<div className="flex items-center justify-center gap-6 mb-8">
+							{product.productType && (
+								<Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 px-3 py-1">
+									{product.productType}
+								</Badge>
+							)}
+							{ratingValue && ratingCount && (
+								<div className="flex items-center gap-2 text-sm">
+									<div className="flex">
+										{[...Array(5)].map((_, i) => (
+											<Star key={i} className={`h-4 w-4 ${i < Math.floor(ratingValue) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+										))}
+									</div>
+									<span className="font-medium">{ratingValue}</span>
+									<span className="text-muted-foreground">({ratingCount.toLocaleString()}+ reviews)</span>
+								</div>
+							)}
+						</div>
+					)}
+
+					{/* Main Content Layout */}
+					<div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+						
+						{/* Left Column - Text Content */}
+						<div className="lg:col-span-7 text-center lg:text-left space-y-8">
+							{/* Main Headline */}
+							<div className="space-y-4">
+								<h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[0.95] tracking-tight">
+									{product.title}
+								</h1>
+								<p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+									{shortDescription}
+								</p>
 							</div>
 
-							{/* Quick view button */}
-							<Link
-								href={`/products/${product.handle}`}
-								className="absolute right-6 bottom-6 z-30 flex items-center gap-1 px-4 py-2 bg-white/90 dark:bg-black/80 backdrop-blur-sm text-xs font-medium text-gray-800 dark:text-gray-200 rounded-full shadow-lg transform transition-transform hover:scale-105"
-							>
-								Quick View <ArrowUpRight size={14} />
-							</Link>
+							{/* Price and CTA Row */}
+							<div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6">
+								{/* Price */}
+								<div className="flex items-baseline gap-3">
+									<span className="text-3xl md:text-4xl font-bold">{formattedPrice}</span>
+									{formattedCompareAtPrice && (
+										<span className="text-lg text-muted-foreground line-through">{formattedCompareAtPrice}</span>
+									)}
+									{hasDiscount && discountPercentage && (
+										<Badge className="bg-destructive/10 text-destructive border-destructive/20">
+											-{discountPercentage}%
+										</Badge>
+									)}
+								</div>
+
+								{/* Primary CTA */}
+								<Button size="lg" className="h-12 px-8 text-base font-semibold" asChild>
+									<Link href={`/products/${product.handle}`}>
+										Shop Now <ArrowRight className="ml-2 h-4 w-4" />
+									</Link>
+								</Button>
+							</div>
+
+							{/* Features Grid */}
+							{product.tags && product.tags.length > 0 && (
+								<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto lg:mx-0">
+									{product.tags.slice(0, 3).map((tag, index) => {
+										const icons = [CheckCircle, Shield, TrendingUp];
+										const IconComponent = icons[index] || CheckCircle;
+										return (
+											<div key={tag} className="flex items-center gap-3 text-sm p-3 rounded-lg bg-muted/50 border">
+												<IconComponent className="h-4 w-4 text-primary flex-shrink-0" />
+												<span className="font-medium capitalize">{tag.replace('-', ' ')}</span>
+											</div>
+										);
+									})}
+								</div>
+							)}
+
+							{/* Stock Status */}
+							{isInStock && (
+								<div className="flex items-center justify-center lg:justify-start gap-2 text-sm text-primary">
+									<CheckCircle className="h-4 w-4" />
+									<span className="font-medium">In stock • Ships within 24 hours</span>
+								</div>
+							)}
+
+							{/* Secondary CTA */}
+							<div className="flex justify-center lg:justify-start">
+								<Button variant="outline" size="lg" className="px-6" asChild>
+									<Link href="/collections/all">Browse All Products</Link>
+								</Button>
+							</div>
 						</div>
 
-						{/* Floating elements */}
-						<div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-yellow-100 dark:bg-yellow-900/30 -z-10 blur-xl opacity-70"></div>
-						<div className="absolute -bottom-8 left-1/4 w-32 h-32 rounded-full bg-green-100 dark:bg-green-900/20 -z-10 blur-xl opacity-50"></div>
+						{/* Right Column - Product Image */}
+						{primaryImage && (
+							<div className="lg:col-span-5 relative">
+								{/* Main Product Image */}
+								<div className="relative aspect-square max-w-md mx-auto lg:max-w-none">
+									<div className="absolute inset-0 bg-gradient-to-br from-muted/50 to-muted/20 rounded-2xl" />
+									<Image
+										src={primaryImage.url}
+										alt={primaryImage.altText || product.title}
+										fill
+										priority
+										className="object-cover rounded-2xl"
+										sizes="(max-width: 768px) 100vw, 40vw"
+									/>
+									
+									{/* Floating Elements */}
+									{hasDiscount && (
+										<div className="absolute top-4 right-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold">
+											{discountPercentage}% OFF
+										</div>
+									)}
+								</div>
 
-						{/* Mobile trust badges */}
-						<div className="flex sm:hidden justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-							<div className="flex items-center">
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="16"
-									height="16"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									className="text-gray-700 dark:text-gray-300 mr-2"
-								>
-									<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-								</svg>
-								<span className="text-xs font-medium text-gray-700 dark:text-gray-300">Quality</span>
+								{/* Vendor Badge */}
+								{product.vendor && (
+									<div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-background border rounded-full px-4 py-2 shadow-lg">
+										<div className="text-center">
+											<div className="text-sm font-semibold">{product.vendor}</div>
+											<div className="text-xs text-muted-foreground">Trusted Brand</div>
+										</div>
+									</div>
+								)}
 							</div>
-							<div className="flex items-center">
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="16"
-									height="16"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									className="text-gray-700 dark:text-gray-300 mr-2"
-								>
-									<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-									<circle cx="12" cy="10" r="3" />
-								</svg>
-								<span className="text-xs font-medium text-gray-700 dark:text-gray-300">Worldwide</span>
-							</div>
-							<div className="flex items-center">
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="16"
-									height="16"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									className="text-gray-700 dark:text-gray-300 mr-2"
-								>
-									<rect width="20" height="14" x="2" y="3" rx="2" />
-									<line x1="8" x2="16" y1="21" y2="21" />
-									<line x1="12" x2="12" y1="17" y2="21" />
-								</svg>
-								<span className="text-xs font-medium text-gray-700 dark:text-gray-300">Support</span>
-							</div>
-						</div>
+						)}
 					</div>
 				</div>
 			</div>
 		</section>
 	);
 }
+
+function buildShortDescription(product: HeroSectionProps["product"]): string {
+	const source = product.excerpt || product.descriptionHtml || product.description || "";
+	const plainText = source
+		.replace(/<[^>]+>/g, " ")
+		.replace(/&nbsp;/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+
+	if (plainText) {
+		return plainText.length > 180 ? `${plainText.slice(0, 170).trim()}…` : plainText;
+	}
+
+	if (product.productType && product.vendor) {
+		return `Premium ${product.productType.toLowerCase()} from ${product.vendor} for your cultivation needs.`;
+	}
+
+	return `Premium mushroom growing supplies for serious cultivators.`;
+}
+

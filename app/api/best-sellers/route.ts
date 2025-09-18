@@ -1,4 +1,4 @@
-import { getProducts } from "@/lib/api/shopify/actions";
+import { getProducts, getPaginatedProducts } from "@/lib/api/shopify/actions";
 import { NextResponse } from "next/server";
 
 // Helper function to optimize product data for client consumption
@@ -35,17 +35,19 @@ function optimizeProduct(product: any) {
 
 export async function GET() {
 	try {
-		// Get all products
-		const allProducts = await getProducts();
+		// Instead of fetching all products, get from paginated products with best-seller filter
+		const { products } = await getPaginatedProducts(1, "best_selling", 8);
 
-		// Filter for best sellers
-		const bestSellers = allProducts
-			.filter((product) => product.tags.includes("best-seller"))
+		// Filter for best sellers and take only 4
+		const bestSellers = products
+			.filter((product) => product.tags?.includes("best-seller"))
 			.slice(0, 4)
 			.map(optimizeProduct);
 
-		// Return the best sellers
-		return NextResponse.json({ products: bestSellers });
+		// If we don't have enough best-sellers, fall back to first 4 products
+		const finalProducts = bestSellers.length >= 4 ? bestSellers : products.slice(0, 4).map(optimizeProduct);
+
+		return NextResponse.json({ products: finalProducts });
 	} catch (error) {
 		console.error("Error fetching best sellers:", error);
 		return NextResponse.json({ error: "Failed to fetch best sellers" }, { status: 500 });

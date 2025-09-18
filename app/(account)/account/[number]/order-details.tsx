@@ -6,7 +6,7 @@ import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import type { ShopifyCustomer } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { useCart } from "@/lib/providers/cart-provider";
+import { useCart } from "@/components/providers/cart-provider";
 import { toast } from "sonner";
 import { useState } from "react";
 import { createCart, addToCart } from "@/lib/actions/shopify";
@@ -402,7 +402,7 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 										))}
 									</div>
 									<div className="mt-4 p-4 bg-purple-50 rounded-lg">
-										<p className="text-sm text-purple-700">Gift cards have been sent to the recipient's email address.</p>
+											<p className="text-sm text-purple-700">Gift cards have been sent to the recipient&apos;s email address.</p>
 									</div>
 								</div>
 							)}

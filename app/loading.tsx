@@ -1,7 +1,48 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
+import { getSearchActionSchema, getEnhancedOrganizationSchema } from "@/lib/seo/enhanced-jsonld";
+import Script from "next/script";
+
+// Add metadata for loading state
+export const metadata = generateSEOMetadata({
+	title: "Loading - Zugzology Premium Mushroom Growing Supplies",
+	description: "Loading premium mushroom cultivation supplies and equipment. Please wait while we prepare your content.",
+	noindex: true, // Don't index loading states
+});
 
 export default function HomeLoading() {
+	// Generate basic structured data for loading state
+	const websiteSchema = getSearchActionSchema();
+	const organizationSchema = getEnhancedOrganizationSchema();
 	return (
+		<>
+			{/* JSON-LD Structured Data for Loading State */}
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(websiteSchema),
+				}}
+			/>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(organizationSchema),
+				}}
+			/>
+			
+			{/* Google Analytics for Loading State */}
+			<Script id="loading-analytics" strategy="afterInteractive">
+				{`
+					window.dataLayer = window.dataLayer || [];
+					window.dataLayer.push({
+						'event': 'page_view',
+						'page_type': 'loading',
+						'page_location': window.location.href,
+						'content_category': 'loading_state'
+					});
+				`}
+			</Script>
+			
 		<div className="min-h-screen">
 			{/* Hero Section Skeleton */}
 			<div className="w-full bg-gray-100 dark:bg-gray-900 py-12 md:py-24">
@@ -110,5 +151,6 @@ export default function HomeLoading() {
 				</div>
 			</div>
 		</div>
+		</>
 	);
 }

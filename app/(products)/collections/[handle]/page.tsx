@@ -3,12 +3,15 @@ import React, { Suspense } from "react";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { cache } from "react";
 import { notFound } from "next/navigation";
-import { ProductsContent } from "@/components/products/products-content";
+import { RealtimeProductsContent } from "@/components/features/products/realtime-products-content";
 import type { ShopifyCollectionWithPagination } from "@/lib/api/shopify/types";
-import { getCollection, getSiteSettings } from "@/lib/actions/shopify";
+import { getCollection, getSiteSettings, getPaginatedProducts } from "@/lib/api/shopify/actions";
+import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
+import { getEnhancedBreadcrumbSchema, getEnhancedCollectionSchema, getSearchActionSchema, getEnhancedFAQSchema } from "@/lib/seo/enhanced-jsonld";
+import Script from "next/script";
+import Link from "next/link";
 
-// Tell Next.js this is a dynamic route that shouldn't be prerendered
-export const dynamic = "force-dynamic";
+// Dynamic rendering handled by dynamicIO experimental feature
 
 // Define the page props
 export interface CollectionPageProps {
@@ -18,7 +21,7 @@ export interface CollectionPageProps {
 
 // Cache the collection data
 const getCachedCollection = cache(async (handle: string, sort = "featured", page = 1) => {
-	"use cache";
+	
 
 	try {
 		// Check if handle is valid
@@ -27,37 +30,27 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 			return null;
 		}
 
-		console.log(`[getCachedCollection] Fetching collection: ${handle}, page: ${page}, sort: ${sort}`);
-		const startTime = Date.now();
+		// Get timestamp for performance tracking
+		const startTime = typeof window !== 'undefined' ? Date.now() : 0;
 
-		// Special case for the "all" collection - create a virtual collection
-		if (handle === "all") {
-			// Import the getPaginatedProducts function which fetches products with pagination
-			// Use direct import instead of dynamic import to reduce overhead
-			const { getPaginatedProducts } = await import("@/lib/actions/shopify");
+		// Special case for the "all" or "all-products" collection - create a virtual collection
+		if (handle === "all" || handle === "all-products") {
+			// Use the imported getPaginatedProducts function
 
-			// Log pagination request for debugging
-			console.log(`[getCachedCollection] Fetching page ${page} of all products with sort: ${sort}`);
+			// Removed console.log for performance
 
 			const { products, totalCount } = await getPaginatedProducts(page, sort, 24);
 
-			// Log the results for debugging
-			const endTime = Date.now();
-			console.log(
-				`[getCachedCollection] Received ${products?.length || 0} products out of ${totalCount} total in ${
-					endTime - startTime
-				}ms`
-			);
+			// Removed console.log for performance
+			const endTime = typeof window !== 'undefined' ? Date.now() : 0;
 
 			// Create a virtual collection object that matches the ShopifyCollectionWithPagination structure
 			return {
-				id: "all",
-				handle: "all",
+				id: handle,
+				handle: handle,
 				title: "All Products",
 				description: "Browse our complete collection of premium mushroom growing supplies and equipment.",
 				products: {
-					// Provide both nodes and edges to satisfy TypeScript
-					nodes: products || [],
 					edges: (products || []).map((product, index) => ({
 						node: product,
 						cursor: `product-${index}`, // Add a mock cursor value
@@ -65,104 +58,154 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 					pageInfo: {
 						hasNextPage: page * 24 < totalCount,
 						hasPreviousPage: page > 1,
-						startCursor: "",
-						endCursor: "",
+						startCursor: products?.length > 0 ? "product-0" : "",
+						endCursor: products?.length > 0 ? `product-${products.length - 1}` : "",
 					},
 				},
 				productsCount: totalCount,
 				image: null,
-			} as unknown as ShopifyCollectionWithPagination; // Use unknown to bypass type checking
+			} as ShopifyCollectionWithPagination;
 		}
 
-		// Normal case - call getCollection with the handle
-		// Log pagination request for debugging
-		console.log(`[getCachedCollection] Fetching page ${page} of collection ${handle} with sort: ${sort}`);
+		// Normal case - call getCollection with the handle and pagination options
+		// Removed console.log for performance
 
-		const collection = await getCollection(handle);
+		try {
+			const collection = await getCollection(handle, {
+				page,
+				limit: 24,
+				sort: sort === "featured" ? "MANUAL" : sort.toUpperCase().replace("-", "_"),
+				reverse: sort.includes("desc") || sort === "newest",
+			});
 
-		if (!collection) {
-			console.error("Collection not found:", handle);
-			return null;
+			if (!collection) {
+				console.error("Collection not found:", handle);
+				// Create a fallback virtual collection with all products if no specific collection exists
+				const { products, totalCount } = await getPaginatedProducts(page, sort, 24);
+
+				const endTime = typeof window !== 'undefined' ? Date.now() : 0;
+				console.log(
+					`[getCachedCollection] Collection not found, using fallback with ${products?.length || 0} products in ${
+						endTime - startTime
+					}ms`
+				);
+
+				return {
+					id: handle,
+					handle: handle,
+					title: handle.charAt(0).toUpperCase() + handle.slice(1).replace(/-/g, " "),
+					description: `Browse our ${handle.replace(/-/g, " ")} collection of premium mushroom growing supplies.`,
+					products: {
+						edges: (products || []).map((product, index) => ({
+							node: product,
+							cursor: `product-${index}`,
+						})),
+						pageInfo: {
+							hasNextPage: page * 24 < totalCount,
+							hasPreviousPage: page > 1,
+							startCursor: products?.length > 0 ? "product-0" : "",
+							endCursor: products?.length > 0 ? `product-${products.length - 1}` : "",
+						},
+					},
+					productsCount: totalCount,
+					image: null,
+				} as ShopifyCollectionWithPagination;
+			}
+
+			const endTime = typeof window !== 'undefined' ? Date.now() : 0;
+			// Removed console.log for performance
+			return collection;
+		} catch (error) {
+			console.error("Error fetching collection, falling back to all products:", error);
+			// Create a fallback virtual collection with all products if there's an error
+			const { products, totalCount } = await getPaginatedProducts(page, sort, 24);
+
+			const endTime = typeof window !== 'undefined' ? Date.now() : 0;
+			// Removed console.log for performance
+
+			return {
+				id: handle,
+				handle: handle,
+				title: handle.charAt(0).toUpperCase() + handle.slice(1).replace(/-/g, " "),
+				description: `Browse our ${handle.replace(/-/g, " ")} collection of premium mushroom growing supplies.`,
+				products: {
+					edges: (products || []).map((product, index) => ({
+						node: product,
+						cursor: `product-${index}`,
+					})),
+					pageInfo: {
+						hasNextPage: page * 24 < totalCount,
+						hasPreviousPage: page > 1,
+						startCursor: products?.length > 0 ? "product-0" : "",
+						endCursor: products?.length > 0 ? `product-${products.length - 1}` : "",
+					},
+				},
+				productsCount: totalCount,
+				image: null,
+			} as ShopifyCollectionWithPagination;
 		}
-
-		// Add default pageInfo if missing
-		if (!collection.products.pageInfo) {
-			collection.products.pageInfo = {
-				hasNextPage: false,
-				hasPreviousPage: false,
-				startCursor: "", // Use empty string instead of null
-				endCursor: "", // Use empty string instead of null
-			};
-		}
-
-		// Add default endCursor if missing
-		if (!collection.products.pageInfo.endCursor) {
-			collection.products.pageInfo.endCursor = "";
-		}
-
-		const endTime = Date.now();
-		console.log(`[getCachedCollection] Completed in ${endTime - startTime}ms`);
-		return collection;
 	} catch (error) {
 		console.error("Error fetching collection:", error);
 		return null;
 	}
 });
 
-export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: CollectionPageProps): Promise<Metadata> {
 	// Await params as required by Next.js 15
 	const awaitedParams = await params;
+	const awaitedSearchParams = await searchParams;
 
 	const collection = await getCachedCollection(awaitedParams.handle);
 	if (!collection)
-		return {
+		return generateSEOMetadata({
 			title: "Collection Not Found",
 			description: "The requested collection could not be found.",
-			robots: { index: false, follow: true },
-		};
+			noindex: true,
+		});
 
-	const title = `${collection.title} | Zugzology`;
-	const description =
-		collection.description ||
-		`Shop our premium ${collection.title.toLowerCase()} collection. High-quality mushroom growing supplies and equipment with fast shipping and expert support.`;
+	const page = awaitedSearchParams?.page ? parseInt(awaitedSearchParams.page) : 1;
+	const sort = awaitedSearchParams?.sort || "featured";
+
+	const baseTitle = `${collection.title} Collection - Premium Mushroom Growing Supplies`;
+	const title = page > 1 ? `${baseTitle} - Page ${page}` : baseTitle;
+	
+	const baseDescription = collection.description || 
+		`Discover our premium ${collection.title.toLowerCase()} collection. High-quality mushroom growing supplies and equipment with fast shipping and expert support. Perfect for beginners and professionals.`;
+
 	const keywords = [
 		`${collection.title} mushroom supplies`,
 		"mushroom cultivation",
 		"growing equipment",
 		"mushroom growing",
 		collection.title.toLowerCase(),
-	].join(", ");
+		"premium growing supplies",
+		"mushroom cultivation equipment",
+		"organic growing supplies",
+		"professional mushroom equipment",
+		"mushroom farming supplies"
+	];
 
-	return {
+	// Add sort-specific keywords
+	if (sort === "price-asc") keywords.push("affordable", "budget-friendly");
+	if (sort === "price-desc") keywords.push("premium", "professional grade");
+	if (sort === "newest") keywords.push("latest", "new arrivals");
+
+	return generateSEOMetadata({
 		title,
-		description,
+		description: baseDescription,
 		keywords,
+		url: `/collections/${collection.handle}${page > 1 ? `?page=${page}` : ''}${sort !== 'featured' ? `${page > 1 ? '&' : '?'}sort=${sort}` : ''}`,
 		openGraph: {
-			title,
-			description,
 			type: "website",
-			url: `https://zugzology.com/collections/${collection.handle}`,
-			images: collection.image
-				? [
-						{
-							url: collection.image.url,
-							width: collection.image.width || 1200,
-							height: collection.image.height || 630,
-							alt: collection.image.altText || collection.title,
-						},
-				  ]
-				: [],
+			images: collection.image ? [{
+				url: collection.image.url,
+				width: collection.image.width || 1200,
+				height: collection.image.height || 630,
+				alt: collection.image.altText || collection.title,
+			}] : [],
 		},
-		twitter: {
-			card: "summary_large_image",
-			title: `${collection.title} - Mushroom Growing Supplies | Zugzology`,
-			description,
-			images: collection.image ? [collection.image.url] : [],
-		},
-		alternates: {
-			canonical: `https://zugzology.com/collections/${collection.handle}`,
-		},
-	};
+		...(page > 1 && { noindex: true }), // Don't index pagination pages beyond page 1
+	});
 }
 
 export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
@@ -188,40 +231,18 @@ export default async function CollectionPage({ params, searchParams }: Collectio
 			return notFound();
 		}
 
-		// Get site settings for SEO
-		const siteSettings = await getSiteSettings();
-
-		// Create structured data for SEO
-		const structuredData = {
-			"@context": "https://schema.org",
-			"@type": "CollectionPage",
-			name: collection.title,
-			description: collection.description || `Shop our premium ${collection.title.toLowerCase()} collection.`,
-			url: `https://zugzology.com/collections/${collection.handle}`,
-			breadcrumb: {
-				"@type": "BreadcrumbList",
-				itemListElement: [
-					{
-						"@type": "ListItem",
-						position: 1,
-						name: "Home",
-						item: "https://zugzology.com",
-					},
-					{
-						"@type": "ListItem",
-						position: 2,
-						name: "Collections",
-						item: "https://zugzology.com/collections",
-					},
-					{
-						"@type": "ListItem",
-						position: 3,
-						name: collection.title,
-						item: `https://zugzology.com/collections/${collection.handle}`,
-					},
-				],
-			},
-		};
+		// Generate enhanced structured data
+		const products = collection.products.edges.map(edge => edge.node);
+		
+		const breadcrumbs = [
+			{ name: "Home", url: "/" },
+			{ name: "Products", url: "/products" },
+			{ name: collection.title, url: `/collections/${collection.handle}` },
+		];
+		
+		const breadcrumbSchema = getEnhancedBreadcrumbSchema(breadcrumbs);
+		const collectionSchema = getEnhancedCollectionSchema(collection, products);
+		const websiteSchema = getSearchActionSchema();
 
 		// Create FAQ content for specific collection types
 		const faqContent: Array<{ question: string; answer: string }> = [];
@@ -265,76 +286,126 @@ export default async function CollectionPage({ params, searchParams }: Collectio
 			);
 		}
 
-		// Create the FAQ structured data outside the condition
-		let faqStructuredData = null;
+		// Create the FAQ structured data using enhanced schema
+		let faqSchema = null;
 		if (faqContent.length > 0) {
-			faqStructuredData = {
-				"@context": "https://schema.org",
-				"@type": "FAQPage",
-				mainEntity: faqContent.map((faq) => ({
-					"@type": "Question",
-					name: faq.question,
-					acceptedAnswer: {
-						"@type": "Answer",
-						text: faq.answer,
-					},
-				})),
-			};
+			faqSchema = getEnhancedFAQSchema(faqContent);
 		}
 
 		return (
-			<ErrorBoundary
-				fallback={
-					<div className="container py-10">
-						Sorry, there was an error loading this collection. Please try again later.
-					</div>
-				}
-			>
-				<Suspense fallback={<CollectionLoading />}>
-					{/* Add structured data via script tag */}
+			<>
+				{/* JSON-LD Structured Data */}
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify(breadcrumbSchema),
+					}}
+				/>
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify(collectionSchema),
+					}}
+				/>
+				<script
+					type="application/ld+json"
+					dangerouslySetInnerHTML={{
+						__html: JSON.stringify(websiteSchema),
+					}}
+				/>
+				{faqSchema && (
 					<script
 						type="application/ld+json"
 						dangerouslySetInnerHTML={{
-							__html: JSON.stringify(structuredData),
+							__html: JSON.stringify(faqSchema),
 						}}
 					/>
-
-					{/* Add FAQ structured data separately */}
-					{faqStructuredData && (
-						<script
-							type="application/ld+json"
-							dangerouslySetInnerHTML={{
-								__html: JSON.stringify(faqStructuredData),
-							}}
-						/>
-					)}
-
-					{/* Collection content with original component */}
-					<ProductsContent
-						collection={collection}
-						title={collection.title}
-						description={collection.description || undefined}
-						currentPage={page}
-						defaultSort={sort}
-						totalProducts={collection.productsCount}
-					/>
-
-					{/* Add FAQ content if available */}
-					{faqContent.length > 0 && (
-						<div className="container mx-auto px-4 py-12">
-							<h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
-							<div className="space-y-6 divide-y">
-								{faqContent.map((faq, index) => (
-									<div key={index} className={index > 0 ? "pt-6" : ""}>
-										<h3 className="text-lg font-medium text-gray-900 mb-2">{faq.question}</h3>
-										<p className="text-gray-600">{faq.answer}</p>
-									</div>
-								))}
-							</div>
+				)}
+				
+				{/* Google Analytics for Collection */}
+				<Script id="collection-analytics" strategy="afterInteractive">
+					{`
+						window.dataLayer = window.dataLayer || [];
+						window.dataLayer.push({
+							'event': 'page_view',
+							'page_type': 'collection',
+							'page_location': window.location.href,
+							'collection_title': '${collection.title.replace(/'/g, "\\'")}',
+							'collection_handle': '${collection.handle}',
+							'products_count': ${collection.productsCount},
+							'current_page': ${page},
+							'sort_order': '${sort.replace(/'/g, "\\'")}'
+						});
+						
+						// Track collection view event
+						window.dataLayer.push({
+							'event': 'view_item_list',
+							'item_list_id': '${collection.handle}',
+							'item_list_name': '${collection.title.replace(/'/g, "\\'")}',
+							'items': ${JSON.stringify(products.slice(0, 10).map((product, index) => ({
+								item_id: product.id,
+								item_name: product.title,
+								item_category: collection.title,
+								price: parseFloat(product.priceRange?.minVariantPrice?.amount || '0'),
+								index: index,
+							})))}
+						});
+					`}
+				</Script>
+				
+				<ErrorBoundary
+					fallback={
+						<div className="container py-10">
+							Sorry, there was an error loading this collection. Please try again later.
 						</div>
-					)}
-				</Suspense>
-			</ErrorBoundary>
+					}
+				>
+					<Suspense fallback={<CollectionLoading />}>
+						<div className="w-full">
+							{/* Breadcrumb Navigation */}
+							<nav className="px-4 pt-4" aria-label="Breadcrumb">
+								<ol className="flex items-center space-x-2 text-sm text-gray-600">
+									<li>
+										<Link href="/" className="hover:text-gray-900">Home</Link>
+									</li>
+									<li className="text-gray-400">/</li>
+									<li>
+										<Link href="/products" className="hover:text-gray-900">Products</Link>
+									</li>
+									<li className="text-gray-400">/</li>
+									<li className="text-gray-900 font-medium">{collection.title}</li>
+								</ol>
+							</nav>
+							
+							{/* Collection content with real-time AI */}
+							<RealtimeProductsContent
+								collection={collection}
+								title={collection.title}
+								description={collection.description || undefined}
+								currentPage={page}
+								totalProducts={collection.productsCount}
+								collectionHandle={collection.handle}
+								context="collection"
+							/>
+
+							{/* Add FAQ content if available */}
+							{faqContent.length > 0 && (
+								<div className="container mx-auto px-4 py-12">
+									<h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+									<div className="space-y-6 divide-y">
+										{faqContent.map((faq, index) => (
+											<div key={index} className={index > 0 ? "pt-6" : ""}>
+												<h3 className="text-lg font-medium text-gray-900 mb-2">{faq.question}</h3>
+												<p className="text-gray-600">{faq.answer}</p>
+											</div>
+										))}
+									</div>
+								</div>
+							)}
+						</div>
+					</Suspense>
+				</ErrorBoundary>
+			</>
 		);
 	} catch (error) {
 		console.error("Error in collection page:", error);

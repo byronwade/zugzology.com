@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/actions/session";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Dynamic rendering and revalidation handled by dynamicIO
 
 export async function GET(request: NextRequest) {
 	try {

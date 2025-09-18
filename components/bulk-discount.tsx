@@ -15,7 +15,7 @@ export function BulkDiscount() {
 		description:
 			"Pre-sterilized, ready-to-use substrate bags optimized for maximum yields. Perfect for commercial growers and serious hobbyists.",
 		basePrice: 12.99,
-		image: "/placeholder.svg?height=500&width=500",
+		image: "/placeholder.svg",
 		discountTiers: [
 			{ minQuantity: 5, discount: 0 },
 			{ minQuantity: 10, discount: 10 },
@@ -60,7 +60,7 @@ export function BulkDiscount() {
 			<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 					<div className="relative aspect-square lg:aspect-auto lg:h-full bg-gray-100 rounded-xl overflow-hidden">
-						<Image src={bulkProduct.image || "/placeholder.svg"} alt={bulkProduct.name} fill className="object-cover" />
+						<Image src={bulkProduct.image || "/placeholder.svg"} alt={bulkProduct.name} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
 						{discount > 0 && (
 							<div className="absolute top-4 left-4 bg-red-500 text-white font-bold rounded-full h-16 w-16 flex items-center justify-center text-xl">
 								{discount}% OFF
