@@ -8,7 +8,7 @@ import { getSearchData } from "@/lib/actions/search";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 import { getEnhancedBreadcrumbSchema, getSearchActionSchema, getEnhancedSearchResultsSchema } from "@/lib/seo/enhanced-jsonld";
 import Script from "next/script";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 
 // Remove runtime config as it's incompatible with useCache
 export const preferredRegion = "auto";

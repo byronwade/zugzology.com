@@ -24,6 +24,11 @@ export interface UserInteraction {
     orderId?: string; // For purchase tracking
     orderValue?: number; // Purchase amount
     quantity?: number; // Items purchased
+    variantId?: string;
+    itemId?: string;
+    isPreOrder?: boolean;
+    searchQuery?: string;
+    [key: string]: unknown;
   };
 }
 

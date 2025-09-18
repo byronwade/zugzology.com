@@ -13,63 +13,42 @@ interface AIMonitoringContextType {
 const AIMonitoringContext = createContext<AIMonitoringContextType | undefined>(undefined);
 
 export function AIMonitoringProvider({ children }: { children: React.ReactNode }) {
+  const isDev = process.env.NODE_ENV === 'development';
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Check if we should show the dashboard based on environment or user preference
-    const isDev = process.env.NODE_ENV === 'development';
-    const localStorageEnabled = localStorage.getItem('ai-monitoring-enabled') === 'true';
-    const urlParamEnabled = new URLSearchParams(window.location.search).get('ai-monitor') === 'true';
-    
-    console.log('🧠 [AI Monitor] Environment check:', { 
-      isDev, 
-      localStorageEnabled, 
-      urlParamEnabled,
-      NODE_ENV: process.env.NODE_ENV 
-    });
-    
-    // Only show in development environment, ignore localStorage and URL params for production
-    const shouldShow = isDev;
-    
-    if (shouldShow) {
-      console.log('🧠 [AI Monitor] Dashboard will be shown');
-      setIsVisible(true);
-    } else {
-      console.log('🧠 [AI Monitor] Dashboard will be hidden');
+    if (!isDev) {
+      return;
     }
+
+    console.log('🧠 [AI Monitor] Dashboard active in development mode');
+    setIsVisible(true);
 
     // Listen for keyboard shortcut to toggle dashboard
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'A') {
         event.preventDefault();
-        setIsVisible(prev => {
-          const newValue = !prev;
-          localStorage.setItem('ai-monitoring-enabled', newValue.toString());
-          return newValue;
-        });
+        setIsVisible(prev => !prev);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
+  }, [isDev]);
 
   const toggleVisibility = () => {
-    setIsVisible(prev => {
-      const newValue = !prev;
-      localStorage.setItem('ai-monitoring-enabled', newValue.toString());
-      return newValue;
-    });
+    if (!isDev) return;
+    setIsVisible(prev => !prev);
   };
 
   const showDashboard = () => {
+    if (!isDev) return;
     setIsVisible(true);
-    localStorage.setItem('ai-monitoring-enabled', 'true');
   };
 
   const hideDashboard = () => {
+    if (!isDev) return;
     setIsVisible(false);
-    localStorage.setItem('ai-monitoring-enabled', 'false');
   };
 
   const contextValue: AIMonitoringContextType = {
@@ -82,8 +61,8 @@ export function AIMonitoringProvider({ children }: { children: React.ReactNode }
   return (
     <AIMonitoringContext.Provider value={contextValue}>
       {children}
-      {isVisible && <AIMonitoringDashboard />}
-      <AIMonitoringToggle />
+      {isDev && isVisible && <AIMonitoringDashboard />}
+      {isDev && <AIMonitoringToggle />}
     </AIMonitoringContext.Provider>
   );
 }

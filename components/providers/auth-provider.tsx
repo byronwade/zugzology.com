@@ -21,8 +21,20 @@ interface AuthContextType {
 	csrfToken: string | null;
 	login: (email: string, password: string) => Promise<void>;
 	logout: () => Promise<void>;
-	register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+	register: (
+		firstName: string,
+		lastName: string,
+		email: string,
+		password: string
+	) => Promise<RegisterResult>;
 	checkAuth: () => Promise<void>;
+}
+
+interface RegisterResult {
+	autoLogin?: boolean;
+	redirectUrl?: string;
+	csrfToken?: string;
+	[key: string]: unknown;
 }
 
 interface AuthProviderProps {
@@ -56,6 +68,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const { data: session, status: sessionStatus } = useSession();
 	const nextAuthLoading = sessionStatus === "loading";
 	const nextAuthAuthenticated = sessionStatus === "authenticated";
+	const sessionHasCustomerToken = !!(session as ExtendedSession | null)?.shopifyAccessToken;
 
 	// Initialize the custom auth hook
 	const {
@@ -74,25 +87,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		},
 	});
 
-	// Combined auth state - prioritize NextAuth for Shopify integration
-	const isAuthenticated = nextAuthAuthenticated || customAuthenticated;
+	// Combined auth state - require a usable customer token
+	const isAuthenticated = (nextAuthAuthenticated && sessionHasCustomerToken) || customAuthenticated;
 	const isLoading = nextAuthLoading || customAuthLoading || !isReady;
 
 	// Enhanced user object with Shopify token information
 	const user: User | null = useMemo(() => {
-		if (session) {
+		if (session && sessionHasCustomerToken) {
 			return {
 				id: (session as ExtendedSession).user?.id || "nextauth-user",
 				email: (session as ExtendedSession).user?.email || "",
 				firstName: (session as ExtendedSession).user?.name?.split(" ")[0] || "",
 				lastName: (session as ExtendedSession).user?.name?.split(" ").slice(1).join(" ") || "",
 				provider: "shopify",
-				hasToken: !!(session as ExtendedSession).shopifyAccessToken,
+				hasToken: sessionHasCustomerToken,
 			};
 		}
 
 		return customUser as User | null;
-	}, [customUser, session]);
+	}, [customUser, session, sessionHasCustomerToken]);
 
 	// Set up ready state after initial check
 	useEffect(() => {

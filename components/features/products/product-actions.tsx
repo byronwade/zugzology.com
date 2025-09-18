@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback, memo } from "react";
 import { toast } from "sonner";
 import { ShopifyProduct, ShopifyProductVariant } from "@/lib/types";
 import { useWishlist } from "@/components/providers";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 
 interface ProductActionsProps {
 	product: ShopifyProduct;

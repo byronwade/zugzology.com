@@ -9,7 +9,7 @@ import { getCollection, getSiteSettings, getPaginatedProducts } from "@/lib/api/
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 import { getEnhancedBreadcrumbSchema, getEnhancedCollectionSchema, getSearchActionSchema, getEnhancedFAQSchema } from "@/lib/seo/enhanced-jsonld";
 import Script from "next/script";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 
 // Dynamic rendering handled by dynamicIO experimental feature
 

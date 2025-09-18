@@ -19,6 +19,9 @@ export async function POST(request: NextRequest) {
 		if (!cart) {
 			console.log(`[Cart API ${requestId}] Creating new cart`);
 			cart = await createCart();
+			if (!cart) {
+				throw new Error("Failed to create cart");
+			}
 			console.log(`[Cart API ${requestId}] New cart created:`, cart.id);
 		}
 

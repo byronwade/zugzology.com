@@ -22,6 +22,7 @@ import { shopifyDataContext } from '@/lib/services/shopify-data-context';
 import { aiContentManipulator } from '@/lib/services/ai-content-manipulator';
 import { aiABTestingFramework } from '@/lib/services/ai-ab-testing';
 import { aiPerformanceTracker } from '@/lib/services/ai-performance-tracker';
+import { AuthProvider } from "./auth-provider";
 
 interface CompoundProvidersProps {
 	children: ReactNode;
@@ -93,12 +94,13 @@ export function usePromo() {
 export function CompoundProviders({ children }: CompoundProvidersProps) {
 	return (
 		<SessionProvider>
-			<ThemeProvider 
-				attribute="class" 
-				defaultTheme="system" 
-				enableSystem
-				disableTransitionOnChange // Prevent flash of unstyled content
-			>
+			<AuthProvider>
+				<ThemeProvider 
+					attribute="class" 
+					defaultTheme="system" 
+					enableSystem
+					disableTransitionOnChange
+				>
 				<TooltipProvider>
 					<BehaviorTrackingProvider>
 						<SearchProvider>
@@ -121,7 +123,8 @@ export function CompoundProviders({ children }: CompoundProvidersProps) {
 						</SearchProvider>
 					</BehaviorTrackingProvider>
 				</TooltipProvider>
-			</ThemeProvider>
+				</ThemeProvider>
+			</AuthProvider>
 		</SessionProvider>
 	);
 }

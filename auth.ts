@@ -1,6 +1,9 @@
-import NextAuth from "next-auth";
+import NextAuth, { type AuthOptions, type Session } from "next-auth";
+import type { Account } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import Shopify from "./auth/providers/shopify";
-import { NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { logAuthEvent } from "@/lib/config/auth";
 
 // Ensure environment variables are properly typed
 const shopifyConfig = {
@@ -10,28 +13,52 @@ const shopifyConfig = {
 	clientSecret: process.env.SHOPIFY_CLIENT_SECRET,
 };
 
-// Validate required environment variables
-if (!shopifyConfig.shopId || !shopifyConfig.clientId || !shopifyConfig.clientSecret) {
-	throw new Error("Missing required environment variables for Shopify authentication. Check SHOPIFY_SHOP_ID, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET are set.");
+const hasShopifyCredentials = Boolean(
+	shopifyConfig.shopId && shopifyConfig.clientId && shopifyConfig.clientSecret
+);
+
+if (!hasShopifyCredentials) {
+	console.warn(
+		"[NextAuth] Shopify OAuth credentials are missing. Set SHOPIFY_SHOP_ID, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET to enable login."
+	);
 }
+
+const providers = hasShopifyCredentials
+	? [
+		Shopify({
+			shopId: shopifyConfig.shopId,
+			clientId: shopifyConfig.clientId,
+			clientSecret: shopifyConfig.clientSecret as string,
+		}),
+	]
+	: [
+		Credentials({
+			id: "shopify",
+			name: "Shopify",
+			credentials: {},
+			authorize: async () => {
+				throw new Error(
+					"Shopify authentication is not configured. Please set SHOPIFY_SHOP_ID, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET."
+				);
+			},
+		}),
+	];
 
 // Add custom error logging for debugging
 const logAuthError = (message: string, error?: unknown) => {
 	console.error(`🔐 [NextAuth] ${message}`, error);
 };
 
-export const authConfig: NextAuthConfig = {
+export const authConfig: AuthOptions = {
 	debug: false, // Disable debug mode
-	providers: [
-		Shopify({
-			shopId: shopifyConfig.shopId,
-			clientId: shopifyConfig.clientId,
-			clientSecret: shopifyConfig.clientSecret as string,
-		}),
-	],
+	providers,
 	callbacks: {
-		async session({ session, token }) {
+		async session({ session, token }: { session: Session; token: JWT }) {
 			try {
+				logAuthEvent("[NextAuth] session callback invoked", {
+					hasToken: !!token,
+					hasSessionUser: !!session?.user,
+				});
 				// Add the shopify access token to the session
 				if (token?.shopifyAccessToken) {
 					session.shopifyAccessToken = token.shopifyAccessToken as string;
@@ -46,10 +73,14 @@ export const authConfig: NextAuthConfig = {
 			} catch (error) {
 				logAuthError("Error in session callback", error);
 				return session;
-			}
+		}
 		},
-		async jwt({ token, account }) {
+		async jwt({ token, account }: { token: JWT; account?: Account | null }) {
 			try {
+				logAuthEvent("[NextAuth] jwt callback invoked", {
+					hasAccount: !!account,
+					hasExistingToken: !!token?.shopifyAccessToken,
+				});
 				// Save the access token from the initial sign-in
 				if (account?.access_token) {
 					token.shopifyAccessToken = account.access_token;
@@ -66,8 +97,12 @@ export const authConfig: NextAuthConfig = {
 				return token;
 			}
 		},
-		async redirect({ url, baseUrl }) {
+		async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
 			try {
+				logAuthEvent("[NextAuth] redirect callback invoked", {
+					targetUrl: url,
+					baseUrl,
+				});
 				// Ensure we always redirect to a valid URL
 				if (url.startsWith(baseUrl)) {
 					return url;
@@ -88,21 +123,30 @@ export const authConfig: NextAuthConfig = {
 	events: {
 		async signIn(message) {
 			try {
-				// Silent sign in
+				logAuthEvent("[NextAuth] signIn event", {
+					userEmail: message?.user?.email,
+					provider: message?.account?.provider,
+					isNewUser: message?.isNewUser ?? false,
+				});
 			} catch (error) {
 				logAuthError("Error in signIn event", error);
 			}
 		},
 		async signOut(message) {
 			try {
-				// Silent sign out
+				logAuthEvent("[NextAuth] signOut event", {
+					hasToken: !!message?.token,
+				});
 			} catch (error) {
 				logAuthError("Error in signOut event", error);
 			}
 		},
 		async session(message) {
 			try {
-				// Silent session update
+				logAuthEvent("[NextAuth] session event", {
+					hasSession: !!message?.session,
+					hasToken: !!message?.token,
+				});
 			} catch (error) {
 				logAuthError("Error in session event", error);
 			}

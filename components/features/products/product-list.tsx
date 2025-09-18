@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useIntersectionObserver } from "@/lib/hooks/use-intersection-observer";
+import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationControls } from "@/components/ui/pagination";
 
-interface ProductListProps {
+export interface ProductListProps {
 	products: ShopifyProduct[];
 	totalProducts?: number;
 	currentPage?: number;

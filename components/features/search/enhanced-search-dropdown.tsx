@@ -2,7 +2,7 @@
 
 import { useSearch } from "@/components/providers";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import Image from "next/image";
 import { Search, ShoppingBag, BookOpen, Grid3X3, ArrowRight, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

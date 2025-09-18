@@ -6,7 +6,7 @@ import { ProductSection } from "@/components/features/products/sections/recommen
 import type { ShopifyProduct, ShopifyBlogArticle, ShopifyMetafield, ShopifyProductVariant, ShopifyImage } from "@/lib/types";
 import { calculateTrendingScore } from "./utils/tracking";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { ProductSource, ProductWithSource } from "./types";
 
 interface TransformedProduct extends Omit<ShopifyProduct, "variants" | "images"> {

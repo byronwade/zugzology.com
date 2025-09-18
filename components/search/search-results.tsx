@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { SlidersHorizontal, Search, ShoppingBag, Star } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 
 interface SearchResultsProps {
 	products: ShopifyProduct[];

@@ -1,4 +1,4 @@
-import { OAuthConfig, OAuthUserConfig } from "next-auth/providers";
+import type { OAuthConfig, OAuthUserConfig } from "next-auth/providers/oauth";
 
 export interface ShopifyProfile {
 	id: string;
@@ -19,7 +19,7 @@ export default function Shopify<P extends ShopifyProfile>(options: OAuthUserConf
 	const storeDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
 
 	if (!storeDomain) {
-		throw new Error("Missing NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN environment variable");
+		console.warn("[Shopify Provider] NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN is not defined; continuing without it.");
 	}
 
 	if (!options.clientId) {
@@ -47,8 +47,8 @@ export default function Shopify<P extends ShopifyProfile>(options: OAuthUserConf
 		name: "Shopify",
 		type: "oauth",
 		// Remove wellKnown and explicitly set all URLs
-		authorization: {
-			url: `https://shopify.com/authentication/${shopId}/authorize`,
+			authorization: {
+			url: `https://shopify.com/authentication/${shopId}/oauth/authorize`,
 			params: {
 				scope: "openid email customer-account-api:full",
 				response_type: "code",
@@ -57,10 +57,10 @@ export default function Shopify<P extends ShopifyProfile>(options: OAuthUserConf
 			},
 		},
 		token: {
-			url: `https://shopify.com/authentication/${shopId}/token`,
+			url: `https://shopify.com/authentication/${shopId}/oauth/token`,
 		},
 		userinfo: {
-			url: `https://shopify.com/authentication/${shopId}/userinfo`,
+			url: `https://shopify.com/authentication/${shopId}/oauth/userinfo`,
 		},
 		// Use PKCE and state for security
 		checks: ["pkce", "state"],

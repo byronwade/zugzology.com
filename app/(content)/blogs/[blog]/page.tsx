@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import Image from "next/image";
 import type { Metadata } from "next";
 import { getBlogByHandle, getPaginatedBlogPostsByHandle, getAllBlogPosts } from "@/lib/api/shopify/actions";

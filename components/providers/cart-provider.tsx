@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { nanoid } from "nanoid";
 import type { ShopifyCart, CartItem } from "@/lib/types";
@@ -20,6 +20,7 @@ interface CartContext {
 	updateItem: (itemId: string, quantity: number) => Promise<void>;
 	openCart: () => void;
 	closeCart: () => void;
+	getItemCount: () => number;
 }
 
 export const CartContext = createContext<CartContext>({
@@ -34,6 +35,7 @@ export const CartContext = createContext<CartContext>({
 	updateItem: async () => {},
 	openCart: () => {},
 	closeCart: () => {},
+	getItemCount: () => 0,
 });
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -48,6 +50,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 	const attemptsRef = useRef(0);
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
+	const cartQuantity = cart?.totalQuantity ?? 0;
+	const getItemCount = useCallback(() => cartQuantity, [cartQuantity]);
 
 	// AI tracking
 	const { trackInteraction } = useAIPredictionStore();
@@ -207,26 +211,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 			setCart(updatedCart);
 			toast.success(item.isPreOrder ? "Pre-order added to cart" : "Added to cart");
 			
+			const trackedProductId = item.productId ?? item.merchandiseId;
+
 			// Track cart add with AI prediction store
 			trackInteraction({
-				productId: item.productId,
+				productId: trackedProductId,
 				type: 'cart_add',
 				context: 'cart-action',
 				metadata: {
 					quantity: item.quantity,
 					variantId: item.merchandiseId,
-					isPreOrder: item.isPreOrder
+					isPreOrder: item.isPreOrder ?? false,
 				}
 			});
 			
 			// Emit cart add event for other systems
-			window.dispatchEvent(new CustomEvent('cart-add', {
-				detail: {
-					productId: item.productId,
-					quantity: item.quantity,
-					variant: item.merchandiseId
-				}
-			}));
+			if (typeof window !== "undefined") {
+				window.dispatchEvent(new CustomEvent('cart-add', {
+					detail: {
+						productId: trackedProductId,
+						quantity: item.quantity,
+						variant: item.merchandiseId,
+					}
+				}));
+			}
 		} catch (error) {
 			console.error("Error adding item to cart:", error);
 			if (error instanceof Error && error.message.includes("cart not found")) {
@@ -275,9 +283,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 			}
 			
 			// Emit cart remove event
-			window.dispatchEvent(new CustomEvent('cart-remove', {
-				detail: { itemId, productId }
-			}));
+			if (typeof window !== "undefined") {
+				window.dispatchEvent(new CustomEvent('cart-remove', {
+					detail: { itemId, productId }
+				}));
+			}
 		} catch (error) {
 			console.error("Error removing item from cart:", error);
 			if (error instanceof Error && error.message.includes("cart not found")) {
@@ -309,9 +319,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 			toast.success("Cart updated");
 			
 			// Emit cart update event
-			window.dispatchEvent(new CustomEvent('cart-update', {
-				detail: { itemId, quantity }
-			}));
+			if (typeof window !== "undefined") {
+				window.dispatchEvent(new CustomEvent('cart-update', {
+					detail: { itemId, quantity }
+				}));
+			}
 		} catch (error) {
 			console.error("Error updating cart:", error);
 			if (error instanceof Error && error.message.includes("cart not found")) {
@@ -344,6 +356,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 				updateItem,
 				openCart,
 				closeCart,
+				getItemCount,
 			}}
 		>
 			{children}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, UserPlus } from "lucide-react";
 import { useAuthContext } from "@/components/providers/auth-provider";
 
-interface RegisterFormProps {
+export interface RegisterFormProps {
 	storeName: string;
 }
 
@@ -43,12 +43,12 @@ export function RegisterForm({ storeName }: RegisterFormProps) {
 			const result = await register(firstName, lastName, email, password);
 
 			console.log("🔐 [Client] Registration successful", {
-				autoLogin: result.autoLogin,
-				redirectUrl: result.redirectUrl,
+				autoLogin: result?.autoLogin,
+				redirectUrl: result?.redirectUrl,
 			});
 
 			// If autoLogin is false, redirect to login page with registered=true param
-			if (!result.autoLogin) {
+			if (!result?.autoLogin) {
 				router.push("/login?registered=true");
 			}
 			// If we have redirectUrl but no autoLogin, the hook will handle the redirect

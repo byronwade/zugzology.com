@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 import { getEnhancedBreadcrumbSchema, getSearchActionSchema } from "@/lib/seo/enhanced-jsonld";
 import Script from "next/script";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import WishlistContent from "./wishlist-content";
 
 export const metadata: Metadata = generateSEOMetadata({

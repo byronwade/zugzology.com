@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { validateLink } from "@/lib/utils/link-validator";
 
 interface DynamicLinkProps {
@@ -16,6 +16,12 @@ interface DynamicLinkProps {
 	[key: string]: any; // For any other props
 }
 
+interface LinkValidationResult {
+	isValid: boolean;
+	actualLink: string;
+	title: string;
+}
+
 export function DynamicLink({
 	href,
 	children,
@@ -27,11 +33,7 @@ export function DynamicLink({
 	fallbackHref,
 	...props
 }: DynamicLinkProps) {
-	const [linkInfo, setLinkInfo] = useState<{
-		exists: boolean;
-		actualLink: string;
-		title: string;
-	} | null>(null);
+	const [linkInfo, setLinkInfo] = useState<LinkValidationResult | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {
@@ -44,7 +46,7 @@ export function DynamicLink({
 				} else {
 					// External links are always considered valid
 					setLinkInfo({
-						exists: true,
+						isValid: true,
 						actualLink: href,
 						title: title || "",
 					});
@@ -53,7 +55,7 @@ export function DynamicLink({
 				console.error("Error validating link:", error);
 				// Fallback to the original link
 				setLinkInfo({
-					exists: false,
+					isValid: false,
 					actualLink: fallbackHref || href,
 					title: title || "",
 				});
@@ -84,7 +86,7 @@ export function DynamicLink({
 	}
 
 	// If the link doesn't exist but we have an alternative
-	if (!linkInfo.exists && showWarning) {
+	if (!linkInfo.isValid && showWarning) {
 		return (
 			<Link
 				href={linkInfo.actualLink}

@@ -26,14 +26,21 @@ export default function AIProductEnhancement({ product }: AIProductEnhancementPr
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEnabled] = useState(() => isAIFeatureEnabled('productDescriptions'));
+  const [hasError, setHasError] = useState(false);
 
   const loadEnhancement = useCallback(async () => {
-    console.log('✨ [AI Product] Loading enhancement for product:', product.title, { enabled: isEnabled });
-    
-    if (enhancement || isLoading) return;
-    
+    if (!isEnabled || enhancement || isLoading || hasError) {
+      return;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('✨ [AI Product] Loading enhancement for product:', product.title, { enabled: isEnabled });
+    }
+
     setIsLoading(true);
-    console.log('✨ [AI Product] Making API request to /api/ai/enhance-product');
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('✨ [AI Product] Making API request to /api/ai/enhance-product');
+    }
     
     try {
       const response = await fetch('/api/ai/enhance-product', {
@@ -44,22 +51,32 @@ export default function AIProductEnhancement({ product }: AIProductEnhancementPr
         body: JSON.stringify({ product }),
       });
 
-      console.log('✨ [AI Product] API response status:', response.status);
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('✨ [AI Product] API response status:', response.status);
+      }
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✨ [AI Product] Enhancement received:', Object.keys(data.enhancement || {}));
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('✨ [AI Product] Enhancement received:', Object.keys(data.enhancement || {}));
+        }
         setEnhancement(data.enhancement);
       } else {
         const errorText = await response.text();
-        console.error('✨ [AI Product] API error:', errorText);
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('✨ [AI Product] API response body:', errorText);
+        }
+        setHasError(true);
       }
     } catch (error) {
-      console.error('✨ [AI Product] Fetch error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('✨ [AI Product] Fetch error:', error);
+      }
+      setHasError(true);
     } finally {
       setIsLoading(false);
     }
-  }, [product, enhancement, isLoading, isEnabled]);
+  }, [product, enhancement, isLoading, isEnabled, hasError]);
 
   // Auto-load enhancement when component mounts
   useEffect(() => {
@@ -71,7 +88,7 @@ export default function AIProductEnhancement({ product }: AIProductEnhancementPr
     return null;
   }
 
-  if (!enhancement && !isLoading) {
+  if (hasError || (!enhancement && !isLoading)) {
     return null;
   }
 

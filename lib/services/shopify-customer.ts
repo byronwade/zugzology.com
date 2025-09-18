@@ -218,6 +218,7 @@ const customerQuery = `
 									variant {
 										id
 										title
+										sku
 										price {
 											amount
 											currencyCode
@@ -352,10 +353,11 @@ export async function getCustomer(customerAccessToken: string): Promise<ShopifyC
 												id
 												title
 												quantity
-												variant {
-													id
-													title
-													price {
+									variant {
+										id
+										title
+										sku
+										price {
 														amount
 														currencyCode
 													}

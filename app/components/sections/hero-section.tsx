@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import Image from "next/image";
 import type { ShopifyProduct } from "@/lib/types";
 

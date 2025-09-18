@@ -40,8 +40,19 @@ class AIClient {
       throw new Error('AI features are disabled. Please configure AI_API_KEY environment variable.');
     }
 
-    const { provider, apiKey, model, baseURL, maxTokens, temperature } = this.config;
-    
+    const { provider, apiKey } = this.config;
+
+    const requiresApiKey = !['ollama', 'lmstudio'].includes(provider);
+
+    if (requiresApiKey && !apiKey) {
+      console.warn(`[AI Client] Missing API key for provider "${provider}". Returning fallback response.`);
+      return {
+        content: this.getFallbackResponse('disabled'),
+        usage: undefined,
+        fallback: true,
+      };
+    }
+
     try {
       switch (provider) {
         case 'openai':
@@ -135,11 +146,22 @@ class AIClient {
     const systemMessage = messages.find(m => m.role === 'system');
     const conversationMessages = messages.filter(m => m.role !== 'system');
 
+    const apiKey = this.config.apiKey;
+
+    if (!apiKey) {
+      console.warn('[AI Client] Anthropic provider selected without API key - returning fallback response');
+      return {
+        content: this.getFallbackResponse('disabled'),
+        usage: undefined,
+        fallback: true,
+      };
+    }
+
     const response = await fetch(`${this.config.baseURL}/v1/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.config.apiKey!,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -152,7 +174,31 @@ class AIClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic API Error: ${response.status} ${response.statusText}`);
+      if (response.status === 401 || response.status === 403) {
+        console.warn('[AI Client] Anthropic authorization error - returning fallback response');
+        return {
+          content: this.getFallbackResponse('disabled'),
+          usage: undefined,
+          fallback: true,
+        };
+      }
+
+      if (response.status === 429) {
+        console.warn('[AI Client] Anthropic quota exceeded - returning fallback response');
+        return {
+          content: this.getFallbackResponse('quota_exceeded'),
+          usage: undefined,
+          fallback: true,
+        };
+      }
+
+      const errorText = await response.text();
+      console.error(`[AI Client] Anthropic API error: ${response.status} - ${errorText}`);
+      return {
+        content: this.getFallbackResponse('api_error'),
+        usage: undefined,
+        fallback: true,
+      };
     }
 
     const data = await response.json();

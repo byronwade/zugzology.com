@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { formatPrice, cn, isIntentionallyFree } from "@/lib/utils";
 import type { ShopifyProduct } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";

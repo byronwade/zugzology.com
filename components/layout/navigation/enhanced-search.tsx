@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Tag, Clock, TrendingUp, Star, Sparkles, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { Button } from "@/components/ui/button";
 
 export interface SearchResult {

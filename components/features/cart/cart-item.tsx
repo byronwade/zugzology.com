@@ -6,7 +6,7 @@ import { ShoppingCart, Trash2 } from "lucide-react";
 import { useCart } from "@/components/providers/cart-provider";
 import { formatPrice } from "@/lib/utils";
 
-interface CartItemProps {
+export interface CartItemProps {
 	item: {
 		id: string;
 		quantity: number;

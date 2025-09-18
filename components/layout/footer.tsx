@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import StoreFeatures from "../store/store-features";
 import { getStoreConfigSafe } from "@/lib/config/store-config";
 import { getAllCollections, getMenu, getPages } from "@/lib/api/shopify/actions";

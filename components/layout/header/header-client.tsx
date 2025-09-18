@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import {
 	Search,
 	Sun,
@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -54,15 +55,11 @@ import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import type { ShopifyBlog } from "@/lib/types";
-import { useSearch } from "@/components/providers";
-import Cookies from "js-cookie";
+import { usePromo, useSearch, useAuthContext } from "@/components/providers";
 import { SignOutButton } from "@/components/features/auth/sign-out-button";
-import { usePromo } from "@/components/providers";
 import { MenuSheetFixed } from "./menu-sheet-fixed";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSession } from "next-auth/react";
-import { UserAccountButton } from "@/components/features/auth/next-auth-buttons";
-import { NextAuthLogout } from "@/components/features/auth/next-auth-logout";
 import { LearnAndGrowMenuFixed } from "@/components/layout/header/learn-and-grow-menu-fixed";
 import { SearchDropdown } from "@/components/features/search/search-dropdown";
 import { DynamicPromoBanner } from "@/components/layout/promo-banner-dynamic";
@@ -194,10 +191,27 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	const router = useRouter();
 
 	// Use session with fallback for when SessionProvider is not available
-	const { data: session } = useSession({ required: false }) || { data: null };
+	const sessionResult = useSession({ required: false }) || { data: null, status: "unauthenticated" };
+	const session = sessionResult.data;
+	const { user: authUser, isAuthenticated: authContextAuthenticated } = useAuthContext();
 
-	// Check if authenticated via NextAuth
-	const isAuthenticatedNextAuth = !!session;
+	const accountNameParts = (authUser ? [authUser.firstName, authUser.lastName] : []).filter(
+		(part): part is string => Boolean(part && part.trim())
+	);
+	const accountDisplayName = accountNameParts.length ? accountNameParts.join(" ") : undefined;
+	const accountEmail = authUser?.email ?? "";
+	const accountLabel = accountDisplayName ?? accountEmail ?? "Account";
+	const avatarInitialsSource = (accountDisplayName ?? accountEmail)?.trim();
+	const accountInitials = avatarInitialsSource
+		? avatarInitialsSource
+			.split(/\s+/)
+			.filter(Boolean)
+			.slice(0, 2)
+			.map((part) => part[0]?.toUpperCase() ?? "")
+			.join("") || "A"
+		: "A";
+	const accountAvatarImage = session?.user?.image ?? undefined;
+	const isUserAuthenticated = authContextAuthenticated;
 
 	// 2. State hooks with stable initial values
 	const [mounted, setMounted] = useState<boolean>(false);
@@ -496,6 +510,49 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 											)}
 										</span>
 									</DropdownMenuItem>
+
+									<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
+
+									{isUserAuthenticated ? (
+										<>
+											<DropdownMenuLabel className="px-3 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+												Account
+											</DropdownMenuLabel>
+											<DropdownMenuItem
+												onClick={() => router.push("/account")}
+												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+											>
+												<User className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+												Account Dashboard
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() => router.push("/account/orders")}
+												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+											>
+												<ShoppingBag className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+												Orders
+											</DropdownMenuItem>
+											<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
+											<SignOutButton onSignOut={() => router.refresh()} />
+										</>
+									) : (
+										<>
+											<DropdownMenuItem
+												onClick={() => router.push("/login")}
+												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+											>
+												<LogIn className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+												Log in
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() => router.push("/register")}
+												className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+											>
+												<UserPlus className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+												Create account
+											</DropdownMenuItem>
+										</>
+									)}
 								</DropdownMenuContent>
 							</DropdownMenu>
 
@@ -513,79 +570,83 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 								<span className="sr-only">Toggle theme</span>
 							</Button>
 
-							{/* Wishlist Button - Hidden on mobile */}
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={() => router.push("/wishlist")}
-								className="relative hidden sm:flex h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
-							>
-								<Heart className="h-5 w-5" />
-								{wishlistState.show && (
-									<span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] text-xs bg-red-500 text-white rounded-full flex items-center justify-center px-1 font-medium">
-										{wishlistState.quantity}
-									</span>
-								)}
-								<span className="sr-only">Wishlist</span>
-							</Button>
+						{/* Wishlist Button - Hidden on mobile */}
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => router.push("/wishlist")}
+							className="relative hidden sm:flex h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+						>
+							<Heart className="h-5 w-5" />
+							{wishlistState.show && (
+								<span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] text-xs bg-red-500 text-white rounded-full flex items-center justify-center px-1 font-medium">
+									{wishlistState.quantity}
+								</span>
+							)}
+							<span className="sr-only">Wishlist</span>
+						</Button>
 
-							{/* Account Button - Hidden temporarily while testing
+						{/* Cart Button - Always visible */}
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={openCart}
+							className="relative h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+						>
+							<ShoppingCart className="h-5 w-5" />
+							{cartState.show && (
+								<span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] text-xs bg-purple-600 text-white rounded-full flex items-center justify-center px-1 font-medium">
+									{cartState.quantity}
+								</span>
+							)}
+							<span className="sr-only">Cart</span>
+						</Button>
+
+						{isUserAuthenticated ? (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button
 										variant="ghost"
 										size="icon"
-										className="h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+										className="hidden sm:flex h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+										data-testid="account-menu-trigger"
 									>
-										<User className="h-5 w-5" />
+										<Avatar className="h-8 w-8">
+											{accountAvatarImage ? <AvatarImage src={accountAvatarImage} alt={accountLabel} /> : null}
+											<AvatarFallback>{accountInitials}</AvatarFallback>
+										</Avatar>
 										<span className="sr-only">Account</span>
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent
-									className="w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-1 shadow-lg rounded-lg"
+									className="w-60 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-1 shadow-lg rounded-lg"
 									align="end"
 									forceMount
 								>
 									<DropdownMenuLabel className="font-normal px-3 py-2 text-gray-700 dark:text-gray-300">
 										<div className="flex flex-col space-y-1">
-											<p className="text-sm font-medium leading-none text-gray-900 dark:text-gray-100">
-												{session?.user?.name || "Account"}
-											</p>
-											{session?.user?.email && (
-												<p className="text-xs leading-none text-gray-500 dark:text-gray-400">{session.user.email}</p>
+											<p className="text-sm font-medium leading-none text-gray-900 dark:text-gray-100">{accountLabel}</p>
+											{accountEmail && (
+												<p className="text-xs leading-none text-gray-500 dark:text-gray-400">{accountEmail}</p>
 											)}
 										</div>
 									</DropdownMenuLabel>
 									<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
 									<DropdownMenuGroup>
-										{isAuthenticatedNextAuth ? (
-											<>
-												<DropdownMenuItem
-													onClick={() => router.push("/account")}
-													className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
-												>
-													<User className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
-													Account
-												</DropdownMenuItem>
-											</>
-										) : (
-											<>
-												<DropdownMenuItem
-													onClick={() => router.push("/login")}
-													className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
-												>
-													<LogIn className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
-													Login
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													onClick={() => router.push("/register")}
-													className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
-												>
-													<UserPlus className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
-													Register
-												</DropdownMenuItem>
-											</>
-										)}
+										<DropdownMenuItem
+											onClick={() => router.push("/account")}
+											className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+										>
+											<User className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+											Account Dashboard
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											onClick={() => router.push("/account/orders")}
+											className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+										>
+											<ShoppingBag className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+											Orders
+										</DropdownMenuItem>
 									</DropdownMenuGroup>
 									<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
 									<DropdownMenuItem
@@ -595,31 +656,39 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 										<Keyboard className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
 										Keyboard Shortcuts
 									</DropdownMenuItem>
-									{isAuthenticatedNextAuth && (
-										<>
-											<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
-											<NextAuthLogout onSignOut={() => router.refresh()} />
-										</>
-									)}
+									<DropdownMenuItem
+										onClick={() => router.push("/help")}
+										className="rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+									>
+										<HelpCircle className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+										Help Center
+									</DropdownMenuItem>
+									<DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-800 my-1" />
+									<SignOutButton onSignOut={() => router.refresh()} />
 								</DropdownMenuContent>
 							</DropdownMenu>
-							*/}
-
-							{/* Cart Button - Always visible */}
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={openCart}
-								className="relative h-9 w-9 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
-							>
-								<ShoppingCart className="h-5 w-5" />
-								{cartState.show && (
-									<span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] text-xs bg-purple-600 text-white rounded-full flex items-center justify-center px-1 font-medium">
-										{cartState.quantity}
-									</span>
-								)}
-								<span className="sr-only">Cart</span>
-							</Button>
+						) : (
+							<div className="hidden sm:flex items-center gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-9 items-center gap-2 rounded-full border-gray-300 text-gray-700 hover:text-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
+									onClick={() => router.push("/login")}
+								>
+									<LogIn className="h-4 w-4" />
+									Log in
+								</Button>
+								<Button
+									variant="default"
+									size="sm"
+									className="h-9 items-center gap-2 rounded-full"
+									onClick={() => router.push("/register")}
+								>
+									<UserPlus className="h-4 w-4" />
+									Sign up
+								</Button>
+							</div>
+						)}
 						</div>
 					</div>
 				</div>

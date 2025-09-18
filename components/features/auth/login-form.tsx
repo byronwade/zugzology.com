@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, LogIn } from "lucide-react";
 import { useAuthContext } from "@/components/providers/auth-provider";
 
-interface LoginFormProps {
+export interface LoginFormProps {
 	error?: string;
 	registered?: boolean;
 	callbackUrl?: string;

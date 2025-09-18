@@ -28,26 +28,53 @@ interface BehaviorData {
 export async function POST(request: NextRequest) {
   try {
     const body: BehaviorAnalysisRequest = await request.json();
-    const { interactions, sessionId } = body;
+    const { interactions, sessionId, behaviorData } = body as any;
+
+    // If behaviorData is already provided, use it directly
+    if (behaviorData && !interactions?.length) {
+      const aiAnalysis = await analyzeWithAI(behaviorData);
+      return NextResponse.json({
+        success: true,
+        sessionId,
+        analysis: aiAnalysis,
+        behaviorData,
+        timestamp: Date.now()
+      });
+    }
 
     if (!interactions || !Array.isArray(interactions) || interactions.length === 0) {
-      return NextResponse.json(
-        { error: 'Invalid interactions data' },
-        { status: 400 }
-      );
+      // Return a default successful response instead of error
+      return NextResponse.json({
+        success: true,
+        sessionId,
+        analysis: getFallbackAnalysis({
+          totalInteractions: 0,
+          pageVisits: 0,
+          avgHoverDuration: 0,
+          cartActions: 0,
+          wishlistActions: 0,
+          quickBounces: 0,
+          sessionDuration: 0,
+          categories: [],
+          timePatterns: {},
+          sequencePatterns: ''
+        }),
+        behaviorData: null,
+        timestamp: Date.now()
+      });
     }
 
     // Extract behavior features
-    const behaviorData = extractBehaviorFeatures(interactions);
+    const extractedBehaviorData = extractBehaviorFeatures(interactions);
     
     // Get AI analysis
-    const aiAnalysis = await analyzeWithAI(behaviorData);
+    const aiAnalysis = await analyzeWithAI(extractedBehaviorData);
 
     return NextResponse.json({
       success: true,
       sessionId,
       analysis: aiAnalysis,
-      behaviorData,
+      behaviorData: extractedBehaviorData,
       timestamp: Date.now()
     });
 

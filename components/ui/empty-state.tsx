@@ -1,6 +1,6 @@
 import { Package, ShoppingBag, ArrowRight, Sparkles, Star, Tag, TrendingUp, Leaf, Zap, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import Image from "next/image";
 
 interface EmptyStateProps {

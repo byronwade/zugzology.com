@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { usePathname } from "next/navigation";
 import { 
   Breadcrumb,
@@ -241,6 +241,12 @@ export const BreadcrumbConfigs = {
   account: (): BreadcrumbItem[] => [
     { name: "Home", url: "/" },
     { name: "Account", url: "/account", current: true }
+  ],
+
+  accountOrders: (): BreadcrumbItem[] => [
+    { name: "Home", url: "/" },
+    { name: "Account", url: "/account" },
+    { name: "Orders", url: "/account/orders", current: true }
   ],
   
   accountOrder: (orderNumber: string): BreadcrumbItem[] => [

@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Printer, Download, Mail, Check, Circle, Gift, Package, Clock, Loader2 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { formatPrice } from "@/lib/utils";
 import type { ShopifyCustomer } from "@/lib/types";
 import { Button } from "@/components/ui/button";

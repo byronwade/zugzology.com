@@ -7,7 +7,7 @@ import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { useCart } from "@/components/providers/cart-provider";
 import { toast } from "sonner";
 import { createCart, addToCart } from "@/lib/actions/shopify";

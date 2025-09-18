@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, ReactNode, useState, useRef } from "react";
-import { useAnchorScroll } from "@/lib/hooks/use-anchor-scroll";
+import { useAnchorScroll } from "@/hooks/use-anchor-scroll";
 import { ProductAd } from "@/components/blog/product-ad";
 import { AdPlaceholder } from "@/components/ads/ad-placeholder";
 import { Percent, ExternalLink } from "lucide-react";

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { validateLink } from "@/lib/utils/link-validator";
 
 interface ValidatedLinkProps {

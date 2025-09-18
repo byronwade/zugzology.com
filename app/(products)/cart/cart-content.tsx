@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ShoppingCart, Trash2, Plus, Minus, ArrowLeft, Check } from "lucide-react";
 import Image from "next/image";
 import { useState, useCallback, useEffect } from "react";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { toast } from "sonner";
 import type { ShopifyProduct } from "@/lib/types";
 import { UniversalBreadcrumb, BreadcrumbConfigs } from "@/components/navigation/universal-breadcrumb";

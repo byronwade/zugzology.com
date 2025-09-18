@@ -17,7 +17,7 @@ import AICustodySupport from "@/components/ai/ai-customer-support";
 import BehaviorTrackingProvider from "@/components/providers/behavior-tracking-provider";
 import { AIDebugPanel } from "@/components/debug/ai-debug-panel";
 import AISystemLogger from "@/components/debug/ai-system-logger";
-import { AuditProvider, DevAuditTrigger } from "@/components/seo/audit-provider";
+import { AuditProvider } from "@/components/seo/audit-provider";
 import { ShopifyDataProvider } from "@/components/providers/shopify-data-provider";
 
 // Loading components
@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 			</head>
 			<body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
 				<Providers>
-					<AuditProvider enableDevOverlay={process.env.NODE_ENV === 'development'}>
+					<AuditProvider>
 						<ShopifyDataProvider>
 							<BehaviorTrackingProvider>
 								<div className="relative flex min-h-screen flex-col">
@@ -91,7 +91,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 									</>
 								)}
 								<ServiceWorkerRegister />
-								<DevAuditTrigger />
 							</BehaviorTrackingProvider>
 						</ShopifyDataProvider>
 					</AuditProvider>

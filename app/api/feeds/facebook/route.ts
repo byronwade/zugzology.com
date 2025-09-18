@@ -19,7 +19,7 @@ export async function GET() {
       headers: {
         'Content-Type': 'text/csv',
         'Content-Disposition': 'attachment; filename="facebook-catalog.csv"',
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        'Cache-Control': 'no-store',
       },
     });
   } catch (error) {

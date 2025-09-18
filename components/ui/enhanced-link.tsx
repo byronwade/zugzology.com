@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/components/ui/link';
 import { ComponentProps } from 'react';
 
 type EnhancedLinkProps = ComponentProps<typeof Link> & {

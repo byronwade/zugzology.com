@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { Metadata } from "next";
 import { LoginButton } from "@/components/features/auth/next-auth-buttons";
 import { getSiteSettings } from "@/lib/actions/shopify";

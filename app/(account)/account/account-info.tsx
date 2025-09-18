@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { ShopifyCustomer } from "@/lib/types";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 import { useRouter } from "next/navigation";
 import { updateCustomer, updateCustomerAddress, createCustomerAddress } from "@/lib/services/shopify-customer";
 import { toast } from "sonner";

@@ -209,6 +209,7 @@ export interface CartItem {
 	merchandiseId: string;
 	quantity: number;
 	isPreOrder?: boolean;
+	productId?: string;
 	attributes?: Array<{
 		key: string;
 		value: string;

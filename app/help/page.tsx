@@ -9,7 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 import { getEnhancedBreadcrumbSchema, getEnhancedFAQSchema, getEnhancedOrganizationSchema } from "@/lib/seo/enhanced-jsonld";
 import Script from "next/script";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 
 export const metadata: Metadata = generateSEOMetadata({
 	title: "Help Center - Customer Support & FAQ",

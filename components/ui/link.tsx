@@ -20,16 +20,29 @@ async function prefetchImages(href: string) {
 	if (!href.startsWith("/") || href.startsWith("/order") || href === "/") {
 		return [];
 	}
-	const url = new URL(href, window.location.href);
-	const imageResponse = await fetch(`/api/prefetch-images${url.pathname}`, {
-		priority: "low",
-	});
-	// only throw in dev
-	if (!imageResponse.ok && process.env.NODE_ENV === "development") {
-		throw new Error("Failed to prefetch images");
+
+	try {
+		const url = new URL(href, window.location.href);
+		const imageResponse = await fetch(`/api/prefetch-images${url.pathname}`, {
+			priority: "low",
+		});
+
+		if (!imageResponse.ok) {
+			if (process.env.NODE_ENV === "development") {
+				console.warn("[Link Prefetch] Failed to prefetch images:", imageResponse.status, imageResponse.statusText);
+			}
+			return [];
+		}
+
+		const payload = await imageResponse.json().catch(() => ({ images: [] }));
+		const images = Array.isArray(payload?.images) ? payload.images : [];
+		return images as PrefetchImage[];
+	} catch (error) {
+		if (process.env.NODE_ENV === "development") {
+			console.warn("[Link Prefetch] Error prefetching images:", error);
+		}
+		return [];
 	}
-	const { images } = await imageResponse.json();
-	return images as PrefetchImage[];
 }
 
 const seen = new Set<string>();

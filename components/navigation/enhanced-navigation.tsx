@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger, navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import { Compass, Clock, Heart, ShoppingBag, ChevronUp } from "lucide-react";
-import Link from "next/link";
+import { Link } from '@/components/ui/link';
 
 interface QuickAction {
 	icon: React.ReactNode;

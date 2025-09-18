@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+experimental: {
+		ppr: true,
+		inlineCss: true,
+		reactCompiler: true,
+	},
 	typescript: {
 		ignoreBuildErrors: true,
 	},
@@ -7,10 +12,18 @@ const nextConfig = {
 		ignoreDuringBuilds: true,
 	},
 	images: {
+		minimumCacheTTL: 31536000,
 		remotePatterns: [
 			{
 				protocol: 'https',
 				hostname: 'cdn.shopify.com',
+			},
+			{
+			  protocol: "https",
+			  hostname: "bevgyjm5apuichhj.public.blob.vercel-storage.com",
+			  port: "",
+			  pathname: "/**",
+			  search: "",
 			},
 		],
 	},
