@@ -1,0 +1,895 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+	.text-balance {
+		text-wrap: balance;
+	}
+	/* Improved scrollbar utilities */
+	.scrollbar-hide {
+		scrollbar-width: none;
+		/* Firefox */
+		-ms-overflow-style: none;
+
+		/* IE and Edge */
+		&::-webkit-scrollbar {
+			display: none;
+			/* Chrome, Safari and Opera */
+		}
+	}
+
+	/* Custom horizontal scrollbar for when needed */
+	.scrollbar-thin {
+		scrollbar-width: thin;
+
+		&::-webkit-scrollbar {
+			height: 6px;
+			width: 6px;
+		}
+
+		&::-webkit-scrollbar-track {
+			background: transparent;
+		}
+
+		&::-webkit-scrollbar-thumb {
+			background-color: rgba(0, 0, 0, 0.2);
+			border-radius: 3px;
+		}
+	}
+
+	/* Custom animation for scroll indicator */
+	@keyframes gentlePulse {
+		0%,
+		100% {
+			opacity: 0.8;
+			transform: translateX(-4px);
+		}
+
+		50% {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+
+	.animate-gentle-pulse {
+		animation: gentlePulse 1.5s ease-in-out infinite;
+	}
+
+	/* Gradient animation for hero sections */
+	@keyframes gradient {
+		0%,
+		100% {
+			background-position: 0% 50%;
+		}
+		50% {
+			background-position: 100% 50%;
+		}
+	}
+
+	.animate-gradient {
+		background-size: 200% 200%;
+		animation: gradient 15s ease infinite;
+	}
+
+	/* Delayed animation utilities */
+	.delay-1000 {
+		animation-delay: 1s;
+	}
+}
+
+/* Add smooth scrolling to root - disabled to prevent scroll animation on load */
+:root {
+	scroll-behavior: auto;
+}
+
+@layer base {
+	:root {
+		/* Improved Teal/Cyan Theme - Softer Light Mode */
+		--primary: 174 60% 45%;
+		/* Reduced saturation for easier viewing */
+		--primary-foreground: 0 0% 100%;
+
+		--secondary: 174 20% 94%;
+		--secondary-foreground: 174 60% 35%;
+
+		--accent: 174 20% 94%;
+		--accent-foreground: 174 60% 35%;
+		--background: 174 15% 98%;
+		/* Soft teal-tinted off-white */
+		--foreground: 0 0% 0%;
+		/* Pure black for maximum contrast */
+
+		--card: 0 0% 100%;
+		/* White cards for contrast against background */
+		--card-foreground: 0 0% 0%;
+		/* Pure black text on white cards */
+
+		--popover: 0 0% 100%;
+		--popover-foreground: 0 0% 0%;
+		/* Pure black for readability */
+		--muted: 174 12% 95%;
+		/* Subtle teal tint */
+		--muted-foreground: 0 0% 35%;
+		/* Neutral gray for secondary text */
+
+		--destructive: 0 84.2% 60.2%;
+		--destructive-foreground: 0 0% 98%;
+
+		--border: 174 12% 88%;
+		/* More visible, teal-tinted */
+		--input: 174 12% 88%;
+		--ring: 174 60% 45%;
+		--radius: 0.5rem;
+		/* Chart colors */
+		--chart-1: 174 86% 46%;
+		--chart-2: 174 86% 60%;
+		--chart-3: 174 86% 75%;
+		--chart-4: 174 70% 40%;
+		--chart-5: 174 70% 55%;
+
+		/* Sidebar colors */
+		--sidebar-background: 0 0% 100%;
+		--sidebar-foreground: 0 0% 0%;
+		/* Pure black for sidebar text */
+		--sidebar-primary: 174 60% 45%;
+		--sidebar-primary-foreground: 0 0% 100%;
+		--sidebar-accent: 174 20% 94%;
+		--sidebar-accent-foreground: 174 60% 35%;
+		--sidebar-border: 174 12% 88%;
+		--sidebar-ring: 174 60% 45%;
+		--header-top-height: 60px;
+		--header-nav-height: 40px;
+		--header-height: calc(var(--header-top-height) + var(--header-nav-height));
+		--header-offset: var(--header-height);
+		--removed-body-scroll-bar-size: 0px;
+	}
+	.dark {
+		--primary: 174 86% 65%;
+		/* Lighter Teal for dark mode */
+		--primary-foreground: 0 0% 0%;
+
+		--secondary: 174 30% 20%;
+		--secondary-foreground: 0 0% 98%;
+
+		--accent: 174 30% 20%;
+		--accent-foreground: 0 0% 98%;
+		--background: 240 10% 3.9%;
+		--foreground: 0 0% 98%;
+
+		--card: 240 10% 3.9%;
+		--card-foreground: 0 0% 98%;
+
+		--popover: 240 10% 3.9%;
+		--popover-foreground: 0 0% 98%;
+
+		--muted: 240 3.7% 15.9%;
+		--muted-foreground: 240 5% 64.9%;
+
+		--destructive: 0 62.8% 30.6%;
+		--destructive-foreground: 0 0% 98%;
+
+		--border: 240 3.7% 15.9%;
+		--input: 240 3.7% 15.9%;
+		--ring: 174 86% 65%;
+
+		/* Chart colors */
+		--chart-1: 174 86% 65%;
+		--chart-2: 174 86% 75%;
+		--chart-3: 174 86% 50%;
+		--chart-4: 174 70% 60%;
+		--chart-5: 174 70% 70%;
+
+		/* Sidebar colors */
+		--sidebar-background: 240 10% 3.9%;
+		--sidebar-foreground: 0 0% 98%;
+		--sidebar-primary: 174 86% 65%;
+		--sidebar-primary-foreground: 0 0% 0%;
+		--sidebar-accent: 174 30% 20%;
+		--sidebar-accent-foreground: 0 0% 98%;
+		--sidebar-border: 240 3.7% 15.9%;
+		--sidebar-ring: 174 86% 65%;
+	}
+	/* Prevent layout shift when scrollbar appears/disappears */
+	html {
+		padding-right: var(--removed-body-scroll-bar-size);
+	}
+
+	html.with-dialog {
+		overflow: hidden;
+	}
+
+	/* Ensure dropdowns don't cause layout shift */
+	[data-radix-popper-content-wrapper] {
+		position: fixed !important;
+	}
+}
+
+@layer base {
+	* {
+		@apply border-border;
+	}
+
+	/* Prevent scroll during hydration */
+	html:not(.hydrated) {
+		overflow: hidden;
+	}
+
+	body {
+		@apply bg-background text-foreground;
+		font-feature-settings:
+			"rlig" 1,
+			"calt" 1;
+	}
+	/* Prevent iOS keyboard from popping up on sheet open */
+	[data-no-focus="true"] * {
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
+	}
+
+	[data-no-focus="true"] input,
+	[data-no-focus="true"] textarea,
+	[data-no-focus="true"] select,
+	[data-no-focus="true"] button {
+		-webkit-user-select: text;
+		-webkit-touch-callout: default;
+	}
+	/* Prevent input zoom on mobile */
+	input[type="text"],
+	input[type="number"],
+	input[type="email"],
+	input[type="tel"],
+	input[type="password"],
+	input[type="search"],
+	input[type="url"],
+	select,
+	textarea {
+		@apply text-base;
+		font-size: 16px !important;
+		/* Minimum font size to prevent zoom */
+	}
+
+	/* Additional mobile optimizations */
+	@media (max-width: 640px) {
+		input,
+		select,
+		textarea {
+			@apply px-3 py-2;
+			-webkit-appearance: none;
+			appearance: none;
+		}
+	}
+}
+/* Marquee styles */
+.marquee-container {
+	background: #000;
+	overflow: hidden;
+	position: relative;
+	width: 100%;
+	padding: 1rem 0;
+}
+
+.marquee {
+	--duration: 10s;
+	--space: 60px;
+	--text-size: 50px;
+	position: relative;
+	white-space: nowrap;
+	display: flex;
+	font-size: var(--text-size);
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.marquee--animate {
+	animation: scroll var(--duration) linear infinite;
+}
+
+.marquee--left {
+	animation-direction: normal;
+}
+
+.marquee-content {
+	flex-shrink: 0;
+	padding: 0 var(--space);
+}
+
+.marquee-text {
+	color: var(--color);
+}
+
+.text-highlight {
+	position: relative;
+	display: inline-block;
+}
+
+.text-highlight--color {
+	color: var(--color);
+}
+
+.text-highlight--gradient {
+	background: var(--gradient);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+}
+
+@keyframes scroll {
+	from {
+		transform: translateX(0);
+	}
+
+	to {
+		transform: translateX(calc(-100% - var(--space)));
+	}
+}
+/* Smooth scrolling and anchor targets - main declaration */
+html {
+	scroll-behavior: auto;
+	/* Changed from smooth to auto to prevent scroll animation on page load */
+	scroll-padding-top: 100px;
+	/* Offset for fixed header */
+}
+
+/* Enable smooth scrolling only for anchor links */
+html:has(a[href^="#"]:active) {
+	scroll-behavior: smooth;
+}
+
+/* Disable smooth scrolling during user-initiated scrolling */
+html.scrolling {
+	scroll-behavior: auto !important;
+}
+
+/* Better heading anchor targets */
+h1[id],
+h2[id],
+h3[id],
+h4[id],
+h5[id],
+h6[id] {
+	scroll-margin-top: 100px;
+	position: relative;
+}
+
+/* Additional padding only for blog content headings */
+.blog-content h1[id],
+.blog-content h2[id],
+.blog-content h3[id],
+.blog-content h4[id],
+.blog-content h5[id],
+.blog-content h6[id] {
+	padding-top: 15px;
+	margin-top: 5px;
+}
+
+/* Visual indicator for headings with IDs */
+.blog-content h2[id]:hover::before,
+.blog-content h3[id]:hover::before,
+.blog-content h4[id]:hover::before {
+	content: "#";
+	position: absolute;
+	left: -1.5rem;
+	opacity: 0.5;
+	font-weight: normal;
+	color: #10D9C4;
+}
+
+/* Optimize TOC for mobile */
+@media (max-width: 768px) {
+	.blog-table-of-contents {
+		position: sticky;
+		top: 70px;
+		z-index: 20;
+		background-color: var(--background);
+		border-bottom: 1px solid var(--border);
+		margin: 0;
+		padding: 0;
+	}
+}
+
+/* Improve TOC styling */
+.blog-table-of-contents {
+	border: 1px solid var(--border);
+	border-radius: 0.5rem;
+	margin-bottom: 1.5rem;
+	background-color: var(--background);
+	overflow: hidden;
+}
+
+.blog-table-of-contents button {
+	padding: 0.75rem 1rem;
+	width: 100%;
+	margin: 0;
+}
+
+.blog-table-of-contents h3 {
+	margin: 0;
+	padding: 0;
+}
+
+.blog-table-of-contents ul {
+	margin: 0;
+	padding: 0;
+}
+
+/* Make sure scrolling class always overrides other styles */
+html.scrolling {
+	scroll-behavior: auto !important;
+}
+/* Toast spacing */
+.toast-spacing [data-sonner-toaster] {
+	gap: 0.5rem !important;
+	z-index: 49 !important;
+	/* Make sure it's below cart sheet z-index of 50 */
+}
+
+.toast-spacing [data-sonner-toast] {
+	margin: 0 !important;
+	max-width: 400px !important;
+	width: auto !important;
+}
+
+/* On mobile, ensure toasts are compact and don't block content */
+@media (max-width: 767px) {
+	.toast-spacing [data-sonner-toaster][data-position^="bottom"] {
+		bottom: 70px !important;
+		/* Add space for mobile navigation and cart buttons */
+		right: 8px !important;
+		left: auto !important;
+	}
+
+	.toast-spacing [data-sonner-toast] {
+		max-width: 280px !important;
+		margin-right: 8px !important;
+	}
+}
+
+/* Make sure toasts don't interfere with cart sheet */
+[data-state="open"] ~ div [data-sonner-toaster][data-position^="bottom"] {
+	bottom: 100px !important;
+	/* Increase bottom margin when cart is open */
+}
+
+/* Make sure toasts have nice animations */
+.toast-spacing [data-sonner-toast] {
+	animation: slideIn 0.3s ease forwards;
+	transform-origin: bottom right;
+}
+
+@keyframes slideIn {
+	from {
+		opacity: 0;
+		transform: translateY(16px) scale(0.9);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+/* Reading mode styles */
+.reading-mode {
+	--reading-max-width: 65ch;
+	--reading-line-height: 1.7;
+	--reading-font-size: 1.1rem;
+	--reading-background: hsl(40 33% 98%);
+	--reading-text: hsl(40 10% 20%);
+	--reading-border: hsl(40 20% 90%);
+}
+
+.reading-mode body {
+	background: var(--reading-background);
+	color: var(--reading-text);
+}
+
+.reading-mode main {
+	max-width: var(--reading-max-width);
+	margin: 2rem auto;
+	padding: 0 1.5rem;
+}
+
+.reading-mode article {
+	font-size: var(--reading-font-size);
+	line-height: var(--reading-line-height);
+	font-family: "Georgia", serif;
+}
+
+.reading-mode p {
+	margin-bottom: 1.5em;
+}
+
+.reading-mode h1,
+.reading-mode h2,
+.reading-mode h3 {
+	font-family: system-ui, -apple-system, sans-serif;
+	margin-top: 2em;
+	margin-bottom: 1em;
+	font-weight: 600;
+}
+
+.reading-mode img {
+	border-radius: 0.5rem;
+	border: 1px solid var(--reading-border);
+}
+
+.reading-mode pre,
+.reading-mode code {
+	background: white;
+	border: 1px solid var(--reading-border);
+	border-radius: 0.25rem;
+}
+
+.reading-mode pre {
+	padding: 1rem;
+	margin: 1.5rem 0;
+	overflow-x: auto;
+}
+
+.reading-mode code {
+	padding: 0.2em 0.4em;
+	font-size: 0.9em;
+}
+
+.reading-mode blockquote {
+	border-left: 3px solid var(--reading-border);
+	margin: 1.5em 0;
+	padding-left: 1em;
+	font-style: italic;
+	color: hsl(40 10% 40%);
+}
+
+/* Dark mode reading styles */
+.dark .reading-mode {
+	--reading-background: hsl(220 20% 10%);
+	--reading-text: hsl(220 20% 90%);
+	--reading-border: hsl(220 20% 20%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.reading-mode {
+		--reading-font-size: 1rem;
+		--reading-line-height: 1.6;
+	}
+
+	.reading-mode main {
+		margin: 1rem auto;
+		padding: 0 1rem;
+	}
+}
+
+/* Reading mode overlay styles */
+.reading-overlay {
+	--reading-font: "Georgia", serif;
+	--reading-background: hsl(0 0% 100%);
+	--reading-text: hsl(0 0% 10%);
+	--reading-secondary: hsl(0 0% 40%);
+	--reading-line-height: 1.8;
+	--reading-paragraph-spacing: 1.5em;
+	scrollbar-gutter: stable;
+}
+
+.dark .reading-overlay {
+	--reading-background: hsl(220 20% 10%);
+	--reading-text: hsl(220 20% 90%);
+	--reading-secondary: hsl(220 20% 70%);
+}
+
+.reading-overlay article {
+	font-family: var(--reading-font);
+	color: var(--reading-text);
+}
+
+.reading-overlay article > * + * {
+	margin-top: var(--reading-paragraph-spacing);
+}
+
+.reading-overlay article p {
+	line-height: var(--reading-line-height);
+	color: var(--reading-text);
+}
+
+.reading-overlay article h1,
+.reading-overlay article h2,
+.reading-overlay article h3 {
+	font-family: system-ui, -apple-system, sans-serif;
+	line-height: 1.3;
+	color: var(--reading-text);
+	margin-top: 2em;
+}
+
+.reading-overlay article img {
+	width: 100%;
+	height: auto;
+	border-radius: 0.5rem;
+	margin: 2em 0;
+}
+
+.reading-overlay article blockquote {
+	font-style: italic;
+	color: var(--reading-secondary);
+	margin: 2em 0;
+	padding-left: 1em;
+	border-left: 3px solid var(--reading-secondary);
+}
+
+.reading-overlay article pre {
+	background: hsl(220 20% 95%);
+	padding: 1em;
+	border-radius: 0.5rem;
+	overflow-x: auto;
+	margin: 2em 0;
+}
+
+.dark .reading-overlay article pre {
+	background: hsl(220 20% 15%);
+}
+
+.reading-overlay article code {
+	font-family: ui-monospace, monospace;
+	font-size: 0.9em;
+}
+
+.reading-overlay article a {
+	color: hsl(174 86% 46%);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+}
+
+.dark .reading-overlay article a {
+	color: hsl(174 86% 65%);
+}
+
+/* Smooth transition for reading mode */
+.reading-overlay {
+	animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Custom scrollbar for reading mode */
+.reading-overlay::-webkit-scrollbar {
+	width: 8px;
+}
+
+.reading-overlay::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.reading-overlay::-webkit-scrollbar-thumb {
+	background-color: var(--reading-secondary);
+	border-radius: 4px;
+	opacity: 0.5;
+}
+
+/* Print styles for reading mode */
+@media print {
+	.reading-overlay {
+		position: relative !important;
+		overflow: visible !important;
+		background: white !important;
+	}
+
+	.reading-overlay button {
+		display: none !important;
+	}
+}
+
+/* Print Styles */
+@media print {
+	/* Reset page margins and paper size */
+	@page {
+		margin: 2.54cm;
+		size: A4;
+	}
+
+	/* Reset body and html for print */
+	html,
+	body {
+		margin: 0 !important;
+		padding: 0 !important;
+		width: 100% !important;
+		min-width: 100% !important;
+	}
+
+	/* Hide all unnecessary elements */
+	header,
+	footer,
+	nav,
+	button,
+	[data-print-hidden="true"],
+	.reading-overlay,
+	.prose,
+	.debug-button,
+	.auth-info,
+	.metadata,
+	.time-to-read,
+	.related-articles,
+	[aria-label="Related articles"],
+	.blog-related-posts {
+		display: none !important;
+	}
+
+	/* Show only print version */
+	.print-article {
+		display: block !important;
+		visibility: visible !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		width: 100% !important;
+		max-width: none !important;
+		font-family: "Times New Roman", Times, serif !important;
+		font-size: 12pt !important;
+		line-height: 1.5 !important;
+		color: black !important;
+		background: white !important;
+	}
+
+	/* Title styling */
+	.print-title {
+		font-size: 24pt !important;
+		font-weight: bold !important;
+		margin: 0 0 1.5cm 0 !important;
+		padding: 0 !important;
+		text-align: left !important;
+		page-break-after: avoid !important;
+		color: black !important;
+		max-width: none !important;
+		width: 100% !important;
+	}
+
+	/* Image container */
+	.print-image {
+		margin: 1cm 0 !important;
+		page-break-inside: avoid !important;
+		width: 100% !important;
+		max-width: none !important;
+	}
+
+	/* Image styling */
+	.print-image img {
+		display: block !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		height: auto !important;
+		margin: 0 auto !important;
+		object-fit: contain !important;
+	}
+
+	/* Content styling */
+	.print-content {
+		text-align: justify !important;
+		margin: 1cm 0 !important;
+		width: 100% !important;
+		max-width: none !important;
+	}
+
+	/* Content elements */
+	.print-content p {
+		margin: 0 0 0.5cm 0 !important;
+		orphans: 3 !important;
+		widows: 3 !important;
+		color: black !important;
+		width: 100% !important;
+	}
+
+	.print-content h2,
+	.print-content h3,
+	.print-content h4 {
+		font-size: 14pt !important;
+		font-weight: bold !important;
+		margin: 1cm 0 0.5cm 0 !important;
+		page-break-after: avoid !important;
+		color: black !important;
+		width: 100% !important;
+	}
+
+	.print-content ul,
+	.print-content ol {
+		margin: 0.5cm 0 !important;
+		padding-left: 1cm !important;
+		width: 100% !important;
+	}
+
+	.print-content li {
+		margin-bottom: 0.25cm !important;
+	}
+
+	/* Code blocks */
+	.print-content pre,
+	.print-content code {
+		font-family: "Courier New", Courier, monospace !important;
+		font-size: 10pt !important;
+		margin: 0.5cm 0 !important;
+		padding: 0.25cm !important;
+		border: 1px solid #ccc !important;
+		white-space: pre-wrap !important;
+		word-wrap: break-word !important;
+		page-break-inside: avoid !important;
+		width: 100% !important;
+	}
+
+	/* Blockquotes */
+	.print-content blockquote {
+		margin: 0.5cm 1cm !important;
+		padding-left: 0.5cm !important;
+		border-left: 2pt solid #999 !important;
+		font-style: italic !important;
+		width: 100% !important;
+	}
+
+	/* Links */
+	.print-content a {
+		text-decoration: none !important;
+		color: black !important;
+	}
+
+	/* Footer */
+	.print-footer {
+		margin-top: 2cm !important;
+		padding-top: 0.5cm !important;
+		border-top: 1pt solid #999 !important;
+		font-size: 9pt !important;
+		color: #666 !important;
+		width: 100% !important;
+	}
+
+	/* Source URL */
+	.print-source {
+		font-family: "Courier New", Courier, monospace !important;
+		font-size: 8pt !important;
+		color: #666 !important;
+		width: 100% !important;
+	}
+
+	/* Remove any max-width constraints */
+	.container,
+	.mx-auto,
+	.max-w-3xl,
+	.max-w-4xl,
+	.max-w-5xl,
+	.max-w-6xl,
+	.max-w-7xl {
+		max-width: none !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+		margin-right: 0 !important;
+	}
+
+	/* Ensure proper page breaks */
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6,
+	img,
+	table,
+	figure {
+		page-break-inside: avoid !important;
+		page-break-after: avoid !important;
+	}
+
+	/* Remove any animations or transitions */
+	* {
+		transition: none !important;
+		animation: none !important;
+	}
+}

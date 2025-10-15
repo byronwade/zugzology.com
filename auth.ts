@@ -1,7 +1,7 @@
 import NextAuth, { type AuthOptions, type Session } from "next-auth";
 import type { Account } from "next-auth";
 import type { JWT } from "next-auth/jwt";
-import Shopify from "./auth/providers/shopify";
+import Shopify from "./src/auth/providers/shopify";
 import Credentials from "next-auth/providers/credentials";
 import { logAuthEvent } from "@/lib/config/auth";
 
@@ -26,7 +26,7 @@ if (!hasShopifyCredentials) {
 const providers = hasShopifyCredentials
 	? [
 		Shopify({
-			shopId: shopifyConfig.shopId,
+			shopId: shopifyConfig.shopId as string,
 			clientId: shopifyConfig.clientId,
 			clientSecret: shopifyConfig.clientSecret as string,
 		}),
@@ -156,7 +156,7 @@ export const authConfig: AuthOptions = {
 
 // Create and export the auth functions
 const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
-const { GET, POST } = handlers;
+const { GET, POST } = handlers || { GET: undefined, POST: undefined };
 
 // Export the auth functions individually
 export { handlers, auth, signIn, signOut, GET, POST };

@@ -24,17 +24,21 @@
     ],
     "paths": {
       "@/*": [
-        "./*"
+        "./src/*"
       ]
     },
     "baseUrl": "."
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
+    "src/**/*.ts",
+    "src/**/*.tsx",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "next.config.ts",
+    "auth.ts",
+    "middleware.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

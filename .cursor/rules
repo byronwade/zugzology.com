@@ -1,0 +1,141 @@
+# Cursor AI Rules for Zugzology E-commerce Project
+
+## Project Overview
+This is a Next.js 16 (canary) e-commerce application using React 19, TypeScript, and Shopify as the backend.
+
+## Code Quality - Ultracite/Biome
+
+This project uses Ultracite (Biome preset) for linting and formatting. Always follow these rules:
+
+### Formatting Standards
+- Indentation: Tabs (width 2)
+- Line width: 120 characters maximum
+- Quotes: Double quotes only
+- Semicolons: Always required
+- Trailing commas: ES5 style
+- Arrow functions: Always use parentheses
+
+### Code Quality Requirements
+- Maximum function complexity: 15
+- Maximum function length: 60 lines
+- No unused variables or imports
+- No console.log (use console.warn/error if needed)
+- Always provide explicit TypeScript types
+- Avoid `any` type - use `unknown` if needed
+
+### Import Organization
+Imports must be ordered:
+1. React/Next.js imports
+2. Third-party libraries
+3. Internal modules (@/)
+4. Relative imports
+5. Type imports last
+
+### TypeScript Rules
+- Strict mode enabled
+- Explicit return types for functions
+- Interfaces for object shapes
+- Generics for reusable components
+- Proper null/undefined handling
+
+## Next.js Best Practices
+
+- Server Components by default (no "use client" unless needed)
+- Use "use client" only for:
+  - Interactive components with event handlers
+  - Browser APIs (localStorage, window, etc.)
+  - React hooks (useState, useEffect, etc.)
+  - Context providers and consumers
+
+- Use next/image for all images
+- Use next/link for all navigation
+- Implement proper error boundaries
+- Add loading states with Suspense
+
+## Component Patterns
+
+### Server Component (default)
+```typescript
+export default async function Page() {
+  const data = await fetchData()
+  return <div>{data}</div>
+}
+```
+
+### Client Component (when needed)
+```typescript
+"use client"
+
+import { useState } from "react"
+
+export function Counter() {
+  const [count, setCount] = useState(0)
+  return <button onClick={() => setCount(count + 1)}>{count}</button>
+}
+```
+
+## File Structure
+```
+/src
+  /app - Next.js pages and API routes
+  /components
+    /ui - shadcn/ui components
+    /features - Feature components
+    /sections - Page sections
+  /lib - Utilities and helpers
+  /hooks - Custom React hooks
+  /types - TypeScript definitions
+```
+
+## Performance
+- Use React.memo for expensive components
+- Use useMemo for expensive calculations
+- Use useCallback for memoized callbacks
+- Lazy load heavy components with dynamic imports
+- Optimize images (WebP format, proper sizing)
+
+## Accessibility
+- Always provide alt text for images
+- Use semantic HTML (header, nav, main, footer, article, section)
+- Proper heading hierarchy (h1 → h6)
+- ARIA labels where needed
+- Keyboard navigation support
+- Color contrast ratio: 4.5:1 minimum
+
+## Naming Conventions
+- Files: kebab-case.tsx (or PascalCase.tsx for components)
+- Components: PascalCase
+- Functions/Variables: camelCase
+- Constants: UPPER_SNAKE_CASE
+- Types/Interfaces: PascalCase
+
+## Security
+- Never commit secrets or API keys
+- Validate all user inputs
+- Use parameterized queries
+- Implement proper authentication checks
+- Sanitize data before rendering
+
+## Testing
+- Write tests for critical functionality
+- Test user interactions
+- Test error states
+- Test loading states
+- Aim for 80%+ coverage
+
+## Commands
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run lint` - Check code quality
+- `npm run lint:fix` - Fix linting issues
+- `npm run type-check` - Check TypeScript
+
+## When Writing Code
+1. Format according to Ultracite rules
+2. Remove unused imports/variables
+3. Add proper TypeScript types
+4. Use meaningful names
+5. Keep functions small and focused
+6. Write accessible HTML
+7. Handle errors gracefully
+8. Optimize for performance
