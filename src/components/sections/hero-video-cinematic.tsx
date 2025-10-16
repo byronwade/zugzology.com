@@ -40,7 +40,7 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_70%,rgba(0,0,0,0.8)_100%)]" />
 
 				{/* Bottom Gradient - Fades to background color */}
-				<div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-black/80 to-transparent" />
+                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(5,12,30,0.92)] via-black/70 to-transparent dark:from-background dark:via-black/80" />
 
 				{/* Left Gradient for text readability */}
 				<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
