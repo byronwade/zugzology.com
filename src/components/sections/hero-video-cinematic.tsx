@@ -10,8 +10,8 @@ type HeroVideoCinematicProps = {
 // Server Component - no client JS needed
 // CSS animations replace Framer Motion for better performance
 export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
-	return (
-		<section className="hero-section relative h-[calc(100vh-var(--header-height))] w-full overflow-hidden bg-black">
+        return (
+                <section className="hero-section relative w-full overflow-hidden bg-black py-16 sm:py-20 md:h-[calc(100vh-var(--header-height))] md:py-0">
 			{/* Video Background - using CSS for scale effect */}
 			<div className="video-container absolute inset-0">
 				{/* Animated gradient background - fallback while video loads */}
@@ -50,7 +50,7 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 			</div>
 
 			{/* Content - CSS animations instead of Framer Motion */}
-			<div className="hero-content relative z-10 flex h-full items-center">
+                        <div className="hero-content relative z-10 flex items-start md:h-full md:items-center">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="max-w-3xl lg:max-w-4xl">
 						{/* Small badge */}
