@@ -149,10 +149,6 @@ export const getProducts = cache(async () => {
 			hasNextPage = data.products.pageInfo.hasNextPage;
 			cursor = data.products.pageInfo.endCursor;
 
-			// Add a delay between batches to prevent rate limiting
-			if (hasNextPage) {
-				await new Promise((resolve) => setTimeout(resolve, 250));
-			}
 		}
 
 		return allProducts;
@@ -1152,8 +1148,6 @@ const _getCachedProducts = unstable_cache(
 				hasNextPage = pageInfo.hasNextPage;
 				cursor = pageInfo.endCursor;
 
-				// Add a small delay between batches
-				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
 
 			return {

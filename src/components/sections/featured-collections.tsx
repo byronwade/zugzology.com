@@ -1,70 +1,17 @@
-"use client";
-
 import { ArrowRight, Package } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { Link } from "@/components/ui/link";
-import { getAllCollections } from "@/lib/actions/shopify";
+import Link from "next/link";
+import { getAllCollections } from "@/lib/api/shopify/actions";
 import { ASSETS } from "@/lib/config/wadesdesign.config";
-import type { ShopifyCollection } from "@/lib/types";
 
-export function FeaturedCollections() {
-	const [collections, setCollections] = useState<ShopifyCollection[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+// Server Component - fetches data on server, no client JS needed
+export async function FeaturedCollections() {
+	const allCollections = await getAllCollections();
 
-	useEffect(() => {
-		async function fetchCollections() {
-			try {
-				const allCollections = await getAllCollections();
-				// Check if allCollections exists and is an array
-				if (allCollections && Array.isArray(allCollections)) {
-					// Filter out empty collections and take the top 4
-					const topCollections = allCollections
-						.filter(
-							(collection: ShopifyCollection) => collection?.products?.nodes && collection.products.nodes.length > 0
-						)
-						.slice(0, 4);
-					setCollections(topCollections);
-				} else {
-					setCollections([]);
-				}
-			} catch (_error) {
-				setError("Failed to load collections");
-				setCollections([]);
-			} finally {
-				setLoading(false);
-			}
-		}
-
-		fetchCollections();
-	}, []);
-
-	if (error) {
-		return null; // Silently fail if there's an error
-	}
-
-	if (loading) {
-		return (
-			<section className="w-full bg-background">
-				<div className="container mx-auto px-4 py-12">
-					<div className="mb-12">
-						<div className="mx-auto h-10 w-64 animate-pulse rounded bg-muted" />
-						<div className="mx-auto mt-4 h-6 w-96 animate-pulse rounded bg-muted/60" />
-					</div>
-					<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-						{[...new Array(4)].map((_, i) => (
-							<div className="space-y-4" key={i}>
-								<div className="aspect-square animate-pulse rounded-xl bg-muted" />
-								<div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
-								<div className="h-4 w-1/2 animate-pulse rounded bg-muted/60" />
-							</div>
-						))}
-					</div>
-				</div>
-			</section>
-		);
-	}
+	// Filter out empty collections and take the top 4
+	const collections = allCollections
+		.filter((collection) => collection?.products?.nodes && collection.products.nodes.length > 0)
+		.slice(0, 4);
 
 	if (!collections.length) {
 		return null;

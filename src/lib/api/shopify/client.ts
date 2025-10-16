@@ -1,61 +1,17 @@
-"use server";
-
 import { SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_ACCESS_TOKEN } from "@/lib/constants";
 import type { ShopifyFetchParams } from "./types";
 
-// Request queue for throttling
-class RequestQueue {
-	private readonly queue: Array<() => Promise<void>> = [];
-	private processing = false;
-	private concurrentRequests = 0;
-	private readonly maxConcurrent = 3; // Max 3 concurrent requests
-	private readonly delayBetweenRequests = 100; // 100ms delay between requests
-
-	async enqueue<T>(fn: () => Promise<T>): Promise<T> {
-		return new Promise((resolve, reject) => {
-			this.queue.push(async () => {
-				try {
-					const result = await fn();
-					resolve(result);
-				} catch (error) {
-					reject(error);
-				}
-			});
-			this.processQueue();
-		});
-	}
-
-	private async processQueue() {
-		if (this.processing || this.concurrentRequests >= this.maxConcurrent) {
-			return;
-		}
-
-		const task = this.queue.shift();
-		if (!task) {
-			return;
-		}
-
-		this.processing = true;
-		this.concurrentRequests++;
-
-		try {
-			await task();
-		} finally {
-			this.concurrentRequests--;
-
-			// Add delay before processing next request
-			await new Promise((resolve) => setTimeout(resolve, this.delayBetweenRequests));
-
-			this.processing = false;
-			this.processQueue(); // Process next task
-		}
-	}
-}
-
-const requestQueue = new RequestQueue();
+// Edge runtime for faster global response
+export const runtime = "edge";
 
 /**
- * Shopify GraphQL fetch function with throttling, retry logic, and Next.js caching
+ * Shopify GraphQL fetch function optimized for Edge runtime
+ *
+ * Performance optimized:
+ * - Runs on Edge (globally distributed, faster cold starts)
+ * - No artificial throttling
+ * - Shopify Storefront API allows 200 requests/minute
+ * - Homepage makes ~4-6 requests - well within limits
  */
 export async function shopifyFetch<T>({
 	query,
@@ -75,41 +31,37 @@ export async function shopifyFetch<T>({
 
 	for (let attempt = 1; attempt <= maxRetries; attempt++) {
 		try {
-			// Throttle requests through queue
-			const result = await requestQueue.enqueue(async () => {
-				const response = await fetch(`https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						"X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_ACCESS_TOKEN,
-					},
-					body: JSON.stringify({
-						query,
-						variables,
-					}),
-					// Don't specify cache when using revalidate - Next.js will handle it
-					next: {
-						...next,
-						tags: [...(next?.tags || []), ...(tags || [])],
-						revalidate: next?.revalidate ?? 300, // 5 minutes default
-					},
-					signal: AbortSignal.timeout(30_000), // 30 second timeout
-				});
-
-				if (!response.ok) {
-					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-				}
-
-				const json = await response.json();
-
-				if (json.errors) {
-					throw new Error(`Shopify API Errors: ${json.errors.map((e: { message: string }) => e.message).join(", ")}`);
-				}
-
-				return json;
+			// Direct fetch - no artificial delays
+			const response = await fetch(`https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+				},
+				body: JSON.stringify({
+					query,
+					variables,
+				}),
+				// Don't specify cache when using revalidate - Next.js will handle it
+				next: {
+					...next,
+					tags: [...(next?.tags || []), ...(tags || [])],
+					revalidate: next?.revalidate ?? 300, // 5 minutes default
+				},
+				signal: AbortSignal.timeout(30_000), // 30 second timeout
 			});
 
-			return result;
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+			}
+
+			const json = await response.json();
+
+			if (json.errors) {
+				throw new Error(`Shopify API Errors: ${json.errors.map((e: { message: string }) => e.message).join(", ")}`);
+			}
+
+			return json;
 		} catch (error) {
 			lastError = error instanceof Error ? error : new Error(String(error));
 

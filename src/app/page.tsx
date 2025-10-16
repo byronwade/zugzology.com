@@ -1,15 +1,31 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Script from "next/script";
 import { Suspense } from "react";
 import { ProductCard } from "@/components/features/products/product-card";
-import { BestSellersShowcase } from "@/components/sections/best-sellers-showcase";
-import { FeaturedCollections } from "@/components/sections/featured-collections";
 import { HeroVideoCinematic } from "@/components/sections/hero-video-cinematic";
-import { LatestProducts } from "@/components/sections/latest-products";
-import { SaleProducts } from "@/components/sections/sale-products";
 import { Button } from "@/components/ui/button";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
-import { getPaginatedProducts, getSiteSettings } from "@/lib/api/shopify/actions";
+import { getSiteSettings } from "@/lib/api/shopify/actions";
+import { shopifyFetch } from "@/lib/api/shopify/client";
+import { PRODUCT_CARD_FRAGMENT } from "@/lib/api/shopify/fragments-optimized";
+
+// Dynamic imports for below-fold sections - reduces initial bundle
+const BestSellersShowcase = dynamic(() => import("@/components/sections/best-sellers-showcase").then((mod) => ({ default: mod.BestSellersShowcase })), {
+	loading: () => null,
+});
+
+const FeaturedCollections = dynamic(() => import("@/components/sections/featured-collections").then((mod) => ({ default: mod.FeaturedCollections })), {
+	loading: () => null,
+});
+
+const LatestProducts = dynamic(() => import("@/components/sections/latest-products").then((mod) => ({ default: mod.LatestProducts })), {
+	loading: () => null,
+});
+
+const SaleProducts = dynamic(() => import("@/components/sections/sale-products").then((mod) => ({ default: mod.SaleProducts })), {
+	loading: () => null,
+});
 import {
 	getEnhancedFAQSchema,
 	getEnhancedLocalBusinessSchema,
@@ -35,22 +51,43 @@ type HomePageData = {
 	bestSellingProducts: ShopifyProduct[];
 };
 
+// Optimized homepage product fetching - minimal GraphQL payload
+async function fetchOptimizedProducts(sortKey: string, first: number) {
+	const { data } = await shopifyFetch<{ products: { nodes: ShopifyProduct[] } }>({
+		query: `
+			query getOptimizedProducts($sortKey: ProductSortKeys!, $first: Int!) {
+				products(first: $first, sortKey: $sortKey, reverse: true) {
+					nodes {
+						...ProductCardFragment
+					}
+				}
+			}
+			${PRODUCT_CARD_FRAGMENT}
+		`,
+		variables: { sortKey, first },
+		tags: [`products-${sortKey}`],
+		next: { revalidate: 300 },
+	});
+
+	return data?.products?.nodes || [];
+}
+
 async function fetchHomePageData(): Promise<HomePageData> {
-	const [siteSettings, featuredResponse, bestSellingResponse, newestResponse] = await Promise.all([
+	const [siteSettings, featuredProducts, bestSellingProducts, newProducts] = await Promise.all([
 		getSiteSettings(),
-		getPaginatedProducts(1, "featured", 20),
-		getPaginatedProducts(1, "best-selling", 12),
-		getPaginatedProducts(1, "newest", 12),
+		fetchOptimizedProducts("RELEVANCE", 5),
+		fetchOptimizedProducts("BEST_SELLING", 5),
+		fetchOptimizedProducts("CREATED_AT", 5),
 	]);
 
-	const featuredProducts = uniqueById(featuredResponse.products || []);
-	const bestSellingProducts = uniqueById(bestSellingResponse.products || []);
-	const newProducts = uniqueById(newestResponse.products || []);
+	const uniqueFeatured = uniqueById(featuredProducts);
+	const uniqueBestSelling = uniqueById(bestSellingProducts);
+	const uniqueNew = uniqueById(newProducts);
 
-	const heroProduct = [...featuredProducts, ...bestSellingProducts, ...newProducts].find(
+	const heroProduct = [...uniqueFeatured, ...uniqueBestSelling, ...uniqueNew].find(
 		(product) => hasPurchasableVariant(product) && hasPrimaryImage(product)
 	);
-	const saleProducts = featuredProducts
+	const saleProducts = uniqueFeatured
 		.filter((product) => {
 			const firstVariant = product.variants?.nodes?.[0];
 			if (!firstVariant?.compareAtPrice?.amount) {
@@ -69,10 +106,10 @@ async function fetchHomePageData(): Promise<HomePageData> {
 			url: siteSettings?.primaryDomain?.url?.replace(/\/$/, ""),
 		},
 		heroProduct,
-		featuredProducts: featuredProducts.slice(0, 5),
-		saleProducts: saleProducts.slice(0, 5),
-		newProducts: newProducts.slice(0, 5),
-		bestSellingProducts: bestSellingProducts.slice(0, 5),
+		featuredProducts: uniqueFeatured,
+		saleProducts,
+		newProducts: uniqueNew,
+		bestSellingProducts: uniqueBestSelling,
 	};
 }
 
@@ -139,68 +176,148 @@ export function generateMetadata(): Metadata {
 	});
 }
 
-export default async function HomePage() {
+// Skeleton components for streaming
+function HeroSkeleton() {
+	return <div className="h-screen w-full animate-pulse bg-muted" />;
+}
+
+function ProductGridSkeleton() {
 	return (
-		<Suspense fallback={<HomeLoading />}>
-			<HomeContent />
-		</Suspense>
+		<section className="bg-background">
+			<div className="container mx-auto px-4 py-8 sm:py-12">
+				<div className="mb-8 h-10 w-64 animate-pulse rounded bg-muted sm:mb-10" />
+				<div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+					{[...Array(5)].map((_, i) => (
+						<div key={i} className="space-y-4">
+							<div className="aspect-square w-full animate-pulse rounded-lg bg-muted" />
+							<div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+							<div className="h-6 w-1/2 animate-pulse rounded bg-muted" />
+						</div>
+					))}
+				</div>
+			</div>
+		</section>
 	);
 }
 
-async function HomeContent() {
-	const data = await fetchHomePageData();
-	const { heroProduct, featuredProducts, saleProducts, newProducts, bestSellingProducts, site } = data;
-	const featuredWithoutHero = heroProduct
-		? featuredProducts.filter((product) => product.id !== heroProduct.id)
-		: featuredProducts;
-	const bestSellersWithoutHero = heroProduct
-		? bestSellingProducts.filter((product) => product.id !== heroProduct.id)
-		: bestSellingProducts;
-
-	// Traditional homepage layout
+export default function HomePage() {
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="space-y-0">
-				{/* Netflix-Style Video Hero */}
-				<HeroVideoCinematic products={featuredProducts.slice(0, 3)} />
+				{/* Hero Section - streams first */}
+				<Suspense fallback={<HeroSkeleton />}>
+					<HeroSection />
+				</Suspense>
 
-				<ProductGridSection
-					ctaHref="/collections/all"
-					ctaLabel="Shop all products"
-					products={featuredWithoutHero}
-					subtitle="Hand-selected items customers are loving right now"
-					title="Trending Kits & Supplies"
-				/>
+				{/* Featured Products - streams independently */}
+				<Suspense fallback={<ProductGridSkeleton />}>
+					<FeaturedSection />
+				</Suspense>
 
-				{saleProducts.length > 0 && <SaleProducts products={saleProducts} />}
+				{/* Sale Products - streams independently */}
+				<Suspense fallback={null}>
+					<SaleSection />
+				</Suspense>
 
-				<ProductGridSection
-					ctaHref="/collections/best-sellers"
-					ctaLabel="Browse best sellers"
-					products={bestSellersWithoutHero}
-					subtitle="Top-rated essentials backed by real purchase data"
-					title="Customer Favorites"
-				/>
+				{/* Best Sellers - streams independently */}
+				<Suspense fallback={<ProductGridSkeleton />}>
+					<BestSellersSection />
+				</Suspense>
 
-				{newProducts.length > 0 && <LatestProducts products={newProducts} />}
+				{/* Latest Products - streams independently */}
+				<Suspense fallback={null}>
+					<LatestSection />
+				</Suspense>
 
+				{/* Collections - streams last */}
 				<Suspense fallback={null}>
 					<FeaturedCollections />
 				</Suspense>
 
+				{/* Structured Data - streams with first section */}
 				<Suspense fallback={null}>
-					<BestSellersShowcase products={bestSellingProducts} />
+					<StructuredDataSection />
 				</Suspense>
 			</div>
-
-			<StructuredData
-				bestSellingProducts={bestSellingProducts}
-				featuredProducts={featuredProducts}
-				heroProduct={heroProduct}
-				saleProducts={saleProducts}
-				site={site}
-			/>
 		</div>
+	);
+}
+
+// Each section fetches its own data independently - using optimized queries
+async function HeroSection() {
+	const featuredProducts = await fetchOptimizedProducts("RELEVANCE", 3);
+	return <HeroVideoCinematic products={featuredProducts} />;
+}
+
+async function FeaturedSection() {
+	const featuredProducts = await fetchOptimizedProducts("RELEVANCE", 5);
+
+	return (
+		<ProductGridSection
+			ctaHref="/collections/all"
+			ctaLabel="Shop all products"
+			products={featuredProducts}
+			subtitle="Hand-selected items customers are loving right now"
+			title="Trending Kits & Supplies"
+		/>
+	);
+}
+
+async function SaleSection() {
+	const featuredProducts = await fetchOptimizedProducts("RELEVANCE", 5);
+
+	const saleProducts = featuredProducts
+		.filter((product) => {
+			const firstVariant = product.variants?.nodes?.[0];
+			if (!firstVariant?.compareAtPrice?.amount) {
+				return false;
+			}
+			return (
+				Number.parseFloat(firstVariant.compareAtPrice.amount) > Number.parseFloat(firstVariant.price.amount || "0")
+			);
+		})
+		.slice(0, 5);
+
+	if (!saleProducts.length) return null;
+	return <SaleProducts products={saleProducts} />;
+}
+
+async function BestSellersSection() {
+	const bestSellingProducts = await fetchOptimizedProducts("BEST_SELLING", 5);
+
+	return (
+		<>
+			<ProductGridSection
+				ctaHref="/collections/best-sellers"
+				ctaLabel="Browse best sellers"
+				products={bestSellingProducts}
+				subtitle="Top-rated essentials backed by real purchase data"
+				title="Customer Favorites"
+			/>
+			<BestSellersShowcase products={bestSellingProducts} />
+		</>
+	);
+}
+
+async function LatestSection() {
+	const newProducts = await fetchOptimizedProducts("CREATED_AT", 5);
+
+	if (!newProducts.length) return null;
+	return <LatestProducts products={newProducts} />;
+}
+
+async function StructuredDataSection() {
+	const data = await fetchHomePageData();
+	const { heroProduct, featuredProducts, saleProducts, bestSellingProducts, site } = data;
+
+	return (
+		<StructuredData
+			bestSellingProducts={bestSellingProducts}
+			featuredProducts={featuredProducts}
+			heroProduct={heroProduct}
+			saleProducts={saleProducts}
+			site={site}
+		/>
 	);
 }
 
@@ -234,7 +351,7 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 
 				{/* Mobile: List view */}
 				<div className="flex flex-col gap-0 sm:hidden">
-					{products.map((product) => {
+					{products.map((product, index) => {
 						const firstVariant = product.variants?.nodes?.[0];
 						if (!firstVariant) {
 							return null;
@@ -242,6 +359,7 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 
 						return (
 							<ProductCard
+						priority={index === 0}
 								key={product.id}
 								product={product}
 								quantity={firstVariant.quantityAvailable}
@@ -254,7 +372,7 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 
 				{/* Desktop: Grid view */}
 				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-					{products.map((product) => {
+					{products.map((product, index) => {
 						const firstVariant = product.variants?.nodes?.[0];
 						if (!firstVariant) {
 							return null;
@@ -263,6 +381,7 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 						return (
 							<div className="group relative" key={product.id}>
 								<ProductCard
+						priority={index === 0}
 									product={product}
 									quantity={firstVariant.quantityAvailable}
 									variantId={firstVariant.id}
