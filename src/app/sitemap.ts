@@ -173,6 +173,17 @@ function _generateImageSitemapData(images: any[]) {
 	return validImages.length > 0 ? validImages : undefined;
 }
 
+/**
+ * Generate sitemap index to organize multiple sitemaps
+ * @see https://developers.google.com/search/docs/advanced/sitemaps/large-sitemaps
+ */
+export async function generateSitemaps() {
+	return [
+		{ id: "main" },
+		{ id: "images" },
+	];
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const { shop, products, collections, articles, blogs, menuItems } = await getAllShopifyData();
 

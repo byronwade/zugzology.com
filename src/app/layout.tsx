@@ -80,6 +80,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 				/>
 				<script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} type="application/ld+json" />
 
+				{/* RSS Feed Auto-Discovery */}
+				<link
+					href={`https://${storeConfig.storeDomain}/api/feed.xml`}
+					rel="alternate"
+					title={`${storeConfig.storeName} Blog Feed`}
+					type="application/rss+xml"
+				/>
+				<link
+					href={`https://${storeConfig.storeDomain}/api/feed.xml`}
+					rel="alternate"
+					title={`${storeConfig.storeName} Blog Feed`}
+					type="application/atom+xml"
+				/>
+
 				{/* Critical Resource Hints - DNS prefetch for third-party domains */}
 				<link href="https://cdn.shopify.com" rel="dns-prefetch" />
 				<link href="https://fonts.googleapis.com" rel="dns-prefetch" />

@@ -168,21 +168,6 @@ export function ProductCard({
 			data-product-id={product.id}
 			data-view={view}
 		>
-			{/* Client Component for interactions */}
-			<ProductCardActions
-				canAddToCart={canAddToCart}
-				hasValidPrice={hasValidPrice}
-				isBackorder={isBackorder}
-				isFreeProduct={isFreeProduct}
-				onAddToCart={onAddToCart}
-				onAddToWishlist={onAddToWishlist}
-				onRemoveFromWishlist={onRemoveFromWishlist}
-				productHandle={product.handle}
-				productId={product.id}
-				variantId={variantId}
-				view={view}
-			/>
-
 			{/* Product Image - Server Rendered */}
 			<PrefetchLink
 				className={cn("block shrink-0", view === "grid" ? "w-full" : "w-24 sm:w-28 md:w-32")}
@@ -352,6 +337,21 @@ export function ProductCard({
 						</div>
 					</div>
 				)}
+
+				{/* Client Component for interactions */}
+				<ProductCardActions
+					canAddToCart={canAddToCart}
+					hasValidPrice={hasValidPrice}
+					isBackorder={isBackorder}
+					isFreeProduct={isFreeProduct}
+					onAddToCart={onAddToCart}
+					onAddToWishlist={onAddToWishlist}
+					onRemoveFromWishlist={onRemoveFromWishlist}
+					productHandle={product.handle}
+					productId={product.id}
+					variantId={variantId}
+					view={view}
+				/>
 			</div>
 		</div>
 	);

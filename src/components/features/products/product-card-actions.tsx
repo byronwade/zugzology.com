@@ -54,21 +54,24 @@ export function ProductCardActions({
 			}
 
 			setIsAddingToCart(true);
+
 			try {
 				const merchandiseId = variantId.includes("gid://shopify/ProductVariant/")
 					? variantId
 					: `gid://shopify/ProductVariant/${variantId}`;
 
-				await addItem({
-					merchandiseId,
-					quantity: 1,
-				});
+				// Add minimum delay to ensure loading state is visible
+				await Promise.all([
+					addItem({
+						merchandiseId,
+						quantity: 1,
+					}),
+					new Promise((resolve) => setTimeout(resolve, 500)),
+				]);
 
 				if (onAddToCart) {
 					onAddToCart();
 				}
-
-				toast.success("Added to cart");
 
 				// If this product was added from wishlist, remove it from wishlist
 				if (isWishlisted && onRemoveFromWishlist) {
@@ -129,29 +132,27 @@ export function ProductCardActions({
 					disabled={isAddingToCart || !variantId || !canAddToCart}
 					onClick={handleAddToCart}
 				>
-					<div className="flex w-full items-center justify-center">
-						{isAddingToCart ? (
-							<>
-								<Loader2 className={cn("mr-2 h-4 w-4 animate-spin", "translate-y-optical-icon-down")} />
-								<span>Adding...</span>
-							</>
-						) : isBackorder ? (
-							<>
-								<Clock className={cn("mr-2 h-4 w-4", getOpticalIconClasses("Clock", "button"))} />
-								<span>Pre-Order</span>
-							</>
-						) : hasValidPrice ? (
-							<>
-								<ShoppingCart className={cn("mr-2 h-4 w-4", getOpticalIconClasses("ShoppingCart", "button"))} />
-								<span>{isFreeProduct ? "Claim Free" : "Add to Cart"}</span>
-							</>
-						) : (
-							<>
-								<Info className={cn("mr-2 h-4 w-4", getOpticalIconClasses("Info", "button"))} />
-								<span>Contact for Pricing</span>
-							</>
-						)}
-					</div>
+					{isAddingToCart ? (
+						<div className="flex items-center justify-center gap-2">
+							<Loader2 className="h-4 w-4 animate-spin" />
+							<span>Adding...</span>
+						</div>
+					) : isBackorder ? (
+						<div className="flex items-center justify-center gap-2">
+							<Clock className={cn("h-4 w-4", getOpticalIconClasses("Clock", "button"))} />
+							<span>Pre-Order</span>
+						</div>
+					) : hasValidPrice ? (
+						<div className="flex items-center justify-center gap-2">
+							<ShoppingCart className={cn("h-4 w-4", getOpticalIconClasses("ShoppingCart", "button"))} />
+							<span>{isFreeProduct ? "Claim Free" : "Add to Cart"}</span>
+						</div>
+					) : (
+						<div className="flex items-center justify-center gap-2">
+							<Info className={cn("h-4 w-4", getOpticalIconClasses("Info", "button"))} />
+							<span>Contact for Pricing</span>
+						</div>
+					)}
 				</Button>
 			</div>
 		</>

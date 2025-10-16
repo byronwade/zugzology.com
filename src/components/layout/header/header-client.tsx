@@ -23,8 +23,8 @@ import { CartSheet } from "@/components/features/cart/cart-sheet";
 import { SearchDropdown } from "@/components/features/search/search-dropdown";
 import { DynamicAffiliateLinksDropdown } from "@/components/layout/header/affiliate-links-dynamic";
 import { LearnAndGrowMenuFixed } from "@/components/layout/header/learn-and-grow-menu-fixed";
-import { DynamicPromoBanner } from "@/components/layout/promo-banner-dynamic";
-import { useAuthContext, usePromo, useSearch } from "@/components/providers";
+// import { DynamicPromoBanner } from "@/components/layout/promo-banner-dynamic";
+import { useAuthContext, useSearch } from "@/components/providers";
 import { useCart } from "@/components/providers/cart-provider";
 import { useWishlist } from "@/components/providers/wishlist-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -171,7 +171,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	const { openCart, cart } = useCart();
 	const { wishlist } = useWishlist();
 	const { setSearchQuery, isSearching, setIsDropdownOpen, isDropdownOpen } = useSearch();
-	const { showPromo, setShowPromo } = usePromo();
+	// const { showPromo, setShowPromo } = usePromo(); // Banner hidden
 	const router = useRouter();
 
 	// Use session with fallback for when SessionProvider is not available
@@ -388,8 +388,8 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 	return (
 		<>
 			<header className="sticky top-0 z-50 flex flex-col bg-background">
-				{/* Dynamic Promo Banner */}
-				<DynamicPromoBanner onDismiss={() => setShowPromo(false)} showPromo={showPromo} />
+				{/* Dynamic Promo Banner - Hidden */}
+				{/* <DynamicPromoBanner onDismiss={() => setShowPromo(false)} showPromo={showPromo} /> */}
 
 				{/* Top Bar - Shopify Admin Style */}
 				<div className="flex h-[var(--header-top-height)] flex-shrink-0 items-center border-border border-b bg-background">
