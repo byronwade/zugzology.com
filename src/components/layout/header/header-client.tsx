@@ -385,9 +385,9 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 		return null;
 	}
 
-	return (
-		<>
-			<header className="sticky top-0 z-50 flex flex-col bg-background">
+        return (
+                <>
+                        <header className="safe-area-top sticky top-0 z-50 flex flex-col bg-background">
 				{/* Dynamic Promo Banner - Hidden */}
 				{/* <DynamicPromoBanner onDismiss={() => setShowPromo(false)} showPromo={showPromo} /> */}
 
