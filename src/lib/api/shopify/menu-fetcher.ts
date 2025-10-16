@@ -14,24 +14,12 @@ let memoryCache: {
 
 const MEMORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// Retry configuration
-const MAX_RETRIES = 3;
-const INITIAL_RETRY_DELAY = 500; // ms
-
 /**
- * Sleep utility for retry delays
+ * Get menu with comprehensive caching
+ * Note: Retry logic is now handled by shopifyFetch()
  */
-function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Fetch menu with retry logic and exponential backoff
- */
-async function fetchMenuWithRetry(handle: string, attempt = 1): Promise<ShopifyMenuItem[]> {
+export const getMenuRobust = cache(async (handle: string): Promise<ShopifyMenuItem[]> => {
 	try {
-		console.log(`[Menu Fetcher] Attempt ${attempt}/${MAX_RETRIES} for menu: ${handle}`);
-
 		const startTime = Date.now();
 
 		const { data } = await shopifyFetch<{ menu: { items: ShopifyMenuItem[] } | null }>({
@@ -47,11 +35,10 @@ async function fetchMenuWithRetry(handle: string, attempt = 1): Promise<ShopifyM
 			`,
 			variables: { handle },
 			tags: [`menu-${handle}`],
+			next: { revalidate: 300 }, // Cache for 5 minutes
 		});
 
-		const duration = Date.now() - startTime;
-		console.log(`[Menu Fetcher] ✅ Success in ${duration}ms - Got ${data?.menu?.items?.length || 0} items`);
-
+		const _duration = Date.now() - startTime;
 		const items = data?.menu?.items ?? [];
 
 		// Update memory cache on success
@@ -61,56 +48,18 @@ async function fetchMenuWithRetry(handle: string, attempt = 1): Promise<ShopifyM
 				timestamp: Date.now(),
 				handle,
 			};
-			console.log(`[Menu Fetcher] 💾 Updated memory cache with ${items.length} items`);
 		}
 
 		return items;
-	} catch (error) {
-		console.error(`[Menu Fetcher] ❌ Attempt ${attempt}/${MAX_RETRIES} failed:`, error);
-
-		// If we haven't exhausted retries, try again with exponential backoff
-		if (attempt < MAX_RETRIES) {
-			const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt - 1);
-			console.log(`[Menu Fetcher] ⏳ Retrying in ${delay}ms...`);
-			await sleep(delay);
-			return fetchMenuWithRetry(handle, attempt + 1);
-		}
-
-		// All retries exhausted
-		console.error(`[Menu Fetcher] 💥 All ${MAX_RETRIES} attempts failed for menu: ${handle}`);
-
-		// Try to use memory cache as last resort
+	} catch (_error) {
+		// Try to use memory cache as fallback
 		if (memoryCache && memoryCache.handle === handle) {
 			const cacheAge = Date.now() - memoryCache.timestamp;
 			if (cacheAge < MEMORY_CACHE_TTL) {
-				console.log(`[Menu Fetcher] 🔄 Using memory cache (age: ${Math.round(cacheAge / 1000)}s)`);
 				return memoryCache.data || [];
 			}
-			console.log(`[Menu Fetcher] ⚠️ Memory cache too old (${Math.round(cacheAge / 1000)}s > ${MEMORY_CACHE_TTL / 1000}s)`);
 		}
 
-		return [];
-	}
-}
-
-/**
- * Get menu with comprehensive caching and retry logic
- */
-export const getMenuRobust = cache(async (handle: string): Promise<ShopifyMenuItem[]> => {
-	console.log(`[Menu Fetcher] 📋 Fetching menu: ${handle}`);
-
-	try {
-		const items = await fetchMenuWithRetry(handle);
-
-		if (items.length === 0) {
-			console.warn(`[Menu Fetcher] ⚠️ Menu "${handle}" returned 0 items - check Shopify admin`);
-		} else {
-			console.log(`[Menu Fetcher] ✨ Successfully loaded ${items.length} menu items`);
-		}
-
-		return items;
-	} catch (error) {
-		console.error(`[Menu Fetcher] 🔥 Fatal error fetching menu "${handle}":`, error);
 		return [];
 	}
 });

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
 import { ProductGridWithFilters } from "@/components/features/products/product-grid-with-filters";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ProductCardSkeleton } from "@/components/ui/skeletons/product-card-skeleton";
 import { getAllProducts } from "@/lib/api/shopify/actions";
 import {
 	getEnhancedBreadcrumbSchema,
@@ -154,13 +156,13 @@ async function ProductsPageContent({ searchParams }: { searchParams?: Promise<{ 
 				</Script>
 
 				<ProductGridWithFilters
-					products={productsArray}
-					title="All Products"
-					description="Browse our complete collection of premium mushroom growing supplies and equipment."
-					currentPage={page}
-					totalProducts={productsData.productsCount}
 					context="all-products"
+					currentPage={page}
+					description="Browse our complete collection of premium mushroom growing supplies and equipment."
+					products={productsArray}
 					showCollectionFilter={false}
+					title="All Products"
+					totalProducts={productsData.productsCount}
 				/>
 			</>
 		);
@@ -169,9 +171,38 @@ async function ProductsPageContent({ searchParams }: { searchParams?: Promise<{ 
 	}
 }
 
+function ProductsLoading() {
+	return (
+		<div className="container mx-auto px-4 py-10">
+			<div className="space-y-6">
+				<div className="mb-8">
+					<Skeleton className="mb-4 h-10 w-64" />
+					<Skeleton className="h-5 w-full max-w-2xl" />
+				</div>
+
+				{/* Mobile: List view */}
+				<div className="flex flex-col gap-0 sm:hidden">
+					{new Array(8).fill(0).map((_, i) => (
+						<ProductCardSkeleton key={i} view="list" />
+					))}
+				</div>
+
+				{/* Desktop: Grid view */}
+				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+					{new Array(8).fill(0).map((_, i) => (
+						<div className="group relative" key={i}>
+							<ProductCardSkeleton view="grid" />
+						</div>
+					))}
+				</div>
+			</div>
+		</div>
+	);
+}
+
 export default function ProductsPage({ searchParams }: { searchParams?: Promise<{ sort?: string; page?: string }> }) {
 	return (
-		<Suspense fallback={<div>Loading products...</div>}>
+		<Suspense fallback={<ProductsLoading />}>
 			<ProductsPageContent searchParams={searchParams} />
 		</Suspense>
 	);

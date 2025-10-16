@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { BookOpen, Home, RefreshCw } from "lucide-react";
 import Image from "next/image";
-import { RefreshCw, Home, BookOpen } from "lucide-react";
-import { Link } from "@/components/ui/link";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 
 const blogErrorMessages = [
 	"Our knowledge base needs a moment",
@@ -30,19 +30,18 @@ export default function BlogError({ error, reset }: BlogErrorProps) {
 				error_digest: error.digest,
 			});
 		}
-		console.error("Blog error:", error);
 	}, [error]);
 
 	return (
 		<div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden">
 			{/* Full-screen Background Image */}
 			<Image
-				src="https://images.unsplash.com/photo-1518534270498-155ba742fc44?w=1920&q=80"
 				alt="Mushroom in forest"
-				fill
 				className="object-cover"
+				fill
 				priority
 				quality={90}
+				src="https://images.unsplash.com/photo-1518534270498-155ba742fc44?w=1920&q=80"
 			/>
 
 			{/* Dark Gradient Overlay */}
@@ -52,13 +51,9 @@ export default function BlogError({ error, reset }: BlogErrorProps) {
 			<div className="relative z-10 mx-auto max-w-2xl px-6 py-16 text-center">
 				{/* Main Message */}
 				<div className="mb-12 space-y-6">
-					<h1 className="font-bold text-6xl text-white tracking-tight sm:text-7xl">
-						Oops!
-					</h1>
+					<h1 className="font-bold text-6xl text-white tracking-tight sm:text-7xl">Oops!</h1>
 
-					<p className="text-2xl text-white/90 sm:text-3xl">
-						{funnyMessage}
-					</p>
+					<p className="text-2xl text-white/90 sm:text-3xl">{funnyMessage}</p>
 
 					<p className="mx-auto max-w-md text-lg text-white/70">
 						We're having trouble loading this article. Our content team has been notified.
@@ -68,28 +63,24 @@ export default function BlogError({ error, reset }: BlogErrorProps) {
 					{process.env.NODE_ENV === "development" && error.message && (
 						<details className="mx-auto mt-6 max-w-lg rounded-lg border border-white/10 bg-white/5 p-4 text-left backdrop-blur-sm">
 							<summary className="cursor-pointer font-medium text-sm text-white/90">Technical Details</summary>
-							<code className="mt-2 block text-xs text-red-400">{error.message}</code>
-							{error.digest && <code className="mt-1 block text-xs text-white/50">Digest: {error.digest}</code>}
+							<code className="mt-2 block text-red-400 text-xs">{error.message}</code>
+							{error.digest && <code className="mt-1 block text-white/50 text-xs">Digest: {error.digest}</code>}
 						</details>
 					)}
 				</div>
 
 				{/* Action Buttons */}
 				<div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-					<Button
-						onClick={reset}
-						size="lg"
-						className="min-w-[180px] gap-2 bg-white text-black hover:bg-white/90"
-					>
+					<Button className="min-w-[180px] gap-2 bg-white text-black hover:bg-white/90" onClick={reset} size="lg">
 						<RefreshCw className="h-5 w-5" />
 						Try Again
 					</Button>
 
 					<Button
 						asChild
-						variant="outline"
-						size="lg"
 						className="min-w-[180px] gap-2 border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
+						size="lg"
+						variant="outline"
 					>
 						<Link href="/blogs">
 							<BookOpen className="h-5 w-5" />
@@ -97,12 +88,7 @@ export default function BlogError({ error, reset }: BlogErrorProps) {
 						</Link>
 					</Button>
 
-					<Button
-						asChild
-						variant="ghost"
-						size="lg"
-						className="min-w-[180px] gap-2 text-white hover:bg-white/10"
-					>
+					<Button asChild className="min-w-[180px] gap-2 text-white hover:bg-white/10" size="lg" variant="ghost">
 						<Link href="/">
 							<Home className="h-5 w-5" />
 							Go Home
@@ -113,7 +99,6 @@ export default function BlogError({ error, reset }: BlogErrorProps) {
 
 			{/* Structured Data */}
 			<script
-				type="application/ld+json"
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify({
 						"@context": "https://schema.org",
@@ -126,6 +111,7 @@ export default function BlogError({ error, reset }: BlogErrorProps) {
 						},
 					}),
 				}}
+				type="application/ld+json"
 			/>
 		</div>
 	);

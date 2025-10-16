@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 // Define protected routes that require authentication
 const protectedRoutes = ["/account"];
@@ -8,59 +8,19 @@ const protectedRoutes = ["/account"];
 const AUTH_COOKIE_NAMES = {
 	accessToken: "accessToken",
 	customerAccessToken: "customerAccessToken",
-	idToken: "idToken"
+	idToken: "idToken",
 };
 
-export async function middleware(request: NextRequest) {
-	const { pathname } = request.nextUrl;
-
-	// Create response object
-	let response: NextResponse;
-
-	// Check if the route is protected
-	const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
-
-	// Get all authentication tokens - all must be present for valid auth
+// Helper function to check authentication
+function isUserAuthenticated(request: NextRequest): boolean {
 	const customerAccessToken = request.cookies.get(AUTH_COOKIE_NAMES.customerAccessToken);
 	const accessToken = request.cookies.get(AUTH_COOKIE_NAMES.accessToken);
 	const idToken = request.cookies.get(AUTH_COOKIE_NAMES.idToken);
+	return !!customerAccessToken && !!accessToken && !!idToken;
+}
 
-	// Determine if the user is authenticated
-	const isAuthenticated = !!customerAccessToken && !!accessToken && !!idToken;
-
-	// Handle protected routes
-	if (isProtectedRoute) {
-		if (!isAuthenticated) {
-			// Store the original URL to redirect back after login
-			const url = new URL("/login", request.url);
-			url.searchParams.set("callbackUrl", pathname);
-
-			response = NextResponse.redirect(url);
-			response.headers.set("x-middleware-cache", "no-cache");
-		} else {
-			response = NextResponse.next();
-		}
-	}
-	// Handle auth routes (login/register)
-	else if (pathname.startsWith("/login") || pathname.startsWith("/register")) {
-		if (isAuthenticated) {
-			// If user is already logged in, redirect to account
-			// But only if they're not being redirected from a protected route
-			const callbackUrl = request.nextUrl.searchParams.get("callbackUrl");
-			if (callbackUrl && protectedRoutes.some((route) => callbackUrl.startsWith(route))) {
-				response = NextResponse.redirect(new URL(callbackUrl, request.url));
-			} else {
-				response = NextResponse.redirect(new URL("/account", request.url));
-			}
-			response.headers.set("x-middleware-cache", "no-cache");
-		} else {
-			response = NextResponse.next();
-		}
-	} else {
-		response = NextResponse.next();
-	}
-
-	// Add security headers to all responses
+// Helper function to add security headers
+function addSecurityHeaders(response: NextResponse): void {
 	response.headers.set("X-DNS-Prefetch-Control", "on");
 	response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
 	response.headers.set("X-Frame-Options", "SAMEORIGIN");
@@ -68,13 +28,59 @@ export async function middleware(request: NextRequest) {
 	response.headers.set("X-XSS-Protection", "1; mode=block");
 	response.headers.set("Referrer-Policy", "origin-when-cross-origin");
 	response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-
-	// Content Security Policy (basic - customize as needed)
 	response.headers.set(
 		"Content-Security-Policy",
 		"default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.shopify.com https://*.googletagmanager.com https://*.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cdn.shopify.com https://*.shopify.com https://*.google-analytics.com; frame-src 'self' https://*.shopify.com;"
 	);
+}
 
+// Helper function to handle protected routes
+function handleProtectedRoute(request: NextRequest, pathname: string, isAuthenticated: boolean): NextResponse {
+	if (isAuthenticated) {
+		return NextResponse.next();
+	}
+
+	const url = new URL("/login", request.url);
+	url.searchParams.set("callbackUrl", pathname);
+	const response = NextResponse.redirect(url);
+	response.headers.set("x-middleware-cache", "no-cache");
+	return response;
+}
+
+// Helper function to handle auth routes
+function handleAuthRoute(request: NextRequest, isAuthenticated: boolean): NextResponse {
+	if (!isAuthenticated) {
+		return NextResponse.next();
+	}
+
+	const callbackUrl = request.nextUrl.searchParams.get("callbackUrl");
+	const redirectUrl =
+		callbackUrl && protectedRoutes.some((route) => callbackUrl.startsWith(route))
+			? new URL(callbackUrl, request.url)
+			: new URL("/account", request.url);
+
+	const response = NextResponse.redirect(redirectUrl);
+	response.headers.set("x-middleware-cache", "no-cache");
+	return response;
+}
+
+export function middleware(request: NextRequest): NextResponse {
+	const { pathname } = request.nextUrl;
+	const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
+	const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/register");
+	const isAuthenticated = isUserAuthenticated(request);
+
+	let response: NextResponse;
+
+	if (isProtectedRoute) {
+		response = handleProtectedRoute(request, pathname, isAuthenticated);
+	} else if (isAuthRoute) {
+		response = handleAuthRoute(request, isAuthenticated);
+	} else {
+		response = NextResponse.next();
+	}
+
+	addSecurityHeaders(response);
 	return response;
 }
 

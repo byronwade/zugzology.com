@@ -1,9 +1,9 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
-import { Link } from "@/components/ui/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import styles from "./promotional-section.module.css";
 
 export function PromotionalSection() {
@@ -59,12 +59,7 @@ export function PromotionalSection() {
 										/>
 									</Link>
 								</Button>
-								<Button
-									asChild
-									className="group border px-8"
-									size="lg"
-									variant="outline"
-								>
+								<Button asChild className="group border px-8" size="lg" variant="outline">
 									<Link href="/help">
 										Learn More
 										<ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />

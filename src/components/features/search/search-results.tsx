@@ -4,8 +4,8 @@ import { Search, ShoppingBag, SlidersHorizontal, Star } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/features/products/product-card";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/components/ui/link";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "@/components/ui/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -225,7 +225,7 @@ export function SearchResults({ products, searchParams }: SearchResultsProps) {
 					))}
 					{searchResults.length === 0 && (
 						<div className="col-span-full py-16">
-							<div className="mx-auto max-w-2xl rounded-xl bg-accent/30 p-8 text-center">
+							<div className="mx-auto max-w-2xl rounded-xl bg-muted/50 p-8 text-center">
 								<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-background">
 									<Search className="h-8 w-8 text-primary" />
 								</div>

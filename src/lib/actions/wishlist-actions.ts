@@ -22,8 +22,7 @@ export async function fetchWishlistProducts(handles: string[]): Promise<ShopifyP
 	try {
 		const products = await getProductsByHandles(validHandles);
 		return products;
-	} catch (error) {
-		console.error("Error fetching wishlist products:", error);
+	} catch (_error) {
 		return [];
 	}
 }

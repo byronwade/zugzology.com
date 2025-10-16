@@ -8,7 +8,7 @@ export const BreadcrumbConfigs = {
 	 * Collection page breadcrumb
 	 */
 	collection: (title: string, handle: string): BreadcrumbConfig[] => [
-		{ name: "Collections", url: "/collections" },
+		{ name: "Products", url: "/products" },
 		{ name: title, url: `/collections/${handle}` },
 	],
 
@@ -69,7 +69,7 @@ export const BreadcrumbConfigs = {
 
 		if (collectionTitle && collectionHandle) {
 			breadcrumbs.push(
-				{ name: "Collections", url: "/collections" },
+				{ name: "Products", url: "/products" },
 				{ name: collectionTitle, url: `/collections/${collectionHandle}` }
 			);
 		} else {

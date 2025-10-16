@@ -1,11 +1,8 @@
 "use client";
 
-import { Heart } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useWishlist } from "@/components/providers";
-import { Button } from "@/components/ui/button";
-import { Link } from "@/components/ui/link";
 import { fetchWishlistProducts } from "@/lib/actions/wishlist-actions";
 import type { ShopifyProduct } from "@/lib/types";
 import WishlistWithFilters from "./wishlist-with-filters";
@@ -33,7 +30,6 @@ export default function WishlistContent() {
 		loadWishlistProducts();
 	}, [wishlist]);
 
-
 	// Track wishlist analytics
 	useEffect(() => {
 		if (typeof window !== "undefined" && window.gtag) {
@@ -52,29 +48,32 @@ export default function WishlistContent() {
 
 	if (isLoading) {
 		return (
-			<main className="container mx-auto px-4 py-12">
-				<div className="mb-8 space-y-4">
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-3">
-							<div className="h-12 w-12 animate-pulse rounded-lg bg-muted" />
+			<main className="container mx-auto px-3 py-8 sm:px-4 sm:py-12">
+				<div className="mb-6 space-y-4 sm:mb-8">
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex items-center gap-2 sm:gap-3">
+							<div className="h-10 w-10 animate-pulse rounded-lg bg-muted sm:h-12 sm:w-12" />
 							<div>
-								<div className="mb-2 h-7 w-40 animate-pulse rounded bg-muted" />
-								<div className="h-4 w-24 animate-pulse rounded bg-muted/60" />
+								<div className="mb-2 h-6 w-32 animate-pulse rounded bg-muted sm:h-7 sm:w-40" />
+								<div className="h-3 w-20 animate-pulse rounded bg-muted/60 sm:h-4 sm:w-24" />
 							</div>
 						</div>
 						<div className="flex gap-2">
-							<div className="h-9 w-24 animate-pulse rounded-lg bg-muted" />
-							<div className="h-9 w-32 animate-pulse rounded-lg bg-muted" />
-							<div className="h-9 w-28 animate-pulse rounded-lg bg-primary/10" />
+							<div className="h-9 w-9 animate-pulse rounded-lg bg-muted sm:hidden" />
+							<div className="h-9 w-9 animate-pulse rounded-lg bg-muted sm:hidden" />
+							<div className="h-9 flex-1 animate-pulse rounded-lg bg-primary/10 sm:hidden sm:w-28 sm:flex-none" />
+							<div className="hidden h-9 w-24 animate-pulse rounded-lg bg-muted sm:block" />
+							<div className="hidden h-9 w-32 animate-pulse rounded-lg bg-muted sm:block" />
+							<div className="hidden h-9 w-28 animate-pulse rounded-lg bg-primary/10 sm:block" />
 						</div>
 					</div>
 				</div>
-				<div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+				<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
 					{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
-						<div className="space-y-3" key={i}>
-							<div className="aspect-square animate-pulse rounded-xl bg-muted" />
-							<div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
-							<div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
+						<div className="space-y-2 sm:space-y-3" key={i}>
+							<div className="aspect-square animate-pulse rounded-lg bg-muted sm:rounded-xl" />
+							<div className="h-3 w-3/4 animate-pulse rounded bg-muted sm:h-4" />
+							<div className="h-3 w-1/2 animate-pulse rounded bg-muted sm:h-4" />
 						</div>
 					))}
 				</div>
@@ -85,9 +84,9 @@ export default function WishlistContent() {
 	return (
 		<Suspense fallback={<div className="container py-10">Loading wishlist...</div>}>
 			<WishlistWithFilters
-				wishlistProducts={wishlistProducts}
-				wishlist={wishlist}
 				removeFromWishlist={removeFromWishlist}
+				wishlist={wishlist}
+				wishlistProducts={wishlistProducts}
 			/>
 		</Suspense>
 	);

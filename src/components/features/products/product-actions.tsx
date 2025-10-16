@@ -1,7 +1,6 @@
 "use client";
 
 import { BookmarkIcon, Heart, Link2, Mail, MessageCircle, Share2 } from "lucide-react";
-import { Link } from "@/components/ui/link";
 import { memo, useCallback } from "react";
 import { toast } from "sonner";
 import { useWishlist } from "@/components/providers";
@@ -12,6 +11,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Link } from "@/components/ui/link";
 import type { ShopifyProduct, ShopifyProductVariant } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

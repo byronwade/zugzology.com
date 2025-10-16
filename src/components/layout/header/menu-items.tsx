@@ -65,8 +65,7 @@ async function buildDynamicFallbackMenu(): Promise<MenuItem[]> {
 			{ id: "shop-all", title: "Shop All", url: "/collections/all" },
 			{ id: "blogs", title: "Blog", url: "/blogs" },
 		];
-	} catch (error) {
-		console.error("Error building dynamic fallback menu:", error);
+	} catch (_error) {
 		return BASIC_FALLBACK_MENU;
 	}
 }
@@ -78,25 +77,16 @@ export const getMenuItems = cache(async (): Promise<MenuItem[]> => {
 		const config = getStoreConfigSafe();
 		const mainMenuHandle = config.navigation?.mainMenu || "main-menu";
 
-		console.log(`[Menu Items] Starting menu fetch for handle: ${mainMenuHandle}`);
-
 		const menuItems = await getMenuRobust(mainMenuHandle);
 
 		// If we have menu items from Shopify, use them
 		if (menuItems && menuItems.length > 0) {
 			const mapped = mapMenuItems(menuItems);
-			console.log(`[Menu Items] ✅ Using ${mapped.length} Shopify menu items`);
 			return mapped;
 		}
-
-		// Otherwise, build a dynamic fallback menu from collections
-		console.log("[Menu Items] ⚠️ No Shopify menu items, building dynamic fallback");
 		const fallbackMenu = await buildDynamicFallbackMenu();
-		console.log(`[Menu Items] 🔄 Built fallback menu with ${fallbackMenu.length} items`);
 		return fallbackMenu;
-	} catch (error) {
-		console.error("[Menu Items] 🔥 Critical error in getMenuItems:", error);
-		console.log("[Menu Items] 🆘 Returning basic fallback menu");
+	} catch (_error) {
 		return BASIC_FALLBACK_MENU;
 	}
 });

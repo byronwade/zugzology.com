@@ -22,7 +22,7 @@ function FeatureCard({ icon: Icon, title, description }: { icon: any; title: str
 		<TooltipProvider>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<div className="group relative flex cursor-help items-start gap-3 rounded-lg border bg-card p-3 transition-colors duration-200 hover:bg-accent">
+					<div className="group relative flex cursor-help items-start gap-3 rounded-lg border bg-card p-3 transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm">
 						<div className="rounded-full bg-primary/10 p-2 text-primary">
 							<Icon className="h-4 w-4" />
 						</div>
@@ -108,10 +108,10 @@ export function ProductInfo({
 								option && (
 									<div className="space-y-2" key={option.id}>
 										<label className="block font-medium text-foreground text-sm">{option.name}</label>
-										<div className="flex flex-wrap gap-1.5">
+										<div className="flex flex-wrap gap-2">
 											{(option.values || []).map((value) => (
 												<button
-													className={`rounded-md border px-2.5 py-1.5 text-sm transition-colors ${selectedOptions[option.name] === value ? "border-primary bg-primary/10 font-medium text-primary dark:bg-primary/20 dark:border-primary/70" : "border-border bg-background hover:border-primary/50 hover:bg-accent dark:hover:border-primary/40"}`}
+													className={`min-h-[44px] rounded-md border px-4 py-2.5 text-sm transition-all duration-200 ${selectedOptions[option.name] === value ? "border-primary bg-primary/10 font-medium text-primary dark:border-primary/70 dark:bg-primary/20" : "border-border bg-background hover:border-primary/50 hover:bg-primary/5 dark:hover:border-primary/40"}`}
 													key={value}
 													onClick={() => onOptionChange(option.name, value)}
 												>

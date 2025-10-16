@@ -63,8 +63,12 @@ export function extractFilterOptions(products: ShopifyProduct[]): FilterOptions 
 
 		// Calculate price range
 		const price = Number.parseFloat(product.priceRange.minVariantPrice.amount);
-		if (price < minPrice) minPrice = price;
-		if (price > maxPrice) maxPrice = price;
+		if (price < minPrice) {
+			minPrice = price;
+		}
+		if (price > maxPrice) {
+			maxPrice = price;
+		}
 	});
 
 	return {
@@ -200,7 +204,10 @@ export function countActiveFilters(filters: FilterState, defaultFilters: FilterS
 	let count = 0;
 
 	// Check price range
-	if (filters.priceRange.min !== defaultFilters.priceRange.min || filters.priceRange.max !== defaultFilters.priceRange.max) {
+	if (
+		filters.priceRange.min !== defaultFilters.priceRange.min ||
+		filters.priceRange.max !== defaultFilters.priceRange.max
+	) {
 		count++;
 	}
 

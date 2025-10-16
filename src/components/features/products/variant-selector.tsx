@@ -49,7 +49,7 @@ export function VariantSelector({ product, selectedVariant, onVariantChange }: V
 
 	return (
 		<div className="space-y-4">
-			<div className="font-semibold text-neutral-900 text-lg dark:text-neutral-100">Variants</div>
+			<div className="font-semibold text-lg text-neutral-900 dark:text-neutral-100">Variants</div>
 
 			{product.options.map((option) => (
 				<div className="space-y-3" key={option.id}>
@@ -76,21 +76,21 @@ export function VariantSelector({ product, selectedVariant, onVariantChange }: V
 									key={variant.id}
 								>
 									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-2 flex-1 min-w-0">
+										<div className="flex min-w-0 flex-1 items-center gap-2">
 											<input
 												checked={isSelected}
-												className="text-primary flex-shrink-0"
+												className="flex-shrink-0 text-primary"
 												name={option.name}
 												onChange={() => handleOptionChange(option.name, variantOption.value)}
 												type="radio"
 												value={variantOption.value}
 											/>
-											<div className="flex-1 min-w-0">
-												<div className="font-medium text-sm truncate">{variantOption.value}</div>
-												<div className="text-neutral-500 text-xs truncate">{variant.title}</div>
+											<div className="min-w-0 flex-1">
+												<div className="truncate font-medium text-sm">{variantOption.value}</div>
+												<div className="truncate text-neutral-500 text-xs">{variant.title}</div>
 											</div>
 										</div>
-										<div className="text-right flex-shrink-0 ml-3">
+										<div className="ml-3 flex-shrink-0 text-right">
 											<div className="text-neutral-600 text-xs">Price</div>
 											<div className="font-medium text-sm">{formatPrice(Number.parseFloat(variant.price.amount))}</div>
 										</div>
@@ -114,9 +114,7 @@ export function VariantSelector({ product, selectedVariant, onVariantChange }: V
 				</div>
 			))}
 
-			<div className="mt-3 text-neutral-500 text-xs">
-				Total inventory: {totalInventory} available
-			</div>
+			<div className="mt-3 text-neutral-500 text-xs">Total inventory: {totalInventory} available</div>
 		</div>
 	);
 }

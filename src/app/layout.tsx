@@ -1,7 +1,7 @@
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Analytics } from "@vercel/analytics/react";
 import { Footer, Header } from "@/components/layout";
 import { AuditProvider } from "@/components/utilities/seo/audit-provider";
 import { generateHomeMetadata, generateStoreStructuredData, generateViewport } from "@/lib/config/dynamic-metadata";
@@ -81,16 +81,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 				<script dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} type="application/ld+json" />
 
 				{/* Critical Resource Hints - DNS prefetch for third-party domains */}
-				<link rel="dns-prefetch" href="https://cdn.shopify.com" />
-				<link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-				<link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-				<link rel="dns-prefetch" href="https://bevgyjm5apuichhj.public.blob.vercel-storage.com" />
+				<link href="https://cdn.shopify.com" rel="dns-prefetch" />
+				<link href="https://fonts.googleapis.com" rel="dns-prefetch" />
+				<link href="https://fonts.gstatic.com" rel="dns-prefetch" />
+				<link href="https://bevgyjm5apuichhj.public.blob.vercel-storage.com" rel="dns-prefetch" />
 
 				{/* Preconnect to critical origins (DNS + TCP + TLS) */}
-				<link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
-				<link rel="preconnect" href="https://fonts.googleapis.com" />
-				<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-				<link rel="preconnect" href="https://bevgyjm5apuichhj.public.blob.vercel-storage.com" crossOrigin="anonymous" />
+				<link crossOrigin="anonymous" href="https://cdn.shopify.com" rel="preconnect" />
+				<link href="https://fonts.googleapis.com" rel="preconnect" />
+				<link crossOrigin="anonymous" href="https://fonts.gstatic.com" rel="preconnect" />
+				<link crossOrigin="anonymous" href="https://bevgyjm5apuichhj.public.blob.vercel-storage.com" rel="preconnect" />
 			</head>
 			<body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
 				<Providers>

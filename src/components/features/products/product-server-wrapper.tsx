@@ -77,9 +77,7 @@ export async function ProductServerWrapper({ product, relatedProducts }: Product
 			</Suspense>
 
 			{/* Render dynamic product sections - guaranteed 6 sections */}
-			<div className="container mx-auto px-4 py-16">
-				<ProgressiveSectionsManager product={product} relatedProducts={relatedProducts} />
-			</div>
+			<ProgressiveSectionsManager product={product} relatedProducts={relatedProducts} />
 		</>
 	);
 }

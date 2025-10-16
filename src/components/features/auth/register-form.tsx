@@ -1,7 +1,6 @@
 "use client";
 
 import { Loader2, UserPlus } from "lucide-react";
-import { Link } from "@/components/ui/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuthContext } from "@/components/providers/auth-provider";
@@ -9,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Link } from "@/components/ui/link";
 
 export type RegisterFormProps = {
 	storeName: string;
@@ -48,26 +48,99 @@ export function RegisterForm({ storeName }: RegisterFormProps) {
 	}
 
 	return (
-		<div className="container relative flex-col items-center justify-center md:grid lg:min-h-[calc(100vh-var(--header-height))] lg:max-w-none lg:grid-cols-2 lg:px-0">
-			<div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
-				<div className="absolute inset-0 bg-zinc-900" />
-				<div className="relative z-20 flex items-center font-medium text-lg">
-					<Link href="/">{storeName}</Link>
-				</div>
-				<div className="relative z-20 mt-auto">
-					<blockquote className="space-y-2">
-						<p className="text-lg">
-							Join our community of mushroom enthusiasts and discover the best products for your growing needs at{" "}
-							{storeName}.
+		<div className="flex min-h-screen flex-col pt-[var(--header-height)] lg:flex-row">
+			{/* Left Side - Branding & Info */}
+			<div className="relative flex flex-1 flex-col justify-between bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 lg:p-16">
+				<div>
+					{/* Breadcrumb */}
+					<nav aria-label="Breadcrumb" className="mb-12">
+						<ol className="flex items-center space-x-2 text-sm">
+							<li>
+								<Link className="text-muted-foreground hover:text-foreground" href="/">
+									Home
+								</Link>
+							</li>
+							<li className="text-muted-foreground/50">/</li>
+							<li className="font-medium text-foreground">Create Account</li>
+						</ol>
+					</nav>
+
+					<div className="space-y-6">
+						<h1 className="font-bold text-4xl tracking-tight md:text-5xl lg:text-6xl">
+							Join the
+							<br />
+							<span className="text-primary">{storeName}</span>
+							<br />
+							Community
+						</h1>
+						<p className="max-w-md text-lg text-muted-foreground">
+							Create your account to unlock exclusive deals, track orders, and connect with fellow mycology enthusiasts.
 						</p>
-					</blockquote>
+					</div>
+				</div>
+
+				{/* Benefits List */}
+				<div className="mt-12 space-y-4">
+					<div className="flex items-start space-x-3">
+						<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+							<svg
+								className="h-4 w-4 text-primary"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								viewBox="0 0 24 24"
+							>
+								<path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+							</svg>
+						</div>
+						<div>
+							<h3 className="font-medium text-foreground">Exclusive Member Discounts</h3>
+							<p className="text-muted-foreground text-sm">Access special pricing and early product launches</p>
+						</div>
+					</div>
+					<div className="flex items-start space-x-3">
+						<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+							<svg
+								className="h-4 w-4 text-primary"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								viewBox="0 0 24 24"
+							>
+								<path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+							</svg>
+						</div>
+						<div>
+							<h3 className="font-medium text-foreground">Order Tracking & History</h3>
+							<p className="text-muted-foreground text-sm">Manage your purchases and track shipments in real-time</p>
+						</div>
+					</div>
+					<div className="flex items-start space-x-3">
+						<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+							<svg
+								className="h-4 w-4 text-primary"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								viewBox="0 0 24 24"
+							>
+								<path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+							</svg>
+						</div>
+						<div>
+							<h3 className="font-medium text-foreground">Expert Support</h3>
+							<p className="text-muted-foreground text-sm">Priority access to our cultivation specialists</p>
+						</div>
+					</div>
 				</div>
 			</div>
-			<div className="p-4 lg:p-8">
-				<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-					<div className="flex flex-col space-y-2 text-center">
-						<h1 className="font-semibold text-2xl tracking-tight">Create an account</h1>
-						<p className="text-muted-foreground text-sm">Enter your information below to create your account</p>
+
+			{/* Right Side - Registration Form */}
+			<div className="flex flex-1 items-center justify-center bg-background p-8 lg:p-16">
+				<div className="w-full max-w-md space-y-6">
+					<div className="space-y-2">
+						<h2 className="font-semibold text-2xl tracking-tight">Create your account</h2>
+						<p className="text-muted-foreground text-sm">Get started with {storeName} today</p>
 					</div>
 
 					{error && (
@@ -77,13 +150,15 @@ export function RegisterForm({ storeName }: RegisterFormProps) {
 					)}
 
 					<form className="space-y-4" onSubmit={onSubmit}>
-						<div className="space-y-2">
-							<Label htmlFor="firstName">First Name</Label>
-							<Input disabled={loading} id="firstName" name="firstName" placeholder="John" required />
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="lastName">Last Name</Label>
-							<Input disabled={loading} id="lastName" name="lastName" placeholder="Doe" required />
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor="firstName">First Name</Label>
+								<Input disabled={loading} id="firstName" name="firstName" placeholder="John" required />
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="lastName">Last Name</Label>
+								<Input disabled={loading} id="lastName" name="lastName" placeholder="Doe" required />
+							</div>
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="email">Email</Label>
@@ -102,8 +177,7 @@ export function RegisterForm({ storeName }: RegisterFormProps) {
 								type="password"
 							/>
 							<p className="text-muted-foreground text-xs">
-								Password must be at least 5 characters and include at least one uppercase letter, one lowercase letter,
-								and one number
+								Must include uppercase, lowercase, and number (minimum 5 characters)
 							</p>
 						</div>
 						<Button className="w-full" disabled={loading} type="submit">
@@ -112,10 +186,32 @@ export function RegisterForm({ storeName }: RegisterFormProps) {
 						</Button>
 					</form>
 
-					<p className="px-8 text-center text-muted-foreground text-sm">
-						Already have an account?{" "}
-						<Link className="underline underline-offset-4 hover:text-primary" href="/login">
-							Sign in
+					<div className="space-y-4">
+						<div className="relative">
+							<div className="absolute inset-0 flex items-center">
+								<span className="w-full border-t" />
+							</div>
+							<div className="relative flex justify-center text-xs uppercase">
+								<span className="bg-background px-2 text-muted-foreground">Already have an account?</span>
+							</div>
+						</div>
+
+						<Link
+							className="flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 font-medium text-sm hover:bg-accent hover:text-accent-foreground"
+							href="/login"
+						>
+							Sign in instead
+						</Link>
+					</div>
+
+					<p className="text-center text-muted-foreground text-xs">
+						By continuing, you agree to our{" "}
+						<Link className="underline underline-offset-4 hover:text-primary" href="/terms">
+							Terms of Service
+						</Link>{" "}
+						and{" "}
+						<Link className="underline underline-offset-4 hover:text-primary" href="/privacy">
+							Privacy Policy
 						</Link>
 					</p>
 				</div>

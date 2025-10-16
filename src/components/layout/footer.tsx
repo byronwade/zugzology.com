@@ -1,23 +1,7 @@
-import {
-	Award,
-	Box,
-	Clock,
-	Facebook,
-	HeartHandshake,
-	Instagram,
-	Leaf,
-	Linkedin,
-	Mail,
-	MapPin,
-	Phone,
-	ShieldCheck,
-	Truck,
-	Twitter,
-	Users,
-	Youtube,
-} from "lucide-react";
+import { Facebook, Instagram, Linkedin, Mail, MapPin, Phone, Twitter, Youtube } from "lucide-react";
 import Image from "next/image";
 import { connection } from "next/server";
+import { WhyChooseBentoV2 } from "@/components/sections/why-choose-bento-v2";
 import { Link } from "@/components/ui/link";
 import { transformShopifyUrl } from "@/components/utils/transform-shopify-url";
 import { getAllCollections, getMenu, getPages } from "@/lib/api/shopify/actions";
@@ -38,7 +22,7 @@ const mapMenuLinks = (items: ShopifyMenuItem[] = [], limit = 6): FooterLink[] =>
 
 const buildPageLinks = (pages: ShopifyPage[] = [], limit = 6): FooterLink[] =>
 	pages.slice(0, limit).map((page) => ({
-		href: transformShopifyUrl(page.onlineStoreUrl || `/pages/${page.handle}`),
+		href: `/pages/${page.handle}`, // Direct link to dynamic pages route (don't transform)
 		title: page.title,
 	}));
 
@@ -85,88 +69,15 @@ export async function Footer() {
 		...(SOCIAL.facebook ? [{ href: SOCIAL.facebook, title: "Facebook" }] : []),
 	];
 
-	const features = [
-		{
-			icon: Award,
-			title: "Quality Guaranteed",
-			description: "Lab-tested supplies for optimal growth success.",
-		},
-		{
-			icon: Leaf,
-			title: "Expert Support",
-			description: "Access our knowledge base for cultivation success.",
-		},
-		{
-			icon: Box,
-			title: "Discreet Shipping",
-			description: "Plain, unmarked packaging for all orders.",
-		},
-		{
-			icon: Truck,
-			title: "Fast & Free Shipping",
-			description: "Free shipping on orders over $50.",
-		},
-		{
-			icon: ShieldCheck,
-			title: "Premium Products",
-			description: "Carefully selected for best results.",
-		},
-		{
-			icon: Clock,
-			title: "24/7 Support",
-			description: "Help available through our knowledge base.",
-		},
-		{
-			icon: Users,
-			title: "Growing Community",
-			description: "Share experiences and tips with growers.",
-		},
-		{
-			icon: HeartHandshake,
-			title: "30-Day Guarantee",
-			description: "Money-back guarantee on all purchases.",
-		},
-	];
-
 	return (
 		<footer className="w-full border-border border-t bg-background">
-			{/* Why Choose Section */}
-			<section className="border-border/70 border-b bg-card/50">
-				<div className="container mx-auto px-4 py-12">
-					{/* Section Header */}
-					<div className="mb-10 text-center">
-						<h2 className="mb-3 font-semibold text-2xl text-foreground tracking-tight sm:text-3xl">
-							Why Choose {BRAND.name}?
-						</h2>
-						<p className="mx-auto max-w-2xl text-muted-foreground text-sm">
-							{BRAND.tagline || "Premium mushroom cultivation supplies with the support and quality you need to succeed."}
-						</p>
-					</div>
-
-					{/* Features Grid */}
-					<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-						{features.map((feature, index) => {
-							const Icon = feature.icon;
-							return (
-								<div
-									className="group relative flex min-h-full flex-col rounded-lg border border-border bg-background p-5 transition-all duration-200 hover:border-primary/40 hover:shadow-sm"
-									key={index}
-									style={{ minHeight: '100%' }}
-								>
-									{/* Icon */}
-									<div className="mb-3 inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-all duration-200 group-hover:bg-primary/15 group-hover:scale-105">
-										<Icon className="h-5 w-5" strokeWidth={2} />
-									</div>
-
-									{/* Content */}
-									<h3 className="mb-1.5 font-semibold text-base text-foreground">{feature.title}</h3>
-									<p className="flex-grow text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
-								</div>
-							);
-						})}
-					</div>
-				</div>
-			</section>
+			{/* Animated Bento Grid Why Choose Section - V2 with Rich Visuals */}
+			<WhyChooseBentoV2
+				brandName={BRAND.name}
+				tagline={
+					BRAND.tagline || "Premium mushroom cultivation supplies with the support and quality you need to succeed."
+				}
+			/>
 
 			<section className="border-border/70 border-y bg-gradient-to-br from-primary/5 via-transparent to-secondary/10">
 				<div className="container mx-auto flex flex-col gap-6 px-4 py-12 sm:items-center sm:text-center lg:flex-row lg:items-center lg:justify-between lg:text-left">
@@ -192,7 +103,7 @@ export async function Footer() {
 						</label>
 						<input
 							autoComplete="email"
-							className="h-11 w-full flex-1 rounded-md border border-border/70 bg-background px-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+							className="h-12 w-full flex-1 rounded-md border border-border/70 bg-background px-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 sm:h-11"
 							id="footer-email"
 							name="email"
 							placeholder="you@example.com"
@@ -200,7 +111,7 @@ export async function Footer() {
 							type="email"
 						/>
 						<button
-							className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-5 font-medium text-primary-foreground text-sm transition hover:bg-primary/90"
+							className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-5 font-medium text-primary-foreground text-sm transition hover:bg-primary/90 sm:h-11"
 							type="submit"
 						>
 							Subscribe
@@ -348,7 +259,7 @@ export async function Footer() {
 							return (
 								<li key={`social-${social.href}`}>
 									<a
-										className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition hover:border-primary hover:text-primary"
+										className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
 										href={social.href}
 										rel="noopener noreferrer"
 										target="_blank"

@@ -8,10 +8,9 @@ import {
 	countActiveFilters,
 	deserializeFilters,
 	extractFilterOptions,
+	type FilterState,
 	getDefaultFilterState,
 	serializeFilters,
-	type FilterOptions,
-	type FilterState,
 } from "@/lib/utils/filter-utils";
 
 export function useProductFiltering(products: ShopifyProduct[]) {
@@ -35,14 +34,18 @@ export function useProductFiltering(products: ShopifyProduct[]) {
 	// Update URL with new filters (without page navigation)
 	const updateUrl = useCallback(
 		(newFilters: FilterState) => {
-			if (typeof window === "undefined") return;
+			if (typeof window === "undefined") {
+				return;
+			}
 
 			const params = serializeFilters(newFilters, defaultFilters);
 			const currentParams = new URLSearchParams(searchParams.toString());
 
 			// Preserve existing params like sort
 			const sort = currentParams.get("sort");
-			if (sort) params.set("sort", sort);
+			if (sort) {
+				params.set("sort", sort);
+			}
 
 			// Reset to page 1 when filters change
 			params.delete("page");

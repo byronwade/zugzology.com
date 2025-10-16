@@ -313,6 +313,190 @@ export type ShopifyPage = {
 	onlineStoreUrl?: string | null;
 };
 
+// Enhanced Page types for dynamic page builder
+export type MetaobjectField = {
+	key: string;
+	value: string;
+	type: string;
+	reference?: MetaobjectReference;
+	references?: {
+		nodes: MetaobjectReference[];
+	};
+};
+
+export type MetaobjectReference =
+	| {
+			__typename: "MediaImage";
+			id: string;
+			image: ShopifyImage;
+	  }
+	| {
+			__typename: "Product";
+			id: string;
+			handle: string;
+			title: string;
+			images: {
+				nodes: ShopifyImage[];
+			};
+			priceRange: {
+				minVariantPrice: ShopifyMoney;
+			};
+	  }
+	| {
+			__typename: "Collection";
+			id: string;
+			handle: string;
+			title: string;
+			description?: string;
+			image?: ShopifyImage;
+	  };
+
+export type PageMetaobject = {
+	id: string;
+	type: string;
+	handle: string;
+	fields: MetaobjectField[];
+};
+
+export type PageMetafield = {
+	id: string;
+	namespace: string;
+	key: string;
+	value: string;
+	type: string;
+	reference?: PageMetaobject;
+	references?: {
+		nodes: PageMetaobject[];
+	};
+};
+
+export type PageWithSections = {
+	id: string;
+	title: string;
+	handle: string;
+	body: string;
+	bodySummary?: string;
+	seo?: {
+		title?: string;
+		description?: string;
+	};
+	createdAt: string;
+	updatedAt: string;
+	metafields?: PageMetafield[];
+};
+
+// Section types for rendering
+export type SectionType =
+	| "hero"
+	| "features"
+	| "products"
+	| "content"
+	| "testimonials"
+	| "cta"
+	| "gallery"
+	| "video"
+	| "custom";
+
+export type HeroSectionSettings = {
+	heading: string;
+	subheading?: string;
+	ctaText?: string;
+	ctaLink?: string;
+	backgroundImage?: ShopifyImage;
+	layout?: "full-width" | "split" | "minimal";
+	theme?: "light" | "dark";
+};
+
+export type FeatureGridSettings = {
+	heading: string;
+	subheading?: string;
+	features: Array<{
+		icon?: string;
+		title: string;
+		description: string;
+		image?: ShopifyImage;
+	}>;
+	columns?: 2 | 3 | 4;
+};
+
+export type ProductCarouselSettings = {
+	heading: string;
+	subheading?: string;
+	productHandles?: string[];
+	collectionHandle?: string;
+	limit?: number;
+	showPrices?: boolean;
+	ctaText?: string;
+	ctaLink?: string;
+};
+
+export type ContentBlockSettings = {
+	heading?: string;
+	content: string;
+	image?: ShopifyImage;
+	imagePosition?: "left" | "right" | "top" | "bottom";
+	backgroundColor?: string;
+	textAlign?: "left" | "center" | "right";
+};
+
+export type CTABannerSettings = {
+	heading: string;
+	description?: string;
+	ctaText: string;
+	ctaLink: string;
+	backgroundImage?: ShopifyImage;
+	theme?: "primary" | "secondary" | "accent";
+	size?: "small" | "medium" | "large";
+};
+
+export type TestimonialSectionSettings = {
+	heading?: string;
+	testimonials: Array<{
+		content: string;
+		author: string;
+		role?: string;
+		image?: ShopifyImage;
+		rating?: number;
+	}>;
+	layout?: "grid" | "carousel";
+};
+
+export type ImageGallerySettings = {
+	heading?: string;
+	images: ShopifyImage[];
+	columns?: 2 | 3 | 4;
+	spacing?: "tight" | "normal" | "loose";
+	aspectRatio?: "square" | "landscape" | "portrait";
+};
+
+export type VideoEmbedSettings = {
+	heading?: string;
+	videoUrl: string;
+	provider?: "youtube" | "vimeo" | "custom";
+	thumbnail?: ShopifyImage;
+	autoplay?: boolean;
+	controls?: boolean;
+};
+
+export type PageSection = {
+	id: string;
+	type: SectionType;
+	priority: number;
+	settings:
+		| HeroSectionSettings
+		| FeatureGridSettings
+		| ProductCarouselSettings
+		| ContentBlockSettings
+		| CTABannerSettings
+		| TestimonialSectionSettings
+		| ImageGallerySettings
+		| VideoEmbedSettings
+		| Record<string, unknown>; // For custom sections
+};
+
+export type PageLayout = "full-width" | "contained" | "split";
+export type PageTheme = "default" | "dark" | "accent";
+
 export type ProductsQueryOptions = {
 	first?: number;
 	sortKey?: "TITLE" | "PRICE" | "BEST_SELLING" | "CREATED" | "ID" | "MANUAL" | "COLLECTION_DEFAULT" | "RELEVANCE";

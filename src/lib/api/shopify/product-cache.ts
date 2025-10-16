@@ -57,7 +57,7 @@ class ProductCacheManager {
  * Products with high availability as proxy for sales
  */
 export const getCachedBestSellers = unstable_cache(
-	async (limit: number = 8): Promise<ShopifyProduct[]> => {
+	async (limit = 8): Promise<ShopifyProduct[]> => {
 		const products = await ProductCacheManager.getInstance().getAllProducts();
 		return products
 			.filter((p) => p.availableForSale && (p.variants?.nodes?.[0]?.quantityAvailable ?? 0) > 0)
@@ -75,14 +75,14 @@ export const getCachedBestSellers = unstable_cache(
  * Products with compareAtPrice higher than current price
  */
 export const getCachedSaleProducts = unstable_cache(
-	async (limit: number = 8): Promise<ShopifyProduct[]> => {
+	async (limit = 8): Promise<ShopifyProduct[]> => {
 		const products = await ProductCacheManager.getInstance().getAllProducts();
 		return products
 			.filter((p) => {
 				const variant = p.variants?.nodes?.[0];
 				return (
 					variant?.compareAtPrice?.amount &&
-					parseFloat(variant.compareAtPrice.amount) > parseFloat(variant.price.amount)
+					Number.parseFloat(variant.compareAtPrice.amount) > Number.parseFloat(variant.price.amount)
 				);
 			})
 			.slice(0, limit);
@@ -99,7 +99,7 @@ export const getCachedSaleProducts = unstable_cache(
  * Sorted by publish date
  */
 export const getCachedLatestProducts = unstable_cache(
-	async (limit: number = 8): Promise<ShopifyProduct[]> => {
+	async (limit = 8): Promise<ShopifyProduct[]> => {
 		const products = await ProductCacheManager.getInstance().getAllProducts();
 		return products
 			.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
@@ -119,18 +119,18 @@ export const getCachedLatestProducts = unstable_cache(
 export const getCachedSameCategoryProducts = async (
 	productType: string,
 	currentProductId: string,
-	limit: number = 8
+	limit = 8
 ): Promise<ShopifyProduct[]> => {
-	if (!productType) return [];
+	if (!productType) {
+		return [];
+	}
 
 	const cacheKey = `category-${productType}-${currentProductId}`;
 
 	return unstable_cache(
 		async () => {
 			const products = await ProductCacheManager.getInstance().getAllProducts();
-			return products
-				.filter((p) => p.productType === productType && p.id !== currentProductId)
-				.slice(0, limit);
+			return products.filter((p) => p.productType === productType && p.id !== currentProductId).slice(0, limit);
 		},
 		[cacheKey],
 		{
@@ -147,9 +147,11 @@ export const getCachedSameCategoryProducts = async (
 export const getCachedSimilarTagProducts = async (
 	tags: string[],
 	currentProductId: string,
-	limit: number = 8
+	limit = 8
 ): Promise<ShopifyProduct[]> => {
-	if (!tags?.length) return [];
+	if (!tags?.length) {
+		return [];
+	}
 
 	// Create a stable cache key from sorted tags
 	const tagsKey = tags.slice().sort().join("-");
@@ -160,7 +162,9 @@ export const getCachedSimilarTagProducts = async (
 			const products = await ProductCacheManager.getInstance().getAllProducts();
 			return products
 				.filter((p) => {
-					if (p.id === currentProductId) return false;
+					if (p.id === currentProductId) {
+						return false;
+					}
 					return p.tags?.some((tag) => tags.includes(tag));
 				})
 				.slice(0, limit);
@@ -177,10 +181,7 @@ export const getCachedSimilarTagProducts = async (
  * Get random products (deterministic for caching)
  * Uses alternating positions instead of true random
  */
-export const getCachedRandomProducts = async (
-	currentProductId: string,
-	limit: number = 8
-): Promise<ShopifyProduct[]> => {
+export const getCachedRandomProducts = async (currentProductId: string, limit = 8): Promise<ShopifyProduct[]> => {
 	return unstable_cache(
 		async () => {
 			const products = await ProductCacheManager.getInstance().getAllProducts();
@@ -218,7 +219,9 @@ export const getCachedRandomProducts = async (
  * Optimized for wishlist page
  */
 export const getCachedProductsByHandles = async (handles: string[]): Promise<ShopifyProduct[]> => {
-	if (!handles?.length) return [];
+	if (!handles?.length) {
+		return [];
+	}
 
 	const products = await ProductCacheManager.getInstance().getAllProducts();
 	return products.filter((p) => handles.includes(p.handle));

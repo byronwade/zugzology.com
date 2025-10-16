@@ -21,7 +21,7 @@ export function UniversalBreadcrumb({ items }: UniversalBreadcrumbProps) {
 	}
 
 	return (
-		<div className="hidden w-full border-b border-border bg-muted/30 md:block">
+		<div className="hidden w-full border-border border-b bg-muted/30 md:block">
 			<div className="container mx-auto px-4 py-2">
 				<nav aria-label="Breadcrumb" className="flex items-center text-sm">
 					{items.map((item, index) => {
@@ -30,9 +30,7 @@ export function UniversalBreadcrumb({ items }: UniversalBreadcrumbProps) {
 
 						return (
 							<React.Fragment key={baseKey}>
-								{index > 0 && (
-									<ChevronRight className="mx-2 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50" />
-								)}
+								{index > 0 && <ChevronRight className="mx-2 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50" />}
 								{isLast ? (
 									<span className="font-medium text-foreground">{item.name}</span>
 								) : (

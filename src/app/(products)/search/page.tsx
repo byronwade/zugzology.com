@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
-import { UniversalBreadcrumb } from "@/components/layout/universal-breadcrumb";
 import { RealtimeProductsContent } from "@/components/features/products/realtime-products-content";
 import { InitializeSearch } from "@/components/features/search/initialize-search";
+import { UniversalBreadcrumb } from "@/components/layout/universal-breadcrumb";
 import { HomeLoading } from "@/components/loading";
 import { getSearchData } from "@/lib/actions/search";
 import { getAllBlogPosts } from "@/lib/actions/shopify";

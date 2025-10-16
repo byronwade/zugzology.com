@@ -15,7 +15,9 @@ export function useViewMode() {
 
 	// Load saved preference or set default based on screen width
 	useEffect(() => {
-		if (typeof window === 'undefined') return;
+		if (typeof window === "undefined") {
+			return;
+		}
 
 		const savedView = localStorage.getItem("viewMode") as ViewMode;
 		if (savedView) {
@@ -41,7 +43,7 @@ export function useViewMode() {
 	// Save preference
 	const updateView = (newView: ViewMode) => {
 		setView(newView);
-		if (typeof window !== 'undefined') {
+		if (typeof window !== "undefined") {
 			localStorage.setItem("viewMode", newView);
 		}
 	};

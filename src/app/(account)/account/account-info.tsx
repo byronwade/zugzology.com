@@ -2,7 +2,6 @@
 
 import Cookies from "js-cookie";
 import { Loader2, Mail, MapPin, Plus, User } from "lucide-react";
-import { Link } from "@/components/ui/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Link } from "@/components/ui/link";
 import { Separator } from "@/components/ui/separator";
 import { createCustomerAddress, updateCustomer, updateCustomerAddress } from "@/lib/services/shopify-customer";
 import type { ShopifyCustomer } from "@/lib/types";

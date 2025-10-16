@@ -310,14 +310,7 @@ export const ProductCard = memo(function ProductCard({
 				setIsAddingToCartLocal(false);
 			}
 		},
-		[
-			variantId,
-			addItem,
-			isWishlisted,
-			removeFromWishlist,
-			product.handle,
-			product.id,
-		]
+		[variantId, addItem, isWishlisted, removeFromWishlist, product.handle]
 	);
 
 	const handleWishlistToggle = useCallback(() => {
@@ -332,13 +325,7 @@ export const ProductCard = memo(function ProductCard({
 				handlersRef.current.addToWishlist(product.handle);
 			}
 		}
-	}, [
-		isWishlisted,
-		product.handle,
-		product.id,
-		removeFromWishlist,
-		addToWishlist,
-	]);
+	}, [isWishlisted, product.handle, removeFromWishlist, addToWishlist]);
 
 	const handleProductClick = useCallback(() => {
 		// Track product click analytics
@@ -396,14 +383,14 @@ export const ProductCard = memo(function ProductCard({
 			className={cn(
 				"group relative h-full",
 				view === "grid"
-					? "flex flex-col overflow-hidden border border-neutral-200 bg-white transition-all duration-300 dark:border-neutral-900 dark:bg-black sm:rounded-xl"
-					: "flex flex-row gap-4 border-foreground/10 border-b py-4 last:border-b-0"
+					? "flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white transition-all duration-300 sm:rounded-xl dark:border-neutral-900 dark:bg-black"
+					: "flex flex-row gap-3 border-foreground/10 border-b py-3 last:border-b-0 sm:gap-4 sm:py-4"
 			)}
 			data-product-id={product.id}
 			data-view={view}
 		>
 			<Button
-				className={cn("absolute z-[1]", view === "grid" ? "top-2 right-2" : "top-0 right-0")}
+				className={cn("absolute z-[1]", view === "grid" ? "top-1.5 right-1.5 sm:top-2 sm:right-2" : "top-0 right-0")}
 				data-product-id={product.id}
 				data-wishlist-add
 				onClick={handleWishlistToggle}
@@ -412,7 +399,7 @@ export const ProductCard = memo(function ProductCard({
 			>
 				<Heart
 					className={cn(
-						"h-5 w-5 transition-colors duration-200",
+						"h-4 w-4 transition-colors duration-200 sm:h-5 sm:w-5",
 						isWishlisted
 							? "fill-red-500 stroke-red-500"
 							: "fill-secondary stroke-foreground/60 group-hover:stroke-foreground/80",
@@ -423,7 +410,7 @@ export const ProductCard = memo(function ProductCard({
 
 			{/* Product Image */}
 			<PrefetchLink
-				className={cn("block shrink-0", view === "grid" ? "w-full" : "w-28 sm:w-32")}
+				className={cn("block shrink-0", view === "grid" ? "w-full" : "w-24 sm:w-28 md:w-32")}
 				href={productUrl}
 				onClick={handleProductClick}
 				prefetchImages={productImages}
@@ -434,7 +421,7 @@ export const ProductCard = memo(function ProductCard({
 						"relative overflow-hidden bg-muted transition-all duration-300",
 						view === "grid"
 							? "aspect-square w-full group-hover:scale-105"
-							: "aspect-square h-28 w-28 rounded-lg sm:h-32 sm:w-32"
+							: "aspect-square h-24 w-24 rounded-lg sm:h-28 sm:w-28 md:h-32 md:w-32"
 					)}
 				>
 					{productDetails.imageUrl ? (
@@ -480,7 +467,12 @@ export const ProductCard = memo(function ProductCard({
 			</PrefetchLink>
 
 			{/* Product Info */}
-			<div className={cn("flex flex-col", view === "grid" ? "mt-4 flex-1 px-4 pb-4" : "min-w-0 flex-1 py-1")}>
+			<div
+				className={cn(
+					"flex flex-col",
+					view === "grid" ? "mt-3 flex-1 px-3 pb-3 sm:mt-4 sm:px-4 sm:pb-4" : "min-w-0 flex-1 py-0.5 sm:py-1"
+				)}
+			>
 				<PrefetchLink
 					className="flex-1"
 					href={productUrl}
@@ -489,7 +481,7 @@ export const ProductCard = memo(function ProductCard({
 					prefetchPriority={priority ? "high" : "low"}
 				>
 					{/* Vendor */}
-					<p className="mb-1 text-muted-foreground text-xs">{product.vendor || "Zugzology"}</p>
+					<p className="mb-0.5 text-[10px] text-muted-foreground sm:mb-1 sm:text-xs">{product.vendor || "Zugzology"}</p>
 
 					{/* AI confidence and rank - only in development */}
 					{process.env.NODE_ENV === "development" && aiData && aiData.aiConfidence && aiData.aiConfidence !== "low" && (
@@ -502,8 +494,10 @@ export const ProductCard = memo(function ProductCard({
 					{/* Title */}
 					<h2
 						className={cn(
-							"mb-3 font-semibold text-foreground transition-colors group-hover:text-primary",
-							view === "grid" ? "line-clamp-2 min-h-[3rem] text-base" : "line-clamp-2 sm:line-clamp-1"
+							"mb-2 font-semibold text-foreground transition-colors group-hover:text-primary sm:mb-3",
+							view === "grid"
+								? "line-clamp-2 min-h-[2.5rem] text-sm sm:min-h-[3rem] sm:text-base"
+								: "line-clamp-2 text-sm sm:line-clamp-1 sm:text-base"
 						)}
 					>
 						{product.title}
@@ -558,50 +552,51 @@ export const ProductCard = memo(function ProductCard({
 				</PrefetchLink>
 
 				{/* Stock and Shipping Info */}
-				<div className="mt-3 space-y-1">
+				<div className="mt-2 space-y-0.5 sm:mt-3 sm:space-y-1">
 					{/* Stock Status */}
-					<div className="flex items-center gap-1.5">
+					<div className="flex items-center gap-1">
 						{productDetails.isAvailable ? (
 							<>
-								<div className="h-2 w-2 rounded-full bg-green-500" />
-								<span className="text-muted-foreground text-xs">
+								<div className="h-1.5 w-1.5 rounded-full bg-green-500 sm:h-2 sm:w-2" />
+								<span className="text-[10px] text-muted-foreground sm:text-xs">
 									{productDetails.isBackorder ? "Available for Pre-Order" : "In Stock"}
 								</span>
 							</>
 						) : (
 							<>
-								<div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
-								<span className="text-muted-foreground text-xs">Out of Stock</span>
+								<div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 sm:h-2 sm:w-2" />
+								<span className="text-[10px] text-muted-foreground sm:text-xs">Out of Stock</span>
 							</>
 						)}
 					</div>
 
 					{/* Shipping Info */}
-					<p className="flex items-center gap-1.5 text-muted-foreground text-xs">
-						<Truck className={cn("h-3 w-3", getOpticalIconClasses("Truck", "inline"))} />
+					<p className="flex items-center gap-1 text-[10px] text-muted-foreground sm:gap-1.5 sm:text-xs">
+						<Truck className={cn("h-2.5 w-2.5 sm:h-3 sm:w-3", getOpticalIconClasses("Truck", "inline"))} />
 						{productDetails.isBackorder ? `Ships ${formatDeliveryDate()}` : "Free Shipping"}
 					</p>
 				</div>
 
 				{/* Recent Purchases - Premium Badge */}
 				{recentPurchases > 0 && (
-					<div className="mt-3">
-						<div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 dark:bg-primary/20">
-							<Users className={cn("h-3.5 w-3.5 text-primary", getOpticalIconClasses("Users", "inline"))} />
-							<span className="font-medium text-primary text-xs">{purchaseText}</span>
+					<div className="mt-2 sm:mt-3">
+						<div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 sm:gap-1.5 sm:px-3 sm:py-1.5 dark:bg-primary/20">
+							<Users
+								className={cn("h-3 w-3 text-primary sm:h-3.5 sm:w-3.5", getOpticalIconClasses("Users", "inline"))}
+							/>
+							<span className="font-medium text-[10px] text-primary sm:text-xs">{purchaseText}</span>
 						</div>
 					</div>
 				)}
 
 				{/* Add to Cart Button */}
-				<div className="mt-4">
+				<div className="mt-3 sm:mt-4">
 					<Button
-						className="h-11 w-full rounded-lg bg-primary font-semibold text-primary-foreground transition-all duration-300 hover:bg-primary/90 group-hover:shadow-lg"
+						className="h-10 w-full rounded-lg font-semibold text-sm transition-all duration-300 group-hover:shadow-lg sm:h-11 sm:text-base"
 						data-cart-add
 						data-product-id={product.id}
 						disabled={isAddingToCartState || !variantId || !canAddToCart}
 						onClick={handleAddToCart}
-						variant="secondary"
 					>
 						<div className="flex w-full items-center justify-center">
 							{isAddingToCartState ? (

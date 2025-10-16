@@ -187,7 +187,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 							<h1 className="font-bold text-3xl tracking-tight">
 								{product.title}
 								{selectedVariant && selectedVariant.title !== "Default Title" && (
-									<span className="block text-primary text-2xl mt-2">{selectedVariant.title}</span>
+									<span className="mt-2 block text-2xl text-primary">{selectedVariant.title}</span>
 								)}
 							</h1>
 							<div className="mt-4 flex flex-wrap gap-2">

@@ -53,9 +53,15 @@ function calculateStockScore(product: ShopifyProduct): number {
 	const quantity = firstVariant.quantityAvailable || 0;
 
 	// Score based on stock levels
-	if (quantity >= 10) return 25; // Well stocked
-	if (quantity >= 5) return 20; // Adequate stock
-	if (quantity >= 1) return 15; // Low stock
+	if (quantity >= 10) {
+		return 25; // Well stocked
+	}
+	if (quantity >= 5) {
+		return 20; // Adequate stock
+	}
+	if (quantity >= 1) {
+		return 15; // Low stock
+	}
 	return 0; // Out of stock
 }
 
@@ -64,7 +70,7 @@ function calculateStockScore(product: ShopifyProduct): number {
  * Promotes variety by giving bonus to mid-range products
  */
 function calculatePriceScore(product: ShopifyProduct, allProducts: ShopifyProduct[]): number {
-	const price = parseFloat(product.priceRange?.minVariantPrice?.amount || "0");
+	const price = Number.parseFloat(product.priceRange?.minVariantPrice?.amount || "0");
 
 	if (price === 0) {
 		return 0;
@@ -72,7 +78,7 @@ function calculatePriceScore(product: ShopifyProduct, allProducts: ShopifyProduc
 
 	// Calculate price percentiles from all products
 	const prices = allProducts
-		.map((p) => parseFloat(p.priceRange?.minVariantPrice?.amount || "0"))
+		.map((p) => Number.parseFloat(p.priceRange?.minVariantPrice?.amount || "0"))
 		.filter((p) => p > 0)
 		.sort((a, b) => a - b);
 
@@ -107,10 +113,18 @@ function calculateRecencyScore(product: ShopifyProduct): number {
 	const daysSincePublished = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60 * 24));
 
 	// Boost products added in last 90 days
-	if (daysSincePublished <= 7) return 20; // Very new (1 week)
-	if (daysSincePublished <= 30) return 15; // New (1 month)
-	if (daysSincePublished <= 90) return 10; // Recent (3 months)
-	if (daysSincePublished <= 180) return 5; // Somewhat recent (6 months)
+	if (daysSincePublished <= 7) {
+		return 20; // Very new (1 week)
+	}
+	if (daysSincePublished <= 30) {
+		return 15; // New (1 month)
+	}
+	if (daysSincePublished <= 90) {
+		return 10; // Recent (3 months)
+	}
+	if (daysSincePublished <= 180) {
+		return 5; // Somewhat recent (6 months)
+	}
 	return 0; // Older products
 }
 
@@ -120,13 +134,11 @@ function calculateRecencyScore(product: ShopifyProduct): number {
 function getFeaturedBonus(product: ShopifyProduct): number {
 	// Check for featured metafield
 	const metafields = (product as any).metafields?.nodes || [];
-	const featuredField = metafields.find(
-		(m: any) => m.namespace === "custom" && m.key === "featured_rank"
-	);
+	const featuredField = metafields.find((m: any) => m.namespace === "custom" && m.key === "featured_rank");
 
 	if (featuredField?.value) {
-		const rank = parseInt(featuredField.value, 10);
-		if (!isNaN(rank) && rank > 0) {
+		const rank = Number.parseInt(featuredField.value, 10);
+		if (!Number.isNaN(rank) && rank > 0) {
 			// Lower rank number = higher priority (rank 1 is best)
 			// Convert to score: rank 1 = 100pts, rank 2 = 90pts, etc.
 			return Math.max(100 - (rank - 1) * 10, 0);
@@ -172,10 +184,7 @@ export function rankProduct(
 /**
  * Rank multiple products and sort by score
  */
-export function rankProducts(
-	products: ShopifyProduct[],
-	options: RankingOptions = DEFAULT_OPTIONS
-): RankedProduct[] {
+export function rankProducts(products: ShopifyProduct[], options: RankingOptions = DEFAULT_OPTIONS): RankedProduct[] {
 	const rankedProducts = products.map((product) => rankProduct(product, products, options));
 
 	// Sort by ranking score (highest first)
@@ -234,7 +243,7 @@ export function getFrequentlyBoughtTogether(
 /**
  * Filter products by collection handle
  */
-export function filterByCollection(products: ShopifyProduct[], collectionHandle: string): ShopifyProduct[] {
+export function filterByCollection(products: ShopifyProduct[], _collectionHandle: string): ShopifyProduct[] {
 	// In a real implementation, you'd check if product is in the collection
 	// For now, return all products (collections are fetched separately in Shopify)
 	return products;

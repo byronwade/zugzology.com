@@ -5,8 +5,6 @@ import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 type FilterSectionProps = {
@@ -16,6 +14,7 @@ type FilterSectionProps = {
 	onToggle: (value: string) => void;
 	defaultOpen?: boolean;
 	maxHeight?: number;
+	enableScroll?: boolean;
 };
 
 export const FilterSection = memo(function FilterSection({
@@ -25,6 +24,7 @@ export const FilterSection = memo(function FilterSection({
 	onToggle,
 	defaultOpen = true,
 	maxHeight = 200,
+	enableScroll = true,
 }: FilterSectionProps) {
 	const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -36,54 +36,59 @@ export const FilterSection = memo(function FilterSection({
 	const hasMore = options.length > 50;
 
 	return (
-		<Collapsible open={isOpen} onOpenChange={setIsOpen}>
+		<Collapsible onOpenChange={setIsOpen} open={isOpen}>
 			<CollapsibleTrigger asChild>
 				<Button
+					className="flex w-full items-center justify-between px-0 py-3 font-semibold text-base text-foreground hover:bg-transparent"
 					variant="ghost"
-					className="flex w-full items-center justify-between px-0 py-2 font-medium text-sm hover:bg-transparent"
 				>
-					<span className="flex items-center gap-2">
+					<span className="flex items-center gap-2.5">
 						{title}
 						{selectedValues.length > 0 && (
-							<span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+							<span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 font-bold text-primary-foreground text-xs">
 								{selectedValues.length}
 							</span>
 						)}
 					</span>
-					<ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
+					<ChevronDown
+						className={cn(
+							"h-4 w-4 text-muted-foreground transition-transform duration-200",
+							isOpen && "rotate-180 text-foreground"
+						)}
+					/>
 				</Button>
 			</CollapsibleTrigger>
-			<CollapsibleContent className="mt-2 space-y-2">
-				<ScrollArea className="pr-4" style={{ maxHeight }}>
-					<div className="space-y-3">
+			<CollapsibleContent className="mt-2">
+				<div
+					className={cn(enableScroll ? "pr-2" : "")}
+					style={enableScroll ? { maxHeight, overflowY: "auto", WebkitOverflowScrolling: "touch" } : undefined}
+				>
+					<div className="space-y-1">
 						{displayOptions.map((option) => {
 							const isChecked = selectedValues.includes(option);
 							const id = `filter-${title}-${option}`.replace(/\s+/g, "-").toLowerCase();
 
 							return (
-								<div className="flex items-center space-x-2" key={option}>
+								<label
+									className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2.5 transition-colors hover:bg-muted/50 active:bg-muted"
+									htmlFor={id}
+									key={option}
+								>
 									<Checkbox
-										id={id}
 										checked={isChecked}
+										className="h-5 w-5 shrink-0 rounded-md data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+										id={id}
 										onCheckedChange={() => onToggle(option)}
-										className="h-4 w-4 flex-shrink-0"
 									/>
-									<Label
-										htmlFor={id}
-										className="flex-1 cursor-pointer text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-									>
-										{option}
-									</Label>
-								</div>
+									<span className="flex-1 text-foreground text-sm leading-snug">{option}</span>
+								</label>
 							);
 						})}
 						{hasMore && (
-							<p className="pt-2 text-muted-foreground text-xs">
-								Showing first 50 of {options.length} options
-							</p>
+							<p className="px-2.5 pt-3 text-muted-foreground text-xs">Showing first 50 of {options.length} options</p>
 						)}
 					</div>
-				</ScrollArea>
+				</div>
 			</CollapsibleContent>
 		</Collapsible>
 	);

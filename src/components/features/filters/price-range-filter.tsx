@@ -40,13 +40,14 @@ export const PriceRangeFilter = memo(function PriceRangeFilter({
 	);
 
 	// Cleanup on unmount
-	useEffect(() => {
-		return () => {
+	useEffect(
+		() => () => {
 			if (debounceTimerRef.current) {
 				clearTimeout(debounceTimerRef.current);
 			}
-		};
-	}, []);
+		},
+		[]
+	);
 
 	const handleSliderChange = useCallback(
 		(values: number[]) => {
@@ -73,7 +74,7 @@ export const PriceRangeFilter = memo(function PriceRangeFilter({
 
 	const handleMinInputChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const value = Number.parseInt(e.target.value) || min;
+			const value = Number.parseInt(e.target.value, 10) || min;
 			const clampedValue = Math.max(min, Math.min(value, localMax));
 			setLocalMin(clampedValue);
 		},
@@ -82,7 +83,7 @@ export const PriceRangeFilter = memo(function PriceRangeFilter({
 
 	const handleMaxInputChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const value = Number.parseInt(e.target.value) || max;
+			const value = Number.parseInt(e.target.value, 10) || max;
 			const clampedValue = Math.min(max, Math.max(value, localMin));
 			setLocalMax(clampedValue);
 		},
@@ -94,22 +95,22 @@ export const PriceRangeFilter = memo(function PriceRangeFilter({
 	}, [localMin, localMax, onRangeChange]);
 
 	return (
-		<div className="space-y-4">
-			<div className="px-1">
+		<div className="space-y-5">
+			<div className="px-2 py-3">
 				<Slider
-					min={min}
+					className="w-full touch-manipulation"
 					max={max}
-					step={1}
-					value={[localMin, localMax]}
+					min={min}
 					onValueChange={handleSliderChange}
 					onValueCommit={handleSliderCommit}
-					className="w-full"
+					step={1}
+					value={[localMin, localMax]}
 				/>
 			</div>
 
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-2 gap-3">
 				<div className="space-y-2">
-					<Label htmlFor="min-price" className="text-xs text-muted-foreground">
+					<Label className="font-medium text-foreground text-xs" htmlFor="min-price">
 						Min Price
 					</Label>
 					<div className="relative">
@@ -117,20 +118,21 @@ export const PriceRangeFilter = memo(function PriceRangeFilter({
 							$
 						</span>
 						<Input
+							className="h-11 touch-manipulation pl-7 text-base"
 							id="min-price"
-							type="number"
-							min={min}
+							inputMode="numeric"
 							max={localMax}
-							value={localMin}
-							onChange={handleMinInputChange}
+							min={min}
 							onBlur={handleInputBlur}
-							className="pl-7"
+							onChange={handleMinInputChange}
+							type="number"
+							value={localMin}
 						/>
 					</div>
 				</div>
 
 				<div className="space-y-2">
-					<Label htmlFor="max-price" className="text-xs text-muted-foreground">
+					<Label className="font-medium text-foreground text-xs" htmlFor="max-price">
 						Max Price
 					</Label>
 					<div className="relative">
@@ -138,23 +140,24 @@ export const PriceRangeFilter = memo(function PriceRangeFilter({
 							$
 						</span>
 						<Input
+							className="h-11 touch-manipulation pl-7 text-base"
 							id="max-price"
-							type="number"
-							min={localMin}
+							inputMode="numeric"
 							max={max}
-							value={localMax}
-							onChange={handleMaxInputChange}
+							min={localMin}
 							onBlur={handleInputBlur}
-							className="pl-7"
+							onChange={handleMaxInputChange}
+							type="number"
+							value={localMax}
 						/>
 					</div>
 				</div>
 			</div>
 
-			<div className="flex items-center justify-between text-muted-foreground text-xs">
-				<span>{formatPrice(localMin)}</span>
+			<div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-muted-foreground text-sm">
+				<span className="font-medium">{formatPrice(localMin)}</span>
 				<span className="text-muted-foreground/50">to</span>
-				<span>{formatPrice(localMax)}</span>
+				<span className="font-medium">{formatPrice(localMax)}</span>
 			</div>
 		</div>
 	);

@@ -70,13 +70,8 @@ export function MainContent({ children }: { children: React.ReactNode }) {
 		if (totalProducts === 0) {
 			return (
 				<main className="w-full flex-1">
-					<div className="w-full py-12">
-						<div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
-							<div className="text-center">
-								<h2 className="mb-2 font-semibold text-xl">Loading Products</h2>
-								<p className="text-muted-foreground">Please wait while we fetch the products...</p>
-							</div>
-						</div>
+					<div className="w-full py-6">
+						<ProductsLoading />
 					</div>
 				</main>
 			);
@@ -112,8 +107,8 @@ export function MainContent({ children }: { children: React.ReactNode }) {
 								<ProductsContent
 									collection={virtualCollection as any}
 									currentPage={1}
-									title={virtualCollection.title}
 									description={virtualCollection.description}
+									title={virtualCollection.title}
 								/>
 							</Suspense>
 						</section>

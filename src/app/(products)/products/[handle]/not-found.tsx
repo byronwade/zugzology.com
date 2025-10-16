@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Home, Search, ShoppingBag } from "lucide-react";
 import Image from "next/image";
-import { Search, ShoppingBag, Home } from "lucide-react";
-import { Link } from "@/components/ui/link";
+import { useEffect, useState } from "react";
+import { ProductCard } from "@/components/features/products/product-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ProductCard } from "@/components/features/products/product-card";
+import { Link } from "@/components/ui/link";
 import type { ShopifyProduct } from "@/lib/types";
 
 const productNotFoundMessages = [
@@ -20,7 +20,9 @@ export default function ProductNotFound() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [recommendedProducts, setRecommendedProducts] = useState<ShopifyProduct[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
-	const [funnyMessage] = useState(() => productNotFoundMessages[Math.floor(Math.random() * productNotFoundMessages.length)]);
+	const [funnyMessage] = useState(
+		() => productNotFoundMessages[Math.floor(Math.random() * productNotFoundMessages.length)]
+	);
 
 	useEffect(() => {
 		if (typeof window !== "undefined" && window.gtag) {
@@ -40,8 +42,7 @@ export default function ProductNotFound() {
 				if (Array.isArray(products)) {
 					setRecommendedProducts(products);
 				}
-			} catch (error) {
-				console.error("Failed to fetch products:", error);
+			} catch (_error) {
 			} finally {
 				setIsLoading(false);
 			}
@@ -61,12 +62,12 @@ export default function ProductNotFound() {
 		<div className="relative flex min-h-screen w-full flex-col overflow-hidden">
 			{/* Full-screen Background Image */}
 			<Image
-				src="https://images.unsplash.com/photo-1459262838948-3e2de6c1ec80?w=1920&q=80"
 				alt="Delicate mushrooms"
-				fill
 				className="object-cover"
+				fill
 				priority
 				quality={90}
+				src="https://images.unsplash.com/photo-1459262838948-3e2de6c1ec80?w=1920&q=80"
 			/>
 
 			{/* Dark Gradient Overlay */}
@@ -78,13 +79,9 @@ export default function ProductNotFound() {
 				<div className="flex flex-1 items-center justify-center px-6 py-16">
 					<div className="w-full max-w-2xl text-center">
 						<div className="mb-12 space-y-6">
-							<h1 className="font-bold text-6xl text-white tracking-tight sm:text-7xl">
-								Product Not Found
-							</h1>
+							<h1 className="font-bold text-6xl text-white tracking-tight sm:text-7xl">Product Not Found</h1>
 
-							<p className="text-2xl text-white/90 sm:text-3xl">
-								{funnyMessage}
-							</p>
+							<p className="text-2xl text-white/90 sm:text-3xl">{funnyMessage}</p>
 
 							<p className="mx-auto max-w-md text-lg text-white/70">
 								This product may have been discontinued or moved. Explore our other amazing cultivation supplies.
@@ -93,22 +90,18 @@ export default function ProductNotFound() {
 
 						{/* Search Bar */}
 						<div className="mx-auto mb-8 max-w-xl">
-							<form onSubmit={handleSearch} className="flex gap-3">
+							<form className="flex gap-3" onSubmit={handleSearch}>
 								<div className="relative flex-1">
-									<Search className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-white/40" />
+									<Search className="-translate-y-1/2 absolute top-1/2 left-4 h-5 w-5 text-white/40" />
 									<Input
-										type="search"
-										placeholder="Search for a different product..."
-										value={searchQuery}
+										className="border-white/20 bg-white/10 py-6 pl-12 text-white backdrop-blur-sm placeholder:text-white/40 focus:border-white/30 focus:bg-white/15"
 										onChange={(e) => setSearchQuery(e.target.value)}
-										className="border-white/20 bg-white/10 py-6 pl-12 text-white placeholder:text-white/40 backdrop-blur-sm focus:border-white/30 focus:bg-white/15"
+										placeholder="Search for a different product..."
+										type="search"
+										value={searchQuery}
 									/>
 								</div>
-								<Button
-									type="submit"
-									size="lg"
-									className="bg-white px-8 text-black hover:bg-white/90"
-								>
+								<Button className="bg-white px-8 text-black hover:bg-white/90" size="lg" type="submit">
 									Search
 								</Button>
 							</form>
@@ -116,11 +109,7 @@ export default function ProductNotFound() {
 
 						{/* Quick Actions */}
 						<div className="flex flex-wrap justify-center gap-4">
-							<Button
-								asChild
-								size="lg"
-								className="gap-2 bg-white text-black hover:bg-white/90"
-							>
+							<Button asChild className="gap-2 bg-white text-black hover:bg-white/90" size="lg">
 								<Link href="/products">
 									<ShoppingBag className="h-5 w-5" />
 									View All Products
@@ -128,20 +117,13 @@ export default function ProductNotFound() {
 							</Button>
 							<Button
 								asChild
-								variant="outline"
-								size="lg"
 								className="gap-2 border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
-							>
-								<Link href="/collections">
-									Browse Collections
-								</Link>
-							</Button>
-							<Button
-								asChild
-								variant="ghost"
 								size="lg"
-								className="gap-2 text-white hover:bg-white/10"
+								variant="outline"
 							>
+								<Link href="/collections">Browse Collections</Link>
+							</Button>
+							<Button asChild className="gap-2 text-white hover:bg-white/10" size="lg" variant="ghost">
 								<Link href="/">
 									<Home className="h-5 w-5" />
 									Go Home
@@ -153,7 +135,7 @@ export default function ProductNotFound() {
 
 				{/* Recommended Products */}
 				{(isLoading || recommendedProducts.length > 0) && (
-					<div className="border-t border-white/10 bg-black/40 px-6 py-16 backdrop-blur-sm">
+					<div className="border-white/10 border-t bg-black/40 px-6 py-16 backdrop-blur-sm">
 						<div className="container mx-auto max-w-7xl">
 							<div className="mb-8 text-center">
 								<h2 className="mb-2 font-bold text-2xl text-white">You Might Like These</h2>
@@ -162,8 +144,8 @@ export default function ProductNotFound() {
 
 							{isLoading ? (
 								<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-									{[...Array(8)].map((_, i) => (
-										<div key={i} className="h-96 animate-pulse rounded-xl bg-white/5" />
+									{[...new Array(8)].map((_, i) => (
+										<div className="h-96 animate-pulse rounded-xl bg-white/5" key={i} />
 									))}
 								</div>
 							) : (
@@ -180,7 +162,6 @@ export default function ProductNotFound() {
 
 			{/* Structured Data */}
 			<script
-				type="application/ld+json"
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify({
 						"@context": "https://schema.org",
@@ -193,6 +174,7 @@ export default function ProductNotFound() {
 						},
 					}),
 				}}
+				type="application/ld+json"
 			/>
 		</div>
 	);

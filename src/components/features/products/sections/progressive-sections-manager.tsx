@@ -27,7 +27,7 @@ export function ProgressiveSectionsManager({ product, relatedProducts }: Progres
 	];
 
 	return (
-		<div className="space-y-16">
+		<div className="space-y-0">
 			{sectionConfigs.map((config) => (
 				<ProgressiveSectionLoader
 					key={config.type}

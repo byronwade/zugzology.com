@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import { UniversalBreadcrumb } from "@/components/layout/universal-breadcrumb";
+import { Link } from "@/components/ui/link";
 import { PaginationControlsSSR } from "@/components/ui/pagination";
 import { getBlogs, getPaginatedBlogPosts } from "@/lib/api/shopify/actions";
 import {
@@ -349,9 +349,7 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 													<div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/60 to-black/0" />
 													<div className="absolute bottom-0 p-6 text-white">
 														<p className="mb-2 font-medium text-primary/80 text-sm">{post.blogTitle}</p>
-														<h3 className="mb-2 font-semibold text-2xl">
-															{post.title}
-														</h3>
+														<h3 className="mb-2 font-semibold text-2xl">{post.title}</h3>
 														<div className="flex items-center gap-2 text-neutral-200 text-sm">
 															<span>{post.author.name}</span>
 															<span>•</span>

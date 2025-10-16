@@ -1,8 +1,8 @@
 import { Award, Star, TrendingUp } from "lucide-react";
-import { Link } from "@/components/ui/link";
 import { ProductCard } from "@/components/features/products/product-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import type { ShopifyProduct } from "@/lib/types";
 
 type BestSellersShowcaseProps = {
@@ -41,28 +41,54 @@ export function BestSellersShowcase({ products }: BestSellersShowcaseProps) {
 				</div>
 
 				<div className="relative">
-					<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						{products.slice(0, 4).map((product, index) => (
+					{/* Mobile: List view */}
+					<div className="flex flex-col gap-0 sm:hidden">
+						{products.slice(0, 5).map((product, index) => (
+							<div className="relative" key={product.id}>
+								<Badge className="absolute top-2 left-4 z-20 bg-primary font-semibold text-primary-foreground text-xs">
+									#{index + 1}
+								</Badge>
+								<ProductCard
+									product={product}
+									quantity={product.variants.nodes[0]?.quantityAvailable}
+									variantId={product.variants.nodes[0]?.id}
+									view="list"
+								/>
+							</div>
+						))}
+					</div>
+
+					{/* Desktop: Grid view */}
+					<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+						{products.slice(0, 5).map((product, index) => (
 							<div className="group relative" key={product.id}>
-								<div className="-top-4 absolute left-4 z-20">
-									<Badge className="bg-primary font-semibold text-primary-foreground">#{index + 1} Best Seller</Badge>
-								</div>
-								<div className="hover:-translate-y-1 relative transform rounded-lg bg-card shadow-lg transition-transform duration-300 hover:shadow-xl">
+								<div className="hover:-translate-y-1 relative overflow-hidden rounded-lg bg-neutral-100 shadow-lg transition-all duration-300 hover:shadow-xl dark:bg-neutral-950">
+									{/* Best Seller Badge - Top Right */}
+									<div className="absolute top-3 right-3 z-20">
+										<Badge className="bg-primary font-semibold text-primary-foreground shadow-md">
+											#{index + 1} Best Seller
+										</Badge>
+									</div>
+
+									{/* Product Card */}
 									<ProductCard
 										product={product}
 										quantity={product.variants.nodes[0]?.quantityAvailable}
 										variantId={product.variants.nodes[0]?.id}
 										view="grid"
 									/>
-									<div className="absolute right-4 bottom-4 left-4 flex items-center justify-between">
-										<div className="flex items-center space-x-1">
+
+									{/* Rating Section - Below Product Card */}
+									<div className="flex items-center justify-between gap-2 rounded-b-lg bg-neutral-100 px-3 py-2 dark:bg-[#111111]">
+										<div className="flex items-center gap-1">
 											{[...new Array(5)].map((_, i) => (
 												<Star className="h-4 w-4 fill-yellow-400 text-yellow-400" key={i} />
 											))}
+											<span className="ml-1 text-muted-foreground text-xs">(4.8)</span>
 										</div>
 										<Badge className="border-primary/20 bg-primary/10 text-primary" variant="outline">
-											<Award className="mr-1 h-4 w-4" />
-											Top Rated
+											<Award className="mr-1 h-3.5 w-3.5" />
+											<span className="text-xs">Top Rated</span>
 										</Badge>
 									</div>
 								</div>

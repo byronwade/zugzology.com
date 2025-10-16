@@ -900,15 +900,12 @@ export async function getBlogByHandle(handle: string) {
 // Product Page Data
 export async function getProductPageData(handle: string) {
 	if (!handle) {
-		console.log("[getProductPageData] No handle provided");
 		return {
 			product: null,
 			relatedProducts: [],
 			recentPosts: [],
 		};
 	}
-
-	console.log(`[getProductPageData] Fetching product: ${handle}`);
 
 	try {
 		// Fetch product and related data in parallel
@@ -982,15 +979,12 @@ export async function getProductPageData(handle: string) {
 		const { products, blogs } = relatedData.data;
 
 		if (!product) {
-			console.log(`[getProductPageData] Product not found: ${handle}`);
 			return {
 				product: null,
 				relatedProducts: [],
 				recentPosts: [],
 			};
 		}
-
-		console.log(`[getProductPageData] Product found: ${product.title}`);
 
 		// Get related products based on product type and tags
 		const allProducts = products.nodes;
@@ -1009,15 +1003,12 @@ export async function getProductPageData(handle: string) {
 			.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
 			.slice(0, 3);
 
-		console.log(`[getProductPageData] Returning product data with ${relatedProducts.length} related products`);
-
 		return {
 			product,
 			relatedProducts,
 			recentPosts,
 		};
-	} catch (error) {
-		console.error(`[getProductPageData] Error fetching product ${handle}:`, error);
+	} catch (_error) {
 		return {
 			product: null,
 			relatedProducts: [],
@@ -1726,11 +1717,15 @@ export const getProductsByHandles = async (handles: string[]): Promise<ShopifyPr
 
 		for (const batch of batches) {
 			// Build the query with aliases for parallel fetching
-			const queries = batch.map((handle, index) => `
+			const queries = batch
+				.map(
+					(handle, index) => `
 				product${index}: product(handle: "${handle}") {
 					...ProductFragment
 				}
-			`).join('\n');
+			`
+				)
+				.join("\n");
 
 			const query = `
 				query getBatchProducts {

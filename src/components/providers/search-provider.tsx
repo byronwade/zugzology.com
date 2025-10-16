@@ -89,8 +89,12 @@ export function SearchProvider({ children }: { children: ReactNode }) {
 				let score = 0;
 
 				searchTerms.forEach((term) => {
-					if (title.includes(term)) score += 10; // Title matches are most important
-					if (description.includes(term)) score += 5; // Description matches are secondary
+					if (title.includes(term)) {
+						score += 10; // Title matches are most important
+					}
+					if (description.includes(term)) {
+						score += 5; // Description matches are secondary
+					}
 				});
 
 				return {

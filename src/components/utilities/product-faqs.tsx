@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import type { ShopifyProduct } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -185,24 +185,43 @@ export function ProductFAQs({ product, productType, additionalQuestions = [] }: 
 							className="flex w-full items-start justify-between gap-4 p-5 text-left transition-colors"
 							onClick={() => toggleQuestion(index)}
 						>
-							<h3 className={cn("font-semibold text-base leading-tight transition-colors", expandedIndex === index ? "text-primary" : "text-foreground group-hover:text-primary")} itemProp="name">
+							<h3
+								className={cn(
+									"font-semibold text-base leading-tight transition-colors",
+									expandedIndex === index ? "text-primary" : "text-foreground group-hover:text-primary"
+								)}
+								itemProp="name"
+							>
 								{faq.question}
 							</h3>
-							<span className={cn("flex-shrink-0 rounded-full p-1 transition-all", expandedIndex === index ? "bg-primary/10 rotate-180" : "bg-transparent")}>
-								<ChevronDown className={cn("h-5 w-5 transition-colors", expandedIndex === index ? "text-primary" : "text-muted-foreground group-hover:text-primary")} />
+							<span
+								className={cn(
+									"flex-shrink-0 rounded-full p-1 transition-all",
+									expandedIndex === index ? "rotate-180 bg-primary/10" : "bg-transparent"
+								)}
+							>
+								<ChevronDown
+									className={cn(
+										"h-5 w-5 transition-colors",
+										expandedIndex === index ? "text-primary" : "text-muted-foreground group-hover:text-primary"
+									)}
+								/>
 							</span>
 						</button>
 
 						<div
-							className={cn("grid overflow-hidden transition-all duration-300 ease-in-out", expandedIndex === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}
+							className={cn(
+								"grid overflow-hidden transition-all duration-300 ease-in-out",
+								expandedIndex === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+							)}
 							id={`faq-answer-${index}`}
 							itemProp="acceptedAnswer"
 							itemScope
 							itemType="https://schema.org/Answer"
 						>
 							<div className="overflow-hidden">
-								<div className="border-t border-border bg-muted/30 px-5 pb-5 pt-4">
-									<p className="text-sm leading-relaxed text-muted-foreground" itemProp="text">
+								<div className="border-border border-t bg-muted/30 px-5 pt-4 pb-5">
+									<p className="text-muted-foreground text-sm leading-relaxed" itemProp="text">
 										{faq.answer}
 									</p>
 								</div>
@@ -223,7 +242,14 @@ export function ProductFAQs({ product, productType, additionalQuestions = [] }: 
 					href="/help"
 				>
 					Contact Our Expert Team
-					<svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<svg
+						className="h-4 w-4"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						viewBox="0 0 24 24"
+						xmlns="http://www.w3.org/2000/svg"
+					>
 						<path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
 					</svg>
 				</a>

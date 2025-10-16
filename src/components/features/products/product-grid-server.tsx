@@ -141,10 +141,7 @@ export async function ProductGridServer({
 				<meta content={`${title} - Zugzology`} itemProp="name" />
 				<meta content={description || "Browse our collection of products"} itemProp="description" />
 				<ProductsHeader description={description} title={title} totalProducts={totalProductsCount} />
-				<EmptyState
-					description="Try adjusting your search or browse our collections."
-					title="No Products Found"
-				/>
+				<EmptyState description="Try adjusting your search or browse our collections." title="No Products Found" />
 			</main>
 		);
 	}

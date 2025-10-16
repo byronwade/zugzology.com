@@ -15,7 +15,6 @@ import {
 	X,
 } from "lucide-react";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,6 +40,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Link } from "@/components/ui/link";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useStoreConfig } from "@/hooks/use-store-config";
 import { CONTENT } from "@/lib/config/wadesdesign.config";
@@ -401,7 +401,7 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 
 						{/* Search Section - Shopify Admin Style */}
 						<div className="mx-4 flex-1">
-							<div className="relative w-full">
+							<div className="relative w-full" data-search-container>
 								<Input
 									autoCapitalize="off"
 									autoComplete="off"
@@ -616,22 +616,23 @@ export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: Heade
 								) : (
 									<div className="hidden items-center gap-2 sm:flex">
 										<Button
-											className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full border border bg-background px-3 font-medium text-xs shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+											className="group inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full border border bg-background px-3 font-medium text-xs shadow-sm transition-all duration-200 hover:scale-105 hover:border-primary hover:bg-primary/10 hover:text-primary hover:shadow-md hover:shadow-primary/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
 											onClick={() => router.push("/login")}
 											size="sm"
 											variant="outline"
 										>
-											<LogIn className="h-4 w-4" />
+											<LogIn className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" />
 											{CONTENT.navigation.actions.signIn}
 										</Button>
 										<Button
-											className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-primary px-3 font-medium text-primary-foreground text-xs shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+											className="group relative inline-flex h-9 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-full bg-primary px-3 font-medium text-primary-foreground text-xs shadow transition-all duration-200 hover:scale-105 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
 											onClick={() => router.push("/register")}
 											size="sm"
 											variant="default"
 										>
-											<UserPlus className="h-4 w-4" />
-											{CONTENT.navigation.actions.signUp}
+											<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:animate-shimmer group-hover:opacity-100" />
+											<UserPlus className="relative z-10 h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+											<span className="relative z-10">{CONTENT.navigation.actions.signUp}</span>
 										</Button>
 									</div>
 								)}

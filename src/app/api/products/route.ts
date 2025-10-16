@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getProducts } from "@/lib/actions/shopify";
+import { shopifyFetch } from "@/lib/api/shopify/client";
+import { PRODUCTS_FRAGMENT } from "@/lib/api/shopify/fragments";
+import type { ShopifyProduct } from "@/lib/types";
 
 // Dynamic rendering and revalidation handled by dynamicIO
 
@@ -8,24 +10,40 @@ export async function GET(request: NextRequest) {
 		// Get query parameters
 		const searchParams = request.nextUrl.searchParams;
 		const tag = searchParams.get("tag");
-		const limit = Number.parseInt(searchParams.get("limit") || "10", 10);
+		const limit = Math.min(Number.parseInt(searchParams.get("limit") || "10", 10), 100); // Cap at 100
 
-		// Fetch all products
-		const products = await getProducts();
-
-		// Filter products if tag is provided
-		let filteredProducts = products;
+		// Build query based on filters
+		let query = "";
 		if (tag) {
-			filteredProducts = products.filter((product) => product.tags.includes(tag));
+			query = `tag:${tag}`;
 		}
 
-		// Limit the number of products
-		const limitedProducts = filteredProducts.slice(0, limit);
+		// Fetch only the products we need directly from Shopify
+		const { data } = await shopifyFetch<{ products: { nodes: ShopifyProduct[] } }>({
+			query: `
+				query getProducts($first: Int!, $query: String) {
+					products(first: $first, query: $query, sortKey: BEST_SELLING) {
+						nodes {
+							...ProductFragment
+						}
+					}
+				}
+				${PRODUCTS_FRAGMENT}
+			`,
+			variables: {
+				first: limit,
+				query: query || undefined,
+			},
+			tags: ["products"],
+			next: { revalidate: 300 }, // Cache for 5 minutes
+		});
+
+		const products = data?.products?.nodes || [];
 
 		// Return the products
 		return NextResponse.json({
-			products: limitedProducts,
-			count: limitedProducts.length,
+			products,
+			count: products.length,
 		});
 	} catch (_error) {
 		return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });

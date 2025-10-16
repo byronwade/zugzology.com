@@ -2,7 +2,7 @@
 
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 // Image cache to track prefetched images
@@ -23,9 +23,7 @@ async function prefetchImage(url: string): Promise<void> {
 			img.onerror = reject;
 		});
 		imageCache.add(url);
-	} catch (error) {
-		console.warn(`Failed to prefetch image: ${url}`, error);
-	}
+	} catch (_error) {}
 }
 
 // Prefetch multiple images with priority control
@@ -89,175 +87,171 @@ export interface PrefetchLinkProps extends React.ComponentPropsWithoutRef<typeof
  * </PrefetchLink>
  * ```
  */
-export const PrefetchLink = forwardRef<HTMLAnchorElement, PrefetchLinkProps>(
-	(
-		{
-			href,
-			prefetchImages: imagesToPrefetch,
-			disableImagePrefetch = false,
-			disableViewportPrefetch = false,
-			prefetchPriority = "low",
-			onClick,
-			onMouseEnter,
-			onMouseDown,
-			children,
-			className,
-			...props
-		},
-		ref
-	) => {
-		const router = useRouter();
-		const linkRef = useRef<HTMLAnchorElement>(null);
-		const [hasBeenVisible, setHasBeenVisible] = useState(false);
-		const [hasPrefetchedImages, setHasPrefetchedImages] = useState(false);
+export const PrefetchLink = ({
+	href,
+	prefetchImages: imagesToPrefetch,
+	disableImagePrefetch = false,
+	disableViewportPrefetch = false,
+	prefetchPriority = "low",
+	onClick,
+	onMouseEnter,
+	onMouseDown,
+	children,
+	className,
+	ref,
+	...props
+}: PrefetchLinkProps & { ref?: RefObject<HTMLAnchorElement | null> }) => {
+	const router = useRouter();
+	const linkRef = useRef<HTMLAnchorElement>(null);
+	const [hasBeenVisible, setHasBeenVisible] = useState(false);
+	const [hasPrefetchedImages, setHasPrefetchedImages] = useState(false);
 
-		// Normalize href to string
-		const hrefString = typeof href === "string" ? href : href.pathname || "/";
+	// Normalize href to string
+	const hrefString = typeof href === "string" ? href : href.pathname || "/";
 
-		// Handle image prefetching
-		const handleImagePrefetch = useCallback(async () => {
-			if (disableImagePrefetch || hasPrefetchedImages || !imagesToPrefetch) {
-				return;
-			}
+	// Handle image prefetching
+	const handleImagePrefetch = useCallback(async () => {
+		if (disableImagePrefetch || hasPrefetchedImages || !imagesToPrefetch) {
+			return;
+		}
 
-			const urls = Array.isArray(imagesToPrefetch) ? imagesToPrefetch : [imagesToPrefetch];
-			const validUrls = urls.filter((url) => url && typeof url === "string");
+		const urls = Array.isArray(imagesToPrefetch) ? imagesToPrefetch : [imagesToPrefetch];
+		const validUrls = urls.filter((url) => url && typeof url === "string");
 
-			if (validUrls.length === 0) {
-				return;
-			}
+		if (validUrls.length === 0) {
+			return;
+		}
 
-			setHasPrefetchedImages(true);
-			await prefetchImages(validUrls, { priority: prefetchPriority });
-		}, [disableImagePrefetch, hasPrefetchedImages, imagesToPrefetch, prefetchPriority]);
+		setHasPrefetchedImages(true);
+		await prefetchImages(validUrls, { priority: prefetchPriority });
+	}, [disableImagePrefetch, hasPrefetchedImages, imagesToPrefetch, prefetchPriority]);
 
-		// Intersection Observer for viewport-based prefetching
-		useEffect(() => {
-			if (disableViewportPrefetch || hasBeenVisible || typeof window === "undefined") {
-				return;
-			}
+	// Intersection Observer for viewport-based prefetching
+	useEffect(() => {
+		if (disableViewportPrefetch || hasBeenVisible || typeof window === "undefined") {
+			return;
+		}
 
-			const currentLinkRef = linkRef.current;
-			if (!currentLinkRef) {
-				return;
-			}
+		const currentLinkRef = linkRef.current;
+		if (!currentLinkRef) {
+			return;
+		}
 
-			const observer = new IntersectionObserver(
-				(entries) => {
-					entries.forEach((entry) => {
-						if (entry.isIntersecting && !seen.has(hrefString)) {
-							setHasBeenVisible(true);
-							seen.add(hrefString);
+		const observer = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((entry) => {
+					if (entry.isIntersecting && !seen.has(hrefString)) {
+						setHasBeenVisible(true);
+						seen.add(hrefString);
 
-							// Prefetch images when link enters viewport
-							handleImagePrefetch();
-						}
-					});
-				},
-				{
-					rootMargin: "200px", // Start prefetching 200px before link enters viewport
-					threshold: 0.01,
-				}
-			);
-
-			observer.observe(currentLinkRef);
-
-			return () => {
-				if (currentLinkRef) {
-					observer.unobserve(currentLinkRef);
-				}
-			};
-		}, [disableViewportPrefetch, hasBeenVisible, hrefString, handleImagePrefetch]);
-
-		// Handle mouse enter - prefetch images on hover
-		const handleMouseEnter = useCallback(
-			(e: React.MouseEvent<HTMLAnchorElement>) => {
-				onMouseEnter?.(e);
-
-				// Prefetch images on hover for even faster loading
-				if (!hasPrefetchedImages) {
-					handleImagePrefetch();
-				}
+						// Prefetch images when link enters viewport
+						handleImagePrefetch();
+					}
+				});
 			},
-			[onMouseEnter, hasPrefetchedImages, handleImagePrefetch]
+			{
+				rootMargin: "200px", // Start prefetching 200px before link enters viewport
+				threshold: 0.01,
+			}
 		);
 
-		// Handle mouse down - navigate on mousedown instead of click (100ms faster)
-		const handleMouseDown = useCallback(
-			(e: React.MouseEvent<HTMLAnchorElement>) => {
-				onMouseDown?.(e);
+		observer.observe(currentLinkRef);
 
-				// Only handle left clicks (button 0)
-				if (e.button !== 0) {
-					return;
-				}
+		return () => {
+			if (currentLinkRef) {
+				observer.unobserve(currentLinkRef);
+			}
+		};
+	}, [disableViewportPrefetch, hasBeenVisible, hrefString, handleImagePrefetch]);
 
-				// Don't intercept modified clicks
-				if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
-					return;
-				}
+	// Handle mouse enter - prefetch images on hover
+	const handleMouseEnter = useCallback(
+		(e: React.MouseEvent<HTMLAnchorElement>) => {
+			onMouseEnter?.(e);
 
+			// Prefetch images on hover for even faster loading
+			if (!hasPrefetchedImages) {
+				handleImagePrefetch();
+			}
+		},
+		[onMouseEnter, hasPrefetchedImages, handleImagePrefetch]
+	);
+
+	// Handle mouse down - navigate on mousedown instead of click (100ms faster)
+	const handleMouseDown = useCallback(
+		(e: React.MouseEvent<HTMLAnchorElement>) => {
+			onMouseDown?.(e);
+
+			// Only handle left clicks (button 0)
+			if (e.button !== 0) {
+				return;
+			}
+
+			// Don't intercept modified clicks
+			if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
+				return;
+			}
+
+			// Check if this is an internal link
+			const url = new URL(hrefString, window.location.href);
+			const isSameOrigin = url.origin === window.location.origin;
+
+			if (!isSameOrigin) {
+				return;
+			}
+
+			// Prevent default and navigate immediately
+			e.preventDefault();
+			router.push(hrefString);
+		},
+		[onMouseDown, hrefString, router]
+	);
+
+	// Handle click - prevent default if already handled by mousedown
+	const handleClick = useCallback(
+		(e: React.MouseEvent<HTMLAnchorElement>) => {
+			onClick?.(e);
+
+			// The mousedown handler already navigated, so prevent default click behavior
+			// This is necessary to avoid double navigation
+			if (!e.defaultPrevented && e.button === 0) {
 				// Check if this is an internal link
 				const url = new URL(hrefString, window.location.href);
 				const isSameOrigin = url.origin === window.location.origin;
 
-				if (!isSameOrigin) {
-					return;
-				}
-
-				// Prevent default and navigate immediately
-				e.preventDefault();
-				router.push(hrefString);
-			},
-			[onMouseDown, hrefString, router]
-		);
-
-		// Handle click - prevent default if already handled by mousedown
-		const handleClick = useCallback(
-			(e: React.MouseEvent<HTMLAnchorElement>) => {
-				onClick?.(e);
-
-				// The mousedown handler already navigated, so prevent default click behavior
-				// This is necessary to avoid double navigation
-				if (!e.defaultPrevented && e.button === 0) {
-					// Check if this is an internal link
-					const url = new URL(hrefString, window.location.href);
-					const isSameOrigin = url.origin === window.location.origin;
-
-					if (isSameOrigin && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
-						e.preventDefault();
-					}
-				}
-			},
-			[onClick, hrefString]
-		);
-
-		// Merge refs
-		useEffect(() => {
-			if (ref && linkRef.current) {
-				if (typeof ref === "function") {
-					ref(linkRef.current);
-				} else {
-					ref.current = linkRef.current;
+				if (isSameOrigin && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+					e.preventDefault();
 				}
 			}
-		}, [ref]);
+		},
+		[onClick, hrefString]
+	);
 
-		return (
-			<NextLink
-				ref={linkRef}
-				href={href}
-				onClick={handleClick}
-				onMouseEnter={handleMouseEnter}
-				onMouseDown={handleMouseDown}
-				className={cn("transition-colors hover:text-primary", className)}
-				{...props}
-			>
-				{children}
-			</NextLink>
-		);
-	}
-);
+	// Merge refs
+	useEffect(() => {
+		if (ref && linkRef.current) {
+			if (typeof ref === "function") {
+				ref(linkRef.current);
+			} else {
+				ref.current = linkRef.current;
+			}
+		}
+	}, [ref]);
+
+	return (
+		<NextLink
+			className={cn("transition-colors hover:text-primary", className)}
+			href={href}
+			onClick={handleClick}
+			onMouseDown={handleMouseDown}
+			onMouseEnter={handleMouseEnter}
+			ref={linkRef}
+			{...props}
+		>
+			{children}
+		</NextLink>
+	);
+};
 
 PrefetchLink.displayName = "PrefetchLink";
 

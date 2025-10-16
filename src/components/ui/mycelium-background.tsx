@@ -33,11 +33,7 @@ const DENSITY_CONFIG = {
 } as const;
 
 // Generate mycelium network using efficient algorithm
-function generateMyceliumNetwork(
-	width: number,
-	height: number,
-	config: typeof DENSITY_CONFIG.ultra
-): Strand[] {
+function generateMyceliumNetwork(width: number, height: number, config: typeof DENSITY_CONFIG.ultra): Strand[] {
 	const strands: Strand[] = [];
 	const origins: Point[] = [];
 
@@ -138,10 +134,14 @@ export function MyceliumBackground({
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
-		if (!canvas) return;
+		if (!canvas) {
+			return;
+		}
 
 		const ctx = canvas.getContext("2d", { alpha: true });
-		if (!ctx) return;
+		if (!ctx) {
+			return;
+		}
 
 		// Set canvas size
 		const resize = () => {
@@ -164,7 +164,9 @@ export function MyceliumBackground({
 		// Animation loop
 		let time = 0;
 		const animate = () => {
-			if (!ctx || !canvas) return;
+			if (!(ctx && canvas)) {
+				return;
+			}
 
 			time += 0.01;
 
@@ -182,7 +184,9 @@ export function MyceliumBackground({
 				const pulse = Math.sin(time * 0.5 + strand.phase) * 0.15 + 0.85;
 				const opacity = strand.opacity * pulse;
 
-				ctx.strokeStyle = `${color}${Math.floor(opacity * 255).toString(16).padStart(2, "0")}`;
+				ctx.strokeStyle = `${color}${Math.floor(opacity * 255)
+					.toString(16)
+					.padStart(2, "0")}`;
 
 				// Draw strand with collision detection
 				let isDrawing = false;
@@ -191,14 +195,14 @@ export function MyceliumBackground({
 					const inCollision = isPointInCollisionBox(point, collisionBoxes);
 
 					if (!inCollision) {
-						if (!isDrawing) {
+						if (isDrawing) {
+							// Continue drawing
+							ctx.lineTo(point.x, point.y);
+						} else {
 							// Start new path segment
 							ctx.beginPath();
 							ctx.moveTo(point.x, point.y);
 							isDrawing = true;
-						} else {
-							// Continue drawing
-							ctx.lineTo(point.x, point.y);
 						}
 					} else if (isDrawing) {
 						// Hit collision, stroke what we have and stop
@@ -228,9 +232,8 @@ export function MyceliumBackground({
 
 	return (
 		<canvas
-			ref={canvasRef}
-			aria-hidden="true"
 			className={`pointer-events-none absolute inset-0 z-[1] ${className}`}
+			ref={canvasRef}
 			style={{
 				background: "linear-gradient(to bottom right, #0a0a0a, #0f0f0f)",
 			}}

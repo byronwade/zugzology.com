@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { notFound, redirect } from "next/navigation";
 import Script from "next/script";
 import { Suspense } from "react";
 import { BreadcrumbConfigs, UniversalBreadcrumb } from "@/components/layout";
+import { Link } from "@/components/ui/link";
 import { PaginationControlsSSR } from "@/components/ui/pagination";
 import { getLimitedProducts } from "@/lib/actions/shopify/index";
 import { getAllBlogPosts, getBlogByHandle, getPaginatedBlogPostsByHandle } from "@/lib/api/shopify/actions";

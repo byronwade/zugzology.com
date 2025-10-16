@@ -45,9 +45,9 @@ export const BRAND = {
 
 	// Brand colors
 	colors: {
-		primary: "#7c3aed", // Purple
-		secondary: "#06b6d4", // Cyan
-		accent: "#10b981", // Green
+		primary: "#2A6592", // Psilocybin Blue
+		secondary: "#C18A3C", // Golden Cap
+		accent: "#EDEBE3", // Mycelium White
 	},
 
 	// Founder information

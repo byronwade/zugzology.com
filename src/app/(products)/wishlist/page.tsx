@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import Script from "next/script";
-import { UniversalBreadcrumb } from "@/components/layout/universal-breadcrumb";
+import { Suspense } from "react";
 import { ProgressiveSectionsManager } from "@/components/features/products/sections/progressive-sections-manager";
+import { UniversalBreadcrumb } from "@/components/layout/universal-breadcrumb";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ProductCardSkeleton } from "@/components/ui/skeletons/product-card-skeleton";
 import { getEnhancedBreadcrumbSchema, getSearchActionSchema } from "@/lib/seo/enhanced-jsonld";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 import type { ShopifyProduct } from "@/lib/types";
@@ -128,28 +130,35 @@ export default function WishlistPage() {
 				<WishlistContent />
 
 				{/* Product Recommendations Sections */}
-				<div className="border-t bg-muted/20">
-					<div className="container mx-auto px-4 py-16">
-						<Suspense
-							fallback={
-								<div className="py-12">
-									<div className="mx-auto mb-4 h-8 w-48 animate-pulse rounded bg-muted" />
-									<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-										{Array.from({ length: 5 }).map((_, i) => (
-											<div className="space-y-3" key={i}>
-												<div className="aspect-square animate-pulse rounded-xl bg-muted" />
-												<div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
-												<div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
-											</div>
-										))}
-									</div>
+				<Suspense
+					fallback={
+						<section className="w-full bg-background">
+							<div className="container mx-auto px-4 py-8 sm:py-12">
+								<div className="mb-8 flex flex-col gap-4 sm:mb-10">
+									<Skeleton className="h-9 w-48 sm:h-10" />
 								</div>
-							}
-						>
-							<ProgressiveSectionsManager product={placeholderProduct} relatedProducts={[]} />
-						</Suspense>
-					</div>
-				</div>
+
+								{/* Mobile: List view */}
+								<div className="flex flex-col gap-0 sm:hidden">
+									{Array.from({ length: 5 }).map((_, i) => (
+										<ProductCardSkeleton key={i} view="list" />
+									))}
+								</div>
+
+								{/* Desktop: Grid view */}
+								<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+									{Array.from({ length: 5 }).map((_, i) => (
+										<div className="group relative" key={i}>
+											<ProductCardSkeleton view="grid" />
+										</div>
+									))}
+								</div>
+							</div>
+						</section>
+					}
+				>
+					<ProgressiveSectionsManager product={placeholderProduct} relatedProducts={[]} />
+				</Suspense>
 			</div>
 		</>
 	);

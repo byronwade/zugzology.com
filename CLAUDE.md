@@ -74,6 +74,7 @@ See `.env.example` for the complete list of optional configuration variables (an
     /(content)                   # Public content (route group)
       /blogs/[blog]/[slug]/      # Blog post pages
       /blogs/[blog]/             # Blog listing
+      /pages/[handle]/           # Dynamic Shopify pages with metaobject sections
     /(products)                  # E-commerce routes (route group)
       /cart/                     # Shopping cart
       /collections/[handle]/     # Collection pages
@@ -132,6 +133,8 @@ See `.env.example` for the complete list of optional configuration variables (an
         product.ts
         collection.ts
         header.ts
+        page.ts                  # Page queries for dynamic pages
+      page-actions.ts            # Page data fetchers with metaobject parsing
     /auth/                       # Authentication utilities
     /config/                     # App configuration
     /utils/                      # General utilities
@@ -269,11 +272,22 @@ export function InteractiveComponent() {
 ```
 
 **Sections Pattern for Complex Pages:**
-Product pages use a sections pattern where each section is a separate component:
+Product pages and dynamic pages use a sections pattern where each section is a separate component:
+
+**Product Sections:**
 - `components/features/products/sections/product-info.tsx`
 - `components/features/products/sections/product-gallery.tsx`
 - `components/features/products/sections/product-actions.tsx`
 - `components/features/products/sections/related-products.tsx`
+
+**Dynamic Page Sections:**
+- `components/features/pages/page-renderer.tsx` - Server component orchestrator
+- `components/features/pages/section-renderer.tsx` - Client component router
+- `components/features/pages/sections/hero-section.tsx` - Hero with 3 layout variants
+- `components/features/pages/sections/content-block-section.tsx` - Rich content blocks
+- `components/features/pages/sections/product-carousel-section.tsx` - Product showcases
+- `components/features/pages/sections/cta-banner-section.tsx` - Call-to-action banners
+- `components/features/pages/sections/feature-grid-section.tsx` - Feature grids (2-4 columns)
 
 This allows for better code organization and independent optimization of each section.
 
@@ -548,6 +562,61 @@ The provider enforces PKCE and state checks as required by Shopify's OAuth imple
 - **Linting errors:** Run `npm run lint:fix` to auto-fix formatting issues
 - **Image optimization errors:** Ensure image domains are in `next.config.ts` remotePatterns
 
+## Dynamic Page Builder System
+
+The application includes a powerful dynamic page builder that allows merchants to create custom pages in Shopify Admin with flexible section-based layouts.
+
+### Architecture
+
+**Route:** `/pages/[handle]`
+**Rendering:** Server Components with ISR (5-minute revalidation)
+**Static Generation:** Top 100 pages prerendered at build time
+
+### Key Features
+
+1. **Metaobject-Based Sections:** Pages are composed of reusable section metaobjects defined in Shopify Admin
+2. **8 Section Types:** Hero, Content, Products, CTA, Features, Testimonials, Gallery, Video
+3. **Layout Variants:** Full-width, contained, and split layouts
+4. **Theme Support:** Default, dark, and accent color themes
+5. **Type-Safe:** Complete TypeScript definitions for all section types
+6. **Performance Optimized:** Code splitting, suspense boundaries, image optimization
+
+### Data Flow
+
+```
+Shopify Admin → Metaobjects → Page Metafields → GraphQL Query → Parser → TypeScript Types → React Components
+```
+
+### Components
+
+- **PageRenderer (Server):** Orchestrates layout and sections with Suspense boundaries
+- **SectionRenderer (Client):** Routes sections to appropriate components with code splitting
+- **Section Components:** Individual section implementations with variants and themes
+
+### Configuration
+
+Pages are configured in Shopify Admin via metafields:
+- `custom.sections` - List of metaobject references (ordered)
+- `custom.layout` - Layout variant: "full-width" | "contained" | "split"
+- `custom.theme` - Theme: "default" | "dark" | "accent"
+
+### Setup Documentation
+
+Complete setup instructions available in `docs/SHOPIFY_PAGE_BUILDER_SETUP.md`:
+- Creating metaobject definitions
+- Configuring page metafields
+- Building section entries
+- Creating pages with sections
+- Extending with custom sections
+
+### Extending the System
+
+To add new section types:
+1. Define TypeScript types in `lib/types.ts`
+2. Create section component in `components/features/pages/sections/`
+3. Register in `section-renderer.tsx`
+4. Create metaobject definition in Shopify Admin
+
 ## Recent System Improvements
 
 **Resolved Issues:**
@@ -558,9 +627,13 @@ The provider enforces PKCE and state checks as required by Shopify's OAuth imple
 - ✅ Updated pages to use real Shopify API data instead of mock data
 - ✅ Optimized data fetching patterns and caching strategies
 - ✅ All accessibility warnings resolved
+- ✅ Implemented dynamic page builder with Shopify metaobjects
+- ✅ All page links dynamically loaded from Shopify in footer/navigation
 
 **Performance Enhancements:**
 - Image optimization with proper `sizes` attributes
 - Memory cache cleanup with automatic garbage collection
 - Request deduplication to prevent duplicate API calls
 - Proper fallback systems for missing data
+- Dynamic imports for page sections with code splitting
+- ISR with intelligent caching for dynamic pages

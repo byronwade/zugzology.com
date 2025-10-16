@@ -68,7 +68,7 @@ export function NewsletterSection() {
 									value={email}
 								/>
 								<button
-									className="bg-card px-8 py-3 font-bold text-foreground uppercase transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+									className="bg-primary px-8 py-3 font-bold text-primary-foreground uppercase transition-all duration-200 hover:bg-primary/90 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
 									disabled={status === "loading"}
 									type="submit"
 								>

@@ -1,7 +1,7 @@
-import { Link } from "@/components/ui/link";
 import { ProductCard } from "@/components/features/products/product-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import type { ShopifyProduct } from "@/lib/types";
 
 type SaleProductsProps = {
@@ -31,7 +31,28 @@ export function SaleProducts({ products }: SaleProductsProps) {
 					</Button>
 				</div>
 
-				<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+				{/* Mobile: List view */}
+				<div className="flex flex-col gap-0 sm:hidden">
+					{products.map((product) => {
+						const variant = product.variants.nodes[0];
+						if (!variant) {
+							return null;
+						}
+
+						return (
+							<ProductCard
+								key={product.id}
+								product={product}
+								quantity={variant.quantityAvailable}
+								variantId={variant.id}
+								view="list"
+							/>
+						);
+					})}
+				</div>
+
+				{/* Desktop: Grid view */}
+				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 					{products.map((product) => {
 						const variant = product.variants.nodes[0];
 						if (!variant) {

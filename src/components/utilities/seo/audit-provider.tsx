@@ -31,31 +31,34 @@ export function AuditProvider({ children }: AuditProviderProps) {
 	const [globalReport, setGlobalReport] = useState<SEOAuditReport | null>(null);
 	const [isAuditing, setIsAuditing] = useState(false);
 
-	const auditPage = useCallback(async (pageType: string) => {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		setIsAuditing(true);
-
-		try {
-			// Wait for page to be fully loaded
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-
-			const result = globalSEOAudit.auditPage(pathname, pageType, document);
-			setCurrentPageAudit(result);
-
-			// Update global report
-			const report = globalSEOAudit.generateReport();
-			setGlobalReport(report);
-
-			if (process.env.NODE_ENV === "development") {
+	const auditPage = useCallback(
+		async (pageType: string) => {
+			if (typeof window === "undefined") {
+				return;
 			}
-		} catch (_error) {
-		} finally {
-			setIsAuditing(false);
-		}
-	}, [pathname]);
+
+			setIsAuditing(true);
+
+			try {
+				// Wait for page to be fully loaded
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+
+				const result = globalSEOAudit.auditPage(pathname, pageType, document);
+				setCurrentPageAudit(result);
+
+				// Update global report
+				const report = globalSEOAudit.generateReport();
+				setGlobalReport(report);
+
+				if (process.env.NODE_ENV === "development") {
+				}
+			} catch (_error) {
+			} finally {
+				setIsAuditing(false);
+			}
+		},
+		[pathname]
+	);
 
 	// Auto-audit pages in development
 	useEffect(() => {

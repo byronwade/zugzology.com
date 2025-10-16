@@ -1,17 +1,19 @@
 import { Suspense } from "react";
-import type { ShopifyProduct } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ProductCardSkeleton } from "@/components/ui/skeletons/product-card-skeleton";
+import type { ProductSection } from "@/lib/api/shopify/product-sections";
 import {
 	getBestSellers,
-	getSaleProducts,
+	getCollectionProducts,
+	getFeaturedCollections,
 	getLatestProducts,
+	getRandomProducts,
+	getSaleProducts,
 	getSameCategoryProducts,
 	getSimilarTagProducts,
-	getFeaturedCollections,
-	getCollectionProducts,
-	getRandomProducts,
 } from "@/lib/api/shopify/product-sections";
+import type { ShopifyProduct } from "@/lib/types";
 import { ProductSectionsRenderer } from "./product-sections-renderer";
-import type { ProductSection } from "@/lib/api/shopify/product-sections";
 
 type SectionLoaderProps = {
 	product: ShopifyProduct;
@@ -32,17 +34,33 @@ type SectionLoaderProps = {
 // Single section loading skeleton
 function SectionLoadingSkeleton() {
 	return (
-		<div className="w-full">
-			<div className="mb-8 space-y-2">
-				<div className="h-8 w-64 animate-pulse rounded bg-muted" />
-				<div className="h-4 w-96 animate-pulse rounded bg-muted" />
+		<section className="w-full">
+			<div className="container mx-auto px-4 py-8 sm:py-12">
+				<div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+					<div>
+						<Skeleton className="mb-2 h-9 w-48 sm:h-10" />
+						<Skeleton className="h-5 w-full max-w-2xl" />
+					</div>
+					<Skeleton className="h-10 w-40 rounded-lg" />
+				</div>
+
+				{/* Mobile: List view */}
+				<div className="flex flex-col gap-0 sm:hidden">
+					{[...new Array(5)].map((_, j) => (
+						<ProductCardSkeleton key={j} view="list" />
+					))}
+				</div>
+
+				{/* Desktop: Grid view */}
+				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+					{[...new Array(5)].map((_, j) => (
+						<div className="group relative" key={j}>
+							<ProductCardSkeleton view="grid" />
+						</div>
+					))}
+				</div>
 			</div>
-			<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-				{[...Array(5)].map((_, j) => (
-					<div className="aspect-square w-full animate-pulse rounded-lg bg-muted" key={j} />
-				))}
-			</div>
-		</div>
+		</section>
 	);
 }
 
@@ -187,8 +205,7 @@ async function SectionContent({ product, relatedProducts, sectionType, priority 
 				break;
 			}
 		}
-	} catch (error) {
-		console.error(`Error loading section ${sectionType}:`, error);
+	} catch (_error) {
 		return null;
 	}
 

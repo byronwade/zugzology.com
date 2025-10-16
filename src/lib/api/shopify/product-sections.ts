@@ -5,11 +5,11 @@ import type { ShopifyCollection, ShopifyProduct } from "@/lib/types";
 import { getAllCollections } from "./actions";
 import {
 	getCachedBestSellers,
-	getCachedSaleProducts,
 	getCachedLatestProducts,
+	getCachedRandomProducts,
+	getCachedSaleProducts,
 	getCachedSameCategoryProducts,
 	getCachedSimilarTagProducts,
-	getCachedRandomProducts,
 } from "./product-cache";
 
 /**
@@ -74,9 +74,7 @@ export const getSimilarTagProducts = async (
 export const getFeaturedCollections = cache(async (limit = 4): Promise<ShopifyCollection[]> => {
 	try {
 		const collections = await getAllCollections();
-		return collections
-			.filter((c) => c.products?.nodes && c.products.nodes.length > 0)
-			.slice(0, limit);
+		return collections.filter((c) => c.products?.nodes && c.products.nodes.length > 0).slice(0, limit);
 	} catch {
 		return [];
 	}
@@ -85,17 +83,19 @@ export const getFeaturedCollections = cache(async (limit = 4): Promise<ShopifyCo
 // Get products from a specific collection (kept with cache wrapper for now)
 export const getCollectionProducts = cache(
 	async (collectionHandle: string, currentProductId: string, limit = 8): Promise<ShopifyProduct[]> => {
-		if (!collectionHandle) return [];
+		if (!collectionHandle) {
+			return [];
+		}
 
 		try {
 			const collections = await getAllCollections();
 			const collection = collections.find((c) => c.handle === collectionHandle);
 
-			if (!collection?.products?.nodes) return [];
+			if (!collection?.products?.nodes) {
+				return [];
+			}
 
-			return collection.products.nodes
-				.filter((p) => p.id !== currentProductId)
-				.slice(0, limit);
+			return collection.products.nodes.filter((p) => p.id !== currentProductId).slice(0, limit);
 		} catch {
 			return [];
 		}

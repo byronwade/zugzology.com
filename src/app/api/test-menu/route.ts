@@ -3,9 +3,7 @@ import { getMenu } from "@/lib/api/shopify/actions";
 
 export async function GET() {
 	try {
-		console.log("Testing menu fetch...");
 		const menuItems = await getMenu("main-menu");
-		console.log("Menu items:", JSON.stringify(menuItems, null, 2));
 
 		return NextResponse.json({
 			success: true,
@@ -13,10 +11,12 @@ export async function GET() {
 			count: menuItems.length,
 		});
 	} catch (error) {
-		console.error("Error fetching menu:", error);
-		return NextResponse.json({
-			success: false,
-			error: error instanceof Error ? error.message : "Unknown error",
-		}, { status: 500 });
+		return NextResponse.json(
+			{
+				success: false,
+				error: error instanceof Error ? error.message : "Unknown error",
+			},
+			{ status: 500 }
+		);
 	}
 }

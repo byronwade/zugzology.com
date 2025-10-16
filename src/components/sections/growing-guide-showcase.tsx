@@ -1,9 +1,9 @@
 import { ArrowRight, BookOpen, Leaf, Microscope, Sprout } from "lucide-react";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { ProductCard } from "@/components/features/products/product-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import type { ShopifyProduct } from "@/lib/types";
 
 type GrowingGuideShowcaseProps = {
@@ -84,7 +84,13 @@ export function GrowingGuideShowcase({ relatedProducts }: GrowingGuideShowcasePr
 								key={guide.id}
 							>
 								<div className="relative aspect-[4/3]">
-									<Image alt={guide.title} className="object-cover" fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" src={guide.image} />
+									<Image
+										alt={guide.title}
+										className="object-cover"
+										fill
+										sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+										src={guide.image}
+									/>
 									<div className={`absolute inset-0 bg-gradient-to-t ${guide.difficulty.color}`} />
 								</div>
 								<div className="p-6">

@@ -14,7 +14,7 @@
 
 export type PrefetchPriority = "high" | "low" | "auto";
 
-export interface PrefetchOptions {
+export type PrefetchOptions = {
 	/** Priority level for the prefetch request */
 	priority?: PrefetchPriority;
 	/** Timeout in milliseconds before giving up */
@@ -25,9 +25,9 @@ export interface PrefetchOptions {
 	retryDelay?: number;
 	/** Force prefetch even if already cached */
 	force?: boolean;
-}
+};
 
-export interface CacheStatus {
+export type CacheStatus = {
 	/** Number of successfully cached images */
 	cached: number;
 	/** Number of images currently being prefetched */
@@ -36,9 +36,9 @@ export interface CacheStatus {
 	failed: number;
 	/** Total size of cached images in bytes (estimated) */
 	estimatedSize: number;
-}
+};
 
-export interface PrefetchResult {
+export type PrefetchResult = {
 	/** The URL that was prefetched */
 	url: string;
 	/** Whether the prefetch was successful */
@@ -49,7 +49,7 @@ export interface PrefetchResult {
 	duration?: number;
 	/** Whether the image was already cached */
 	wasAlreadyCached: boolean;
-}
+};
 
 // Global caches
 const imageCache = new Set<string>();
@@ -98,17 +98,8 @@ function cleanupCache(): void {
 /**
  * Prefetch a single image
  */
-async function prefetchSingleImage(
-	url: string,
-	options: PrefetchOptions = {}
-): Promise<PrefetchResult> {
-	const {
-		priority = "auto",
-		timeout = 10000,
-		retries = 1,
-		retryDelay = 1000,
-		force = false,
-	} = options;
+async function prefetchSingleImage(url: string, options: PrefetchOptions = {}): Promise<PrefetchResult> {
+	const { priority = "auto", timeout = 10_000, retries = 1, retryDelay = 1000, force = false } = options;
 
 	const startTime = performance.now();
 
@@ -152,7 +143,7 @@ async function prefetchSingleImage(
 
 				const response = await fetch(url, {
 					method: "GET",
-					// @ts-ignore - fetchpriority is not in TS types yet
+					// @ts-expect-error - fetchpriority is not in TS types yet
 					priority: priority === "high" ? "high" : "low",
 					signal: controller.signal,
 					mode: "no-cors", // Allow cross-origin images
@@ -249,9 +240,7 @@ class ImagePrefetcher {
 		}
 
 		// Prefetch all images in parallel
-		const results = await Promise.allSettled(
-			validUrls.map((url) => prefetchSingleImage(url, options))
-		);
+		const results = await Promise.allSettled(validUrls.map((url) => prefetchSingleImage(url, options)));
 
 		return results.map((result, index) => {
 			if (result.status === "fulfilled") {

@@ -606,41 +606,41 @@ export function ProductGallery({
 					{validMedia.length > 1 && (
 						<div className="hidden max-h-[calc(100vh-200px)] flex-col gap-2 overflow-y-auto p-1 md:flex">
 							{validMedia.map((media, index) => {
-							let thumbnailUrl = "";
-							let altText = media.alt || title;
+								let thumbnailUrl = "";
+								let altText = media.alt || title;
 
-							if (isMediaImage(media)) {
-								thumbnailUrl = media.image.url;
-								altText = media.image.altText ?? title;
-							} else if (media.previewImage) {
-								thumbnailUrl = media.previewImage.url;
-								altText = media.previewImage.altText ?? title;
-							}
+								if (isMediaImage(media)) {
+									thumbnailUrl = media.image.url;
+									altText = media.image.altText ?? title;
+								} else if (media.previewImage) {
+									thumbnailUrl = media.previewImage.url;
+									altText = media.previewImage.altText ?? title;
+								}
 
-							if (!thumbnailUrl) {
-								return null;
-							}
+								if (!thumbnailUrl) {
+									return null;
+								}
 
-							return (
-								<button
-									className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border bg-muted ${selectedMediaIndex === index ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/50"}`}
-									key={media.id}
-									onClick={() => setSelectedMediaIndex(index)}
-								>
-									<Image alt={altText} className="object-cover" fill sizes="64px" src={thumbnailUrl} />
-									{(isMediaVideo(media) || isExternalVideo(media)) && (
-										<div className="absolute inset-0 flex items-center justify-center bg-black/30">
-											<Play className="h-4 w-4 text-white" />
-										</div>
-									)}
-									{isModel3d(media) && (
-										<div className="absolute inset-0 flex items-center justify-center bg-black/30">
-											<span className="font-medium text-white text-xs">3D</span>
-										</div>
-									)}
-								</button>
-							);
-						})}
+								return (
+									<button
+										className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border bg-muted ${selectedMediaIndex === index ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/50"}`}
+										key={media.id}
+										onClick={() => setSelectedMediaIndex(index)}
+									>
+										<Image alt={altText} className="object-cover" fill sizes="64px" src={thumbnailUrl} />
+										{(isMediaVideo(media) || isExternalVideo(media)) && (
+											<div className="absolute inset-0 flex items-center justify-center bg-black/30">
+												<Play className="h-4 w-4 text-white" />
+											</div>
+										)}
+										{isModel3d(media) && (
+											<div className="absolute inset-0 flex items-center justify-center bg-black/30">
+												<span className="font-medium text-white text-xs">3D</span>
+											</div>
+										)}
+									</button>
+								);
+							})}
 						</div>
 					)}
 
@@ -733,46 +733,45 @@ export function ProductGallery({
 					<div className="-mx-4 md:hidden">
 						<div className="scrollbar-hide flex gap-3 overflow-x-auto py-2 pl-4">
 							{validMedia.map((media, index) => {
-							let thumbnailUrl = "";
-							let altText = media.alt || title;
+								let thumbnailUrl = "";
+								let altText = media.alt || title;
 
-							if (isMediaImage(media)) {
-								thumbnailUrl = media.image.url;
-								altText = media.image.altText ?? title;
-							} else if (media.previewImage) {
-								thumbnailUrl = media.previewImage.url;
-								altText = media.previewImage.altText ?? title;
-							}
+								if (isMediaImage(media)) {
+									thumbnailUrl = media.image.url;
+									altText = media.image.altText ?? title;
+								} else if (media.previewImage) {
+									thumbnailUrl = media.previewImage.url;
+									altText = media.previewImage.altText ?? title;
+								}
 
-							if (!thumbnailUrl) {
-								return null;
-							}
+								if (!thumbnailUrl) {
+									return null;
+								}
 
-							return (
-								<button
-									className={`relative aspect-square w-[70px] flex-shrink-0 overflow-hidden rounded-lg bg-muted ${selectedMediaIndex === index ? "ring-2 ring-primary ring-offset-2" : "hover:ring-2 hover:ring-primary/50"}`}
-									key={media.id}
-									onClick={() => setSelectedMediaIndex(index)}
-								>
-									<Image alt={altText} className="object-cover" fill sizes="70px" src={thumbnailUrl} />
-									{(isMediaVideo(media) || isExternalVideo(media)) && (
-										<div className="absolute inset-0 flex items-center justify-center bg-black/30">
-											<Play className="h-4 w-4 text-white" />
-										</div>
-									)}
-									{isModel3d(media) && (
-										<div className="absolute inset-0 flex items-center justify-center bg-black/30">
-											<span className="font-medium text-white text-xs">3D</span>
-										</div>
-									)}
-								</button>
-							);
-						})}
+								return (
+									<button
+										className={`relative aspect-square w-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted ${selectedMediaIndex === index ? "ring-2 ring-primary ring-offset-2" : "hover:ring-2 hover:ring-primary/50"}`}
+										key={media.id}
+										onClick={() => setSelectedMediaIndex(index)}
+									>
+										<Image alt={altText} className="object-cover" fill sizes="80px" src={thumbnailUrl} />
+										{(isMediaVideo(media) || isExternalVideo(media)) && (
+											<div className="absolute inset-0 flex items-center justify-center bg-black/30">
+												<Play className="h-4 w-4 text-white" />
+											</div>
+										)}
+										{isModel3d(media) && (
+											<div className="absolute inset-0 flex items-center justify-center bg-black/30">
+												<span className="font-medium text-white text-xs">3D</span>
+											</div>
+										)}
+									</button>
+								);
+							})}
 							<div aria-hidden="true" className="w-4 flex-shrink-0" />
 						</div>
 					</div>
 				)}
-
 			</div>
 		</>
 	);

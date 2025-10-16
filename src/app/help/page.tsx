@@ -1,6 +1,5 @@
 import { ArrowRight, CreditCard, Mail, MessageSquare, Phone, RotateCcw, ShoppingBag, Truck } from "lucide-react";
 import type { Metadata } from "next";
-import { Link } from "@/components/ui/link";
 import Script from "next/script";
 import { Suspense } from "react";
 import { UniversalBreadcrumb } from "@/components/layout/universal-breadcrumb";

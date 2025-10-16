@@ -1,4 +1,4 @@
-import { type RefObject } from "react";
+import type { RefObject } from "react";
 import { cn } from "@/lib/utils";
 import { PrefetchLink, type PrefetchLinkProps } from "./prefetch-link";
 

@@ -88,10 +88,10 @@ export function CompoundProviders({ children }: CompoundProvidersProps) {
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"
-					enableSystem
 					disableTransitionOnChange
-					storageKey="theme-preference"
 					enableColorScheme={false}
+					enableSystem
+					storageKey="theme-preference"
 				>
 					<TooltipProvider>
 						<Suspense fallback={null}>

@@ -1,8 +1,8 @@
 "use client";
 
 import { ArrowRight, ChevronDown, Sprout } from "lucide-react";
-import { Link } from "@/components/ui/link";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { ShopifyBlog } from "@/lib/types";
 
@@ -23,7 +23,7 @@ export function LearnAndGrowMenuFixed({ blogs }: LearnAndGrowMenuFixedProps) {
 		<Popover>
 			<PopoverTrigger asChild>
 				<Button
-					className="flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 font-medium text-muted-foreground text-xs transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
+					className="flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 font-medium text-muted-foreground text-xs transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0"
 					size="sm"
 					variant="ghost"
 				>

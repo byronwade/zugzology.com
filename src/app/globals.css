@@ -89,59 +89,61 @@ body {
 
 @layer base {
 	:root {
-		/* Improved Teal/Cyan Theme - Softer Light Mode */
-		--primary: 174 60% 45%;
-		/* Reduced saturation for easier viewing */
-		--primary-foreground: 0 0% 100%;
+		/* Zugzology Mushroom Theme - Light Mode */
+		--primary: 206 55 37;
+		/* Psilocybin Blue - professional, trustworthy */
+		--primary-foreground: 0 0 100;
 
-		--secondary: 174 20% 94%;
-		--secondary-foreground: 174 60% 35%;
+		--secondary: 206 20 85;
+		/* Light blue-gray - professional and clean */
+		--secondary-foreground: 8 10 16;
 
-		--accent: 174 20% 94%;
-		--accent-foreground: 174 60% 35%;
-		--background: 174 15% 98%;
-		/* Soft teal-tinted off-white */
-		--foreground: 0 0% 0%;
-		/* Pure black for maximum contrast */
+		--accent: 48 20 90;
+		/* Neutral muted color - no brown/golden tones */
+		--accent-foreground: 8 10 16;
+		--background: 48 26 96;
+		/* Mycelium White - natural, clean base */
+		--foreground: 8 10 16;
+		/* Dark Heather Grey - grounded, sophisticated text */
 
-		--card: 0 0% 100%;
-		/* White cards for contrast against background */
-		--card-foreground: 0 0% 0%;
-		/* Pure black text on white cards */
+		--card: 0 0 100;
+		/* Pure white cards for contrast */
+		--card-foreground: 8 10 16;
+		/* Dark Heather Grey text on white cards */
 
-		--popover: 0 0% 100%;
-		--popover-foreground: 0 0% 0%;
-		/* Pure black for readability */
-		--muted: 174 12% 95%;
-		/* Subtle teal tint */
-		--muted-foreground: 0 0% 35%;
-		/* Neutral gray for secondary text */
+		--popover: 0 0 100;
+		--popover-foreground: 8 10 16;
+		/* Dark Heather Grey for readability */
+		--muted: 48 20 90;
+		/* Muted Mycelium - subtle backgrounds */
+		--muted-foreground: 8 8 35;
+		/* Medium heather grey for secondary text */
 
-		--destructive: 0 84.2% 60.2%;
-		--destructive-foreground: 0 0% 98%;
+		--destructive: 0 84.2 60.2;
+		--destructive-foreground: 0 0 98;
 
-		--border: 174 12% 88%;
-		/* More visible, teal-tinted */
-		--input: 174 12% 88%;
-		--ring: 174 60% 45%;
+		--border: 48 20 85;
+		/* Mycelium border - subtle definition */
+		--input: 48 20 85;
+		--ring: 206 55 37;
 		--radius: 0.5rem;
-		/* Chart colors */
-		--chart-1: 174 86% 46%;
-		--chart-2: 174 86% 60%;
-		--chart-3: 174 86% 75%;
-		--chart-4: 174 70% 40%;
-		--chart-5: 174 70% 55%;
+		/* Chart colors - Professional blue palette */
+		--chart-1: 206 55 37;
+		--chart-2: 206 60 55;
+		--chart-3: 206 45 60;
+		--chart-4: 206 35 45;
+		--chart-5: 206 40 28;
 
 		/* Sidebar colors */
-		--sidebar-background: 0 0% 100%;
-		--sidebar-foreground: 0 0% 0%;
-		/* Pure black for sidebar text */
-		--sidebar-primary: 174 60% 45%;
-		--sidebar-primary-foreground: 0 0% 100%;
-		--sidebar-accent: 174 20% 94%;
-		--sidebar-accent-foreground: 174 60% 35%;
-		--sidebar-border: 174 12% 88%;
-		--sidebar-ring: 174 60% 45%;
+		--sidebar-background: 0 0 100;
+		--sidebar-foreground: 8 10 16;
+		/* Dark Heather Grey for sidebar text */
+		--sidebar-primary: 206 55 37;
+		--sidebar-primary-foreground: 0 0 100;
+		--sidebar-accent: 206 20 85;
+		--sidebar-accent-foreground: 8 10 16;
+		--sidebar-border: 48 20 85;
+		--sidebar-ring: 206 55 37;
 		--header-top-height: 60px;
 		--header-nav-height: 40px;
 		--header-height: calc(var(--header-top-height) + var(--header-nav-height));
@@ -149,50 +151,57 @@ body {
 		--removed-body-scroll-bar-size: 0px;
 	}
 	.dark {
-		--primary: 174 86% 65%;
-		/* Lighter Teal for dark mode */
-		--primary-foreground: 0 0% 0%;
+		--primary: 206 55 37;
+		/* Psilocybin Blue - same brand color in both modes */
+		--primary-foreground: 0 0 100;
 
-		--secondary: 174 30% 20%;
-		--secondary-foreground: 0 0% 98%;
+		--secondary: 206 15 25;
+		/* Dark blue-gray - professional and clean */
+		--secondary-foreground: 48 26 91;
 
-		--accent: 174 30% 20%;
-		--accent-foreground: 0 0% 98%;
-		--background: 240 10% 3.9%;
-		--foreground: 0 0% 98%;
+		--accent: 8 8 18;
+		/* Neutral dark muted - no brown/golden tones */
+		--accent-foreground: 48 26 91;
+		--background: 8 8 10;
+		/* Deep Heather Grey - cultivation chamber aesthetic */
+		--foreground: 48 26 91;
+		/* Mycelium White for readability */
 
-		--card: 240 10% 3.9%;
-		--card-foreground: 0 0% 98%;
+		--card: 8 8 13;
+		/* Slightly lighter dark heather grey */
+		--card-foreground: 48 26 91;
 
-		--popover: 240 10% 3.9%;
-		--popover-foreground: 0 0% 98%;
+		--popover: 8 8 13;
+		--popover-foreground: 48 26 91;
 
-		--muted: 240 3.7% 15.9%;
-		--muted-foreground: 240 5% 64.9%;
+		--muted: 8 8 18;
+		/* Dark muted heather grey */
+		--muted-foreground: 48 15 65;
 
-		--destructive: 0 62.8% 30.6%;
-		--destructive-foreground: 0 0% 98%;
+		--destructive: 0 62.8 30.6;
+		--destructive-foreground: 0 0 98;
 
-		--border: 240 3.7% 15.9%;
-		--input: 240 3.7% 15.9%;
-		--ring: 174 86% 65%;
+		--border: 8 8 20;
+		/* Dark heather grey border */
+		--input: 8 8 20;
+		--ring: 206 55 37;
 
-		/* Chart colors */
-		--chart-1: 174 86% 65%;
-		--chart-2: 174 86% 75%;
-		--chart-3: 174 86% 50%;
-		--chart-4: 174 70% 60%;
-		--chart-5: 174 70% 70%;
+		/* Chart colors - Professional blue palette for dark mode */
+		--chart-1: 206 55 37;
+		--chart-2: 206 55 45;
+		--chart-3: 206 50 60;
+		--chart-4: 206 45 50;
+		--chart-5: 206 55 45;
 
 		/* Sidebar colors */
-		--sidebar-background: 240 10% 3.9%;
-		--sidebar-foreground: 0 0% 98%;
-		--sidebar-primary: 174 86% 65%;
-		--sidebar-primary-foreground: 0 0% 0%;
-		--sidebar-accent: 174 30% 20%;
-		--sidebar-accent-foreground: 0 0% 98%;
-		--sidebar-border: 240 3.7% 15.9%;
-		--sidebar-ring: 174 86% 65%;
+		--sidebar-background: 8 8 10;
+		--sidebar-foreground: 48 26 91;
+		--sidebar-primary: 206 55 37;
+		--sidebar-primary-foreground: 0 0 100;
+		--sidebar-accent: 206 15 25;
+		--sidebar-accent-foreground: 48 26 91;
+		--sidebar-border: 8 8 20;
+		--sidebar-ring: 206 55 37;
 	}
 	/* Prevent layout shift when scrollbar appears/disappears */
 	html {
@@ -224,6 +233,28 @@ body {
 		font-feature-settings:
 			"rlig" 1,
 			"calt" 1;
+	}
+
+	/* Respect user's motion preferences for accessibility */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+
+		/* Disable specific animations */
+		.animate-shimmer,
+		.animate-float,
+		.animate-tilt-3d,
+		.animate-glow-pulse,
+		.animate-slide-up-fade,
+		.animate-scale-in {
+			animation: none !important;
+		}
 	}
 	/* Prevent iOS keyboard from popping up on sheet open */
 	[data-no-focus="true"] * {
@@ -376,7 +407,7 @@ h6[id] {
 	left: -1.5rem;
 	opacity: 0.5;
 	font-weight: normal;
-	color: #10D9C4;
+	color: #2a6592;
 }
 
 /* Optimize TOC for mobile */
@@ -478,9 +509,9 @@ html.scrolling {
 	--reading-max-width: 65ch;
 	--reading-line-height: 1.7;
 	--reading-font-size: 1.1rem;
-	--reading-background: hsl(40 33% 98%);
-	--reading-text: hsl(40 10% 20%);
-	--reading-border: hsl(40 20% 90%);
+	--reading-background: hsl(48 26 96);
+	--reading-text: hsl(8 10 18);
+	--reading-border: hsl(48 20 85);
 }
 
 .reading-mode body {
@@ -546,9 +577,9 @@ html.scrolling {
 
 /* Dark mode reading styles */
 .dark .reading-mode {
-	--reading-background: hsl(220 20% 10%);
-	--reading-text: hsl(220 20% 90%);
-	--reading-border: hsl(220 20% 20%);
+	--reading-background: hsl(8 8 10);
+	--reading-text: hsl(48 26 91);
+	--reading-border: hsl(8 8 18);
 }
 
 /* Responsive adjustments */
@@ -576,9 +607,9 @@ html.scrolling {
 }
 
 .dark .reading-overlay {
-	--reading-background: hsl(220 20% 10%);
-	--reading-text: hsl(220 20% 90%);
-	--reading-secondary: hsl(220 20% 70%);
+	--reading-background: hsl(8 8 10);
+	--reading-text: hsl(48 26 91);
+	--reading-secondary: hsl(48 15 70);
 }
 
 .reading-overlay article {
@@ -620,7 +651,7 @@ html.scrolling {
 }
 
 .reading-overlay article pre {
-	background: hsl(220 20% 95%);
+	background: hsl(48 20 95);
 	padding: 1em;
 	border-radius: 0.5rem;
 	overflow-x: auto;
@@ -628,7 +659,7 @@ html.scrolling {
 }
 
 .dark .reading-overlay article pre {
-	background: hsl(220 20% 15%);
+	background: hsl(8 8 15);
 }
 
 .reading-overlay article code {
@@ -637,14 +668,14 @@ html.scrolling {
 }
 
 .reading-overlay article a {
-	color: hsl(174 86% 46%);
+	color: hsl(206 55 37);
 	text-decoration: underline;
 	text-decoration-thickness: 1px;
 	text-underline-offset: 2px;
 }
 
 .dark .reading-overlay article a {
-	color: hsl(174 86% 65%);
+	color: hsl(206 55 37);
 }
 
 /* Smooth transition for reading mode */

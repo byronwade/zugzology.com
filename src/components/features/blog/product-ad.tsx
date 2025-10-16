@@ -2,12 +2,12 @@
 
 import { Loader2, ShoppingCart } from "lucide-react";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCart } from "@/components/providers/cart-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import type { ShopifyImage, ShopifyProduct, ShopifyProductVariant } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 
@@ -124,7 +124,7 @@ export function ProductAd({ products }: ProductAdProps) {
 				return (
 					<div className="group" key={product.id}>
 						<Link
-							className="flex gap-3 rounded-lg p-2 transition-colors hover:bg-accent/50"
+							className="flex gap-3 rounded-lg p-2 transition-all duration-200 hover:bg-primary/5 hover:shadow-sm"
 							href={`/products/${product.handle}`}
 						>
 							{/* Product Image */}

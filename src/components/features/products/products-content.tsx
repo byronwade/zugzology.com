@@ -1,7 +1,7 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { ProductList } from "@/components/features/products/product-list";
 import { ProductsHeader } from "@/components/features/products/products-header";
 import { useSearch } from "@/components/providers";
@@ -143,7 +143,9 @@ export const ProductsContent = React.memo(function ProductsContent({
 	// Handle page changes
 	const handlePageChange = useCallback(
 		(page: number) => {
-			if (page === currentPage) return;
+			if (page === currentPage) {
+				return;
+			}
 
 			const params = new URLSearchParams(searchParams.toString());
 			params.set("page", page.toString());
@@ -220,11 +222,7 @@ export const ProductsContent = React.memo(function ProductsContent({
 								? "No products match your current filters. Try adjusting your selection or browse all products."
 								: "This collection is currently empty. Check out our other collections or browse all products."
 						}
-						title={
-							filters.sort !== "featured"
-								? "No Filtered Results"
-								: "No Products Available"
-						}
+						title={filters.sort !== "featured" ? "No Filtered Results" : "No Products Available"}
 					/>
 				</>
 			);

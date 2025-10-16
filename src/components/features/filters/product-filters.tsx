@@ -2,9 +2,7 @@
 
 import { DollarSign, Filter, Package, ShoppingBag, Tag, X } from "lucide-react";
 import { memo, Suspense } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { useProductFiltering } from "@/hooks/use-product-filtering";
 import type { ShopifyProduct } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -49,33 +47,33 @@ const ProductFiltersInner = memo(function ProductFiltersInner({
 			{/* Price Filter */}
 			{filterOptions.priceRange.min < filterOptions.priceRange.max && (
 				<FilterPopover
+					activeCount={isPriceActive ? 1 : 0}
 					trigger={
 						<>
 							<DollarSign className="h-4 w-4" />
 							Price
 						</>
 					}
-					activeCount={isPriceActive ? 1 : 0}
 				>
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
 							<h4 className="font-semibold text-sm">Price Range</h4>
 							{isPriceActive && (
 								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => updatePriceRange(defaultFilters.priceRange.min, defaultFilters.priceRange.max)}
 									className="h-7 px-2 text-xs hover:text-destructive"
+									onClick={() => updatePriceRange(defaultFilters.priceRange.min, defaultFilters.priceRange.max)}
+									size="sm"
+									variant="ghost"
 								>
 									Reset
 								</Button>
 							)}
 						</div>
 						<PriceRangeFilter
-							min={filterOptions.priceRange.min}
-							max={filterOptions.priceRange.max}
-							currentMin={filters.priceRange.min}
 							currentMax={filters.priceRange.max}
+							currentMin={filters.priceRange.min}
+							max={filterOptions.priceRange.max}
+							min={filterOptions.priceRange.min}
 							onRangeChange={updatePriceRange}
 						/>
 					</div>
@@ -84,64 +82,64 @@ const ProductFiltersInner = memo(function ProductFiltersInner({
 
 			{/* Availability Filter */}
 			<FilterPopover
+				activeCount={filters.availability !== "all" ? 1 : 0}
 				trigger={
 					<>
 						<Package className="h-4 w-4" />
 						Availability
 					</>
 				}
-				activeCount={filters.availability !== "all" ? 1 : 0}
 			>
 				<div className="space-y-4">
 					<div className="flex items-center justify-between">
 						<h4 className="font-semibold text-sm">Availability</h4>
 						{filters.availability !== "all" && (
 							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => updateAvailability("all")}
 								className="h-7 px-2 text-xs hover:text-destructive"
+								onClick={() => updateAvailability("all")}
+								size="sm"
+								variant="ghost"
 							>
 								Reset
 							</Button>
 						)}
 					</div>
-					<AvailabilityFilter value={filters.availability} onChange={updateAvailability} />
+					<AvailabilityFilter onChange={updateAvailability} value={filters.availability} />
 				</div>
 			</FilterPopover>
 
 			{/* Product Type Filter */}
 			{filterOptions.productTypes.length > 0 && (
 				<FilterPopover
+					activeCount={filters.productTypes.length}
 					trigger={
 						<>
 							<ShoppingBag className="h-4 w-4" />
 							Type
 						</>
 					}
-					activeCount={filters.productTypes.length}
 				>
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
 							<h4 className="font-semibold text-sm">Product Type</h4>
 							{filters.productTypes.length > 0 && (
 								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => clearFilter("productTypes")}
 									className="h-7 px-2 text-xs hover:text-destructive"
+									onClick={() => clearFilter("productTypes")}
+									size="sm"
+									variant="ghost"
 								>
 									Clear
 								</Button>
 							)}
 						</div>
 						<FilterSection
-							title=""
-							options={filterOptions.productTypes}
-							selectedValues={filters.productTypes}
-							onToggle={(value) => toggleArrayFilter("productTypes", value)}
 							defaultOpen={true}
 							maxHeight={250}
+							onToggle={(value) => toggleArrayFilter("productTypes", value)}
+							options={filterOptions.productTypes}
+							selectedValues={filters.productTypes}
+							title=""
 						/>
 					</div>
 				</FilterPopover>
@@ -150,35 +148,35 @@ const ProductFiltersInner = memo(function ProductFiltersInner({
 			{/* Vendor Filter */}
 			{filterOptions.vendors.length > 1 && (
 				<FilterPopover
+					activeCount={filters.vendors.length}
 					trigger={
 						<>
 							<Tag className="h-4 w-4" />
 							Brand
 						</>
 					}
-					activeCount={filters.vendors.length}
 				>
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
 							<h4 className="font-semibold text-sm">Brand</h4>
 							{filters.vendors.length > 0 && (
 								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => clearFilter("vendors")}
 									className="h-7 px-2 text-xs hover:text-destructive"
+									onClick={() => clearFilter("vendors")}
+									size="sm"
+									variant="ghost"
 								>
 									Clear
 								</Button>
 							)}
 						</div>
 						<FilterSection
-							title=""
-							options={filterOptions.vendors}
-							selectedValues={filters.vendors}
-							onToggle={(value) => toggleArrayFilter("vendors", value)}
 							defaultOpen={true}
 							maxHeight={250}
+							onToggle={(value) => toggleArrayFilter("vendors", value)}
+							options={filterOptions.vendors}
+							selectedValues={filters.vendors}
+							title=""
 						/>
 					</div>
 				</FilterPopover>
@@ -187,35 +185,35 @@ const ProductFiltersInner = memo(function ProductFiltersInner({
 			{/* Collections Filter (for wishlist) */}
 			{showCollections && filterOptions.collections.length > 0 && (
 				<FilterPopover
+					activeCount={filters.collections.length}
 					trigger={
 						<>
 							<Package className="h-4 w-4" />
 							Collection
 						</>
 					}
-					activeCount={filters.collections.length}
 				>
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
 							<h4 className="font-semibold text-sm">Collections</h4>
 							{filters.collections.length > 0 && (
 								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => clearFilter("collections")}
 									className="h-7 px-2 text-xs hover:text-destructive"
+									onClick={() => clearFilter("collections")}
+									size="sm"
+									variant="ghost"
 								>
 									Clear
 								</Button>
 							)}
 						</div>
 						<FilterSection
-							title=""
-							options={filterOptions.collections}
-							selectedValues={filters.collections}
-							onToggle={(value) => toggleArrayFilter("collections", value)}
 							defaultOpen={true}
 							maxHeight={250}
+							onToggle={(value) => toggleArrayFilter("collections", value)}
+							options={filterOptions.collections}
+							selectedValues={filters.collections}
+							title=""
 						/>
 					</div>
 				</FilterPopover>
@@ -223,9 +221,14 @@ const ProductFiltersInner = memo(function ProductFiltersInner({
 
 			{/* Clear All Button */}
 			{activeFilterCount > 0 && (
-				<Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-destructive hover:text-destructive">
-					<X className="h-4 w-4" />
-					Clear All ({activeFilterCount})
+				<Button
+					className="gap-1.5 border-destructive/20 bg-destructive/5 font-medium text-destructive text-xs hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+					onClick={clearFilters}
+					size="sm"
+					variant="outline"
+				>
+					<X className="h-3.5 w-3.5" />
+					Clear ({activeFilterCount})
 				</Button>
 			)}
 		</div>
@@ -237,187 +240,205 @@ const ProductFiltersInner = memo(function ProductFiltersInner({
 			<FilterSheet activeCount={activeFilterCount} onClear={clearFilters}>
 				{/* Price Range */}
 				{filterOptions.priceRange.min < filterOptions.priceRange.max && (
-					<>
-						<div>
-							<h3 className="mb-3 font-semibold text-base">Price Range</h3>
-							<PriceRangeFilter
-								min={filterOptions.priceRange.min}
-								max={filterOptions.priceRange.max}
-								currentMin={filters.priceRange.min}
-								currentMax={filters.priceRange.max}
-								onRangeChange={updatePriceRange}
-							/>
-						</div>
-						<Separator />
-					</>
+					<div className="space-y-3">
+						<h3 className="font-semibold text-base text-foreground">Price Range</h3>
+						<PriceRangeFilter
+							currentMax={filters.priceRange.max}
+							currentMin={filters.priceRange.min}
+							max={filterOptions.priceRange.max}
+							min={filterOptions.priceRange.min}
+							onRangeChange={updatePriceRange}
+						/>
+					</div>
 				)}
 
 				{/* Availability */}
-				<div>
-					<h3 className="mb-3 font-semibold text-base">Availability</h3>
-					<AvailabilityFilter value={filters.availability} onChange={updateAvailability} />
+				<div className="space-y-3">
+					<h3 className="font-semibold text-base text-foreground">Availability</h3>
+					<AvailabilityFilter onChange={updateAvailability} value={filters.availability} />
 				</div>
 
 				{/* Product Type */}
 				{filterOptions.productTypes.length > 0 && (
-					<>
-						<Separator />
+					<div className="space-y-1">
 						<FilterSection
-							title="Product Type"
+							enableScroll={false}
+							onToggle={(value) => toggleArrayFilter("productTypes", value)}
 							options={filterOptions.productTypes}
 							selectedValues={filters.productTypes}
-							onToggle={(value) => toggleArrayFilter("productTypes", value)}
+							title="Product Type"
 						/>
-					</>
+					</div>
 				)}
 
 				{/* Vendors */}
 				{filterOptions.vendors.length > 1 && (
-					<>
-						<Separator />
+					<div className="space-y-1">
 						<FilterSection
-							title="Brand"
+							enableScroll={false}
+							onToggle={(value) => toggleArrayFilter("vendors", value)}
 							options={filterOptions.vendors}
 							selectedValues={filters.vendors}
-							onToggle={(value) => toggleArrayFilter("vendors", value)}
+							title="Brand"
 						/>
-					</>
+					</div>
 				)}
 
 				{/* Tags */}
 				{filterOptions.tags.length > 0 && (
-					<>
-						<Separator />
+					<div className="space-y-1">
 						<FilterSection
-							title="Tags"
+							enableScroll={false}
+							onToggle={(value) => toggleArrayFilter("tags", value)}
 							options={filterOptions.tags}
 							selectedValues={filters.tags}
-							onToggle={(value) => toggleArrayFilter("tags", value)}
+							title="Tags"
 						/>
-					</>
+					</div>
 				)}
 
 				{/* Collections (for wishlist) */}
 				{showCollections && filterOptions.collections.length > 0 && (
-					<>
-						<Separator />
+					<div className="space-y-1">
 						<FilterSection
-							title="Collections"
+							enableScroll={false}
+							onToggle={(value) => toggleArrayFilter("collections", value)}
 							options={filterOptions.collections}
 							selectedValues={filters.collections}
-							onToggle={(value) => toggleArrayFilter("collections", value)}
+							title="Collections"
 						/>
-					</>
+					</div>
 				)}
 			</FilterSheet>
 		</div>
 	);
 
-	// Active filters display
+	// Active filters display with modern badges
 	const activeFiltersBadges = activeFilterCount > 0 && (
 		<div className="flex flex-wrap gap-2">
 			{isPriceActive && (
-				<Badge variant="secondary" className="gap-1 px-2 py-1">
-					<span className="text-xs">
+				<div className="group inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 ring-1 ring-primary/20 transition-all hover:bg-primary/15 hover:ring-primary/30">
+					<DollarSign className="h-3 w-3 text-primary" />
+					<span className="font-medium text-primary text-xs">
 						${filters.priceRange.min} - ${filters.priceRange.max}
 					</span>
-					<Button
-						variant="ghost"
-						size="icon"
+					<button
+						className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-primary/60 transition-colors hover:bg-primary/20 hover:text-primary"
 						onClick={() => updatePriceRange(defaultFilters.priceRange.min, defaultFilters.priceRange.max)}
-						className="ml-1 h-4 w-4 p-0 hover:bg-transparent hover:text-destructive"
+						type="button"
 					>
 						<X className="h-3 w-3" />
-					</Button>
-				</Badge>
+					</button>
+				</div>
 			)}
 			{filters.availability !== "all" && (
-				<Badge variant="secondary" className="gap-1 px-2 py-1">
-					<span className="text-xs capitalize">{filters.availability.replace("-", " ")}</span>
-					<Button
-						variant="ghost"
-						size="icon"
+				<div className="group inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 ring-1 ring-primary/20 transition-all hover:bg-primary/15 hover:ring-primary/30">
+					<Package className="h-3 w-3 text-primary" />
+					<span className="font-medium text-primary text-xs capitalize">{filters.availability.replace("-", " ")}</span>
+					<button
+						className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-primary/60 transition-colors hover:bg-primary/20 hover:text-primary"
 						onClick={() => updateAvailability("all")}
-						className="ml-1 h-4 w-4 p-0 hover:bg-transparent hover:text-destructive"
+						type="button"
 					>
 						<X className="h-3 w-3" />
-					</Button>
-				</Badge>
+					</button>
+				</div>
 			)}
 			{filters.productTypes.map((type) => (
-				<Badge key={type} variant="secondary" className="gap-1 px-2 py-1">
-					<span className="text-xs">{type}</span>
-					<Button
-						variant="ghost"
-						size="icon"
+				<div
+					className="group inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 ring-1 ring-primary/20 transition-all hover:bg-primary/15 hover:ring-primary/30"
+					key={type}
+				>
+					<ShoppingBag className="h-3 w-3 text-primary" />
+					<span className="font-medium text-primary text-xs">{type}</span>
+					<button
+						className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-primary/60 transition-colors hover:bg-primary/20 hover:text-primary"
 						onClick={() => toggleArrayFilter("productTypes", type)}
-						className="ml-1 h-4 w-4 p-0 hover:bg-transparent hover:text-destructive"
+						type="button"
 					>
 						<X className="h-3 w-3" />
-					</Button>
-				</Badge>
+					</button>
+				</div>
 			))}
 			{filters.vendors.map((vendor) => (
-				<Badge key={vendor} variant="secondary" className="gap-1 px-2 py-1">
-					<span className="text-xs">{vendor}</span>
-					<Button
-						variant="ghost"
-						size="icon"
+				<div
+					className="group inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 ring-1 ring-primary/20 transition-all hover:bg-primary/15 hover:ring-primary/30"
+					key={vendor}
+				>
+					<Tag className="h-3 w-3 text-primary" />
+					<span className="font-medium text-primary text-xs">{vendor}</span>
+					<button
+						className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-primary/60 transition-colors hover:bg-primary/20 hover:text-primary"
 						onClick={() => toggleArrayFilter("vendors", vendor)}
-						className="ml-1 h-4 w-4 p-0 hover:bg-transparent hover:text-destructive"
+						type="button"
 					>
 						<X className="h-3 w-3" />
-					</Button>
-				</Badge>
+					</button>
+				</div>
 			))}
 			{filters.tags.map((tag) => (
-				<Badge key={tag} variant="secondary" className="gap-1 px-2 py-1">
-					<span className="text-xs">{tag}</span>
-					<Button
-						variant="ghost"
-						size="icon"
+				<div
+					className="group inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 ring-1 ring-primary/20 transition-all hover:bg-primary/15 hover:ring-primary/30"
+					key={tag}
+				>
+					<Tag className="h-3 w-3 text-primary" />
+					<span className="font-medium text-primary text-xs">{tag}</span>
+					<button
+						className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-primary/60 transition-colors hover:bg-primary/20 hover:text-primary"
 						onClick={() => toggleArrayFilter("tags", tag)}
-						className="ml-1 h-4 w-4 p-0 hover:bg-transparent hover:text-destructive"
+						type="button"
 					>
 						<X className="h-3 w-3" />
-					</Button>
-				</Badge>
+					</button>
+				</div>
 			))}
 			{showCollections &&
 				filters.collections.map((collection) => (
-					<Badge key={collection} variant="secondary" className="gap-1 px-2 py-1">
-						<span className="text-xs">{collection}</span>
-						<Button
-							variant="ghost"
-							size="icon"
+					<div
+						className="group inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 ring-1 ring-primary/20 transition-all hover:bg-primary/15 hover:ring-primary/30"
+						key={collection}
+					>
+						<Package className="h-3 w-3 text-primary" />
+						<span className="font-medium text-primary text-xs">{collection}</span>
+						<button
+							className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-primary/60 transition-colors hover:bg-primary/20 hover:text-primary"
 							onClick={() => toggleArrayFilter("collections", collection)}
-							className="ml-1 h-4 w-4 p-0 hover:bg-transparent hover:text-destructive"
+							type="button"
 						>
 							<X className="h-3 w-3" />
-						</Button>
-					</Badge>
+						</button>
+					</div>
 				))}
 		</div>
 	);
 
 	return (
-		<div className={cn("space-y-4 border-border/60 border-b bg-background pb-4", className)}>
-			<div className="container mx-auto flex items-center justify-between gap-4 px-4">
-				<div className="flex items-center gap-2">
-					<Filter className="h-4 w-4 text-muted-foreground" />
-					<span className="font-medium text-sm">Refine Results</span>
-					{activeFilterCount > 0 && (
-						<Badge variant="secondary" className="h-5 px-1.5 text-xs">
-							{activeFilterCount}
-						</Badge>
-					)}
+		<div className={cn("bg-background", className)}>
+			<div className="container mx-auto px-3 py-3 sm:px-4 sm:py-4">
+				{/* Filter Header */}
+				<div className="mb-3 flex items-center justify-between gap-4">
+					<div className="flex items-center gap-3">
+						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
+							<Filter className="h-4 w-4 text-primary" />
+						</div>
+						<div className="flex items-center gap-2">
+							<h2 className="font-semibold text-foreground text-sm sm:text-base">Filter Products</h2>
+							{activeFilterCount > 0 && (
+								<div className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-primary px-2 font-bold text-primary-foreground text-xs shadow-sm">
+									{activeFilterCount}
+								</div>
+							)}
+						</div>
+					</div>
+					<div className="flex items-center gap-2">
+						{desktopFilters}
+						{mobileFilters}
+					</div>
 				</div>
-				<div className="flex items-center gap-2">
-					{desktopFilters}
-					{mobileFilters}
-				</div>
+
+				{/* Active Filters */}
+				{activeFiltersBadges && <div className="flex flex-wrap gap-2 pt-4">{activeFiltersBadges}</div>}
 			</div>
-			{activeFiltersBadges && <div className="container mx-auto px-4">{activeFiltersBadges}</div>}
 		</div>
 	);
 });

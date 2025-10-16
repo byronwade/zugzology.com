@@ -2,22 +2,26 @@
 
 import { ArrowRight, BookOpen, Grid3X3, Search, ShoppingBag, TrendingUp } from "lucide-react";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useSearch } from "@/components/providers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import { formatPrice } from "@/lib/utils";
 
 const DROPDOWN_BASE_CLASS =
-	"absolute top-full left-0 right-0 z-50 mt-1 w-full overflow-hidden rounded-lg border bg-popover shadow-xl";
+	"absolute top-full z-50 mt-1 overflow-hidden rounded-lg border bg-popover shadow-xl " +
+	"left-0 right-0 w-full " +
+	"max-sm:-ml-4 max-sm:-mr-4 max-sm:w-[calc(100%+2rem)]";
 
 const WRAPPER_CLASS = "max-h-[70vh] overflow-y-auto";
 
 export function EnhancedSearchDropdown() {
-	const { isDropdownOpen, searchResults, debouncedQuery, clearSearch, searchQuery, isSearching } = useSearch();
+	const { isDropdownOpen, searchResults, debouncedQuery, clearSearch, searchQuery, isSearching, setIsDropdownOpen } =
+		useSearch();
 	const router = useRouter();
+	const dropdownRef = useRef<HTMLDivElement>(null);
 
 	const handleViewAllResults = useCallback(() => {
 		if (debouncedQuery.trim()) {
@@ -25,6 +29,36 @@ export function EnhancedSearchDropdown() {
 			clearSearch();
 		}
 	}, [debouncedQuery, router, clearSearch]);
+
+	// Handle click outside to close dropdown
+	useEffect(() => {
+		if (!isDropdownOpen) {
+			return;
+		}
+
+		const handleClickOutside = (event: MouseEvent) => {
+			const target = event.target as Node;
+
+			// Check if click is outside the dropdown
+			if (dropdownRef.current && !dropdownRef.current.contains(target)) {
+				// Also check if click is not on the search input itself
+				const searchContainer = document.querySelector("[data-search-container]");
+				if (searchContainer && !searchContainer.contains(target)) {
+					setIsDropdownOpen(false);
+				}
+			}
+		};
+
+		// Add event listener after a small delay to avoid immediate closing
+		const timeoutId = setTimeout(() => {
+			document.addEventListener("mousedown", handleClickOutside);
+		}, 100);
+
+		return () => {
+			clearTimeout(timeoutId);
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [isDropdownOpen, setIsDropdownOpen]);
 
 	if (!isDropdownOpen) {
 		return null;
@@ -36,7 +70,7 @@ export function EnhancedSearchDropdown() {
 
 	if (!debouncedQuery.trim()) {
 		return (
-			<div className={DROPDOWN_BASE_CLASS}>
+			<div className={DROPDOWN_BASE_CLASS} ref={dropdownRef}>
 				<div className="p-6 text-center">
 					<Search className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
 					<p className="text-muted-foreground text-sm">Start typing to search products, articles, and collections</p>
@@ -48,7 +82,7 @@ export function EnhancedSearchDropdown() {
 	// Show loading state when searching
 	if (searchQuery && searchQuery !== debouncedQuery) {
 		return (
-			<div className={DROPDOWN_BASE_CLASS}>
+			<div className={DROPDOWN_BASE_CLASS} ref={dropdownRef}>
 				<div className="p-6 text-center">
 					<div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-primary border-b-2" />
 					<p className="text-muted-foreground text-sm">Searching...</p>
@@ -59,7 +93,7 @@ export function EnhancedSearchDropdown() {
 
 	if (!hasResults) {
 		return (
-			<div className={DROPDOWN_BASE_CLASS}>
+			<div className={DROPDOWN_BASE_CLASS} ref={dropdownRef}>
 				<div className="p-6 text-center">
 					<Search className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
 					<p className="mb-3 text-muted-foreground text-sm">
@@ -74,7 +108,7 @@ export function EnhancedSearchDropdown() {
 	}
 
 	return (
-		<div className={DROPDOWN_BASE_CLASS}>
+		<div className={DROPDOWN_BASE_CLASS} ref={dropdownRef}>
 			<div className={WRAPPER_CLASS}>
 				{/* Header */}
 				<div className="border border-b p-4">

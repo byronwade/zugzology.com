@@ -1,10 +1,9 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Package } from "lucide-react";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import { getAllCollections } from "@/lib/actions/shopify";
 import { ASSETS } from "@/lib/config/wadesdesign.config";
 import type { ShopifyCollection } from "@/lib/types";
@@ -49,9 +48,17 @@ export function FeaturedCollections() {
 		return (
 			<section className="w-full bg-background">
 				<div className="container mx-auto px-4 py-12">
-					<div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+					<div className="mb-12">
+						<div className="mx-auto h-10 w-64 animate-pulse rounded bg-muted" />
+						<div className="mx-auto mt-4 h-6 w-96 animate-pulse rounded bg-muted/60" />
+					</div>
+					<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
 						{[...new Array(4)].map((_, i) => (
-							<div className="aspect-[16/9] animate-pulse rounded-2xl bg-muted" key={i} />
+							<div className="space-y-4" key={i}>
+								<div className="aspect-square animate-pulse rounded-xl bg-muted" />
+								<div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
+								<div className="h-4 w-1/2 animate-pulse rounded bg-muted/60" />
+							</div>
 						))}
 					</div>
 				</div>
@@ -65,64 +72,66 @@ export function FeaturedCollections() {
 
 	return (
 		<section className="w-full bg-background">
-			<div className="container mx-auto px-4 py-12">
-				<div className="mb-12 flex flex-col items-center justify-center text-center">
-					<h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">Shop by Category</h2>
-					<p className="mt-4 max-w-2xl text-lg text-muted-foreground">
+			<div className="container mx-auto px-4 py-8 sm:py-12 lg:py-16">
+				{/* Section Header */}
+				<div className="mb-8 text-center sm:mb-12">
+					<h2 className="font-bold text-2xl text-foreground tracking-tight sm:text-3xl lg:text-4xl">
+						Shop by Category
+					</h2>
+					<p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground sm:mt-4 sm:text-lg">
 						Explore our curated collections of premium cultivation supplies
 					</p>
 				</div>
 
-				<div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+				{/* Collections Grid */}
+				<div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
 					{collections.map((collection) => {
 						if (!collection) {
 							return null;
 						}
 
-						// Generate a gradient color based on the collection handle
-						const gradientColors = {
-							"growing-kits": "from-blue-500/20 via-blue-500/5 to-transparent",
-							substrates: "from-green-500/20 via-green-500/5 to-transparent",
-							equipment: "from-purple-500/20 via-purple-500/5 to-transparent",
-							bulk: "from-amber-500/20 via-amber-500/5 to-transparent",
-							default: "from-primary/20 via-primary/5 to-transparent",
-						};
-
-						const gradientColor =
-							gradientColors[collection.handle as keyof typeof gradientColors] || gradientColors.default;
+						const productCount = collection.products?.nodes?.length || 0;
 
 						return (
 							<Link
-								className="group relative overflow-hidden rounded-2xl"
+								className="group relative overflow-hidden rounded-lg border border-border bg-card transition-all duration-300 hover:border-primary/40 hover:shadow-lg sm:rounded-xl"
 								href={`/collections/${collection.handle}`}
 								key={collection.handle}
 							>
-								<div className={`absolute inset-0 bg-gradient-to-br ${gradientColor} z-10 opacity-40`} />
-								<div className="absolute inset-0 z-20 bg-gradient-to-t from-black via-black/70 to-transparent" />
-								<div className="absolute inset-0 z-20 bg-black/10" />
-								<div className="relative aspect-[16/9] w-full">
+								{/* Collection Image */}
+								<div className="relative aspect-square w-full overflow-hidden bg-muted sm:aspect-[4/3]">
 									<Image
 										alt={collection.title}
-										className="object-cover transition-transform duration-300 group-hover:scale-105"
+										className="object-cover transition-transform duration-500 group-hover:scale-110"
 										fill
-										sizes="(max-width: 768px) 100vw, 50vw"
+										sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw"
 										src={collection.image?.url || ASSETS.placeholders.collection}
 									/>
+									{/* Subtle Gradient Overlay */}
+									<div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-80" />
+
+									{/* Product Count Badge */}
+									<div className="absolute top-2 right-2 z-10 sm:top-3 sm:right-3">
+										<div className="flex items-center gap-1 rounded-full border border-white/20 bg-white/90 px-2 py-1 backdrop-blur-sm sm:gap-1.5 sm:px-3 sm:py-1.5 dark:bg-black/90">
+											<Package className="h-3 w-3 text-foreground sm:h-3.5 sm:w-3.5" />
+											<span className="font-semibold text-[10px] text-foreground sm:text-xs">{productCount}</span>
+										</div>
+									</div>
 								</div>
-								<div className="absolute inset-0 z-30 flex flex-col justify-end p-6">
-									<h3 className="mb-2 font-bold text-2xl text-white tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">
+
+								{/* Collection Info */}
+								<div className="p-3 sm:p-5">
+									<h3 className="mb-1.5 font-semibold text-foreground text-sm transition-colors group-hover:text-primary sm:mb-2 sm:text-lg">
 										{collection.title}
 									</h3>
-									<p className="mb-4 line-clamp-2 font-medium text-muted text-sm tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] sm:text-base">
-										{collection.description || `Explore our ${collection.title} collection`}
+									<p className="mb-2 line-clamp-2 text-muted-foreground text-xs leading-relaxed sm:mb-4 sm:text-sm">
+										{collection.description || `Discover our ${collection.title.toLowerCase()} collection`}
 									</p>
-									<div className="translate-y-8 transform opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-										<Button
-											className="border-0 bg-card text-foreground shadow-[0_4px_14px_0_rgba(0,0,0,0.25)] hover:bg-card/90"
-											variant="secondary"
-										>
-											Shop Now <ArrowRight className="ml-2 h-4 w-4" />
-										</Button>
+
+									{/* Shop Now Link */}
+									<div className="flex items-center gap-1.5 font-medium text-primary text-xs transition-all group-hover:gap-3 sm:gap-2 sm:text-sm">
+										<span>Shop Now</span>
+										<ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1 sm:h-4 sm:w-4" />
 									</div>
 								</div>
 							</Link>

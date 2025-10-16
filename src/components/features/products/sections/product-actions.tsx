@@ -7,7 +7,6 @@ import {
 	Headphones,
 	Heart,
 	HeartHandshake,
-	Info,
 	Link2,
 	Loader2,
 	Mail,
@@ -35,7 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { ShopifyProductVariant } from "@/lib/types";
 import { cn, debugLog, formatPrice } from "@/lib/utils";
 
@@ -84,7 +83,9 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 
 	// Check if product is in wishlist on mount
 	useEffect(() => {
-		if (typeof window === 'undefined') return;
+		if (typeof window === "undefined") {
+			return;
+		}
 
 		debugLog("ProductActions", "Checking product handle:", productHandle);
 		const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
@@ -204,7 +205,9 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 	};
 
 	const handleWishlist = () => {
-		if (typeof window === 'undefined') return;
+		if (typeof window === "undefined") {
+			return;
+		}
 
 		const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
 		let newWishlist;
@@ -323,18 +326,13 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 			{/* Premium Floating Purchase Bar */}
 			<div
 				className={cn(
-					"fixed top-[100px] left-0 right-0 z-50 h-[60px] border-border border-b bg-background/95 backdrop-blur-md transition-all duration-200",
-					showFloating && !isDismissed ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
+					"fixed top-[var(--header-height)] right-0 left-0 z-50 h-[52px] border-border border-b bg-background/95 backdrop-blur-md transition-all duration-200",
+					showFloating && !isDismissed ? "translate-y-0 opacity-100" : "-translate-y-full pointer-events-none opacity-0"
 				)}
 			>
-				<div className="container mx-auto flex h-full items-center gap-4 px-4">
+				<div className="container mx-auto flex h-full items-center gap-2 px-4 sm:gap-4">
 					{/* Close Button */}
-					<Button
-						className="h-8 w-8 flex-shrink-0"
-						onClick={handleDismissFloating}
-						size="icon"
-						variant="ghost"
-					>
+					<Button className="h-8 w-8 flex-shrink-0" onClick={handleDismissFloating} size="icon" variant="ghost">
 						<X className="h-4 w-4" />
 						<span className="sr-only">Close</span>
 					</Button>
@@ -347,37 +345,43 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 								: formatPrice(Number.parseFloat(selectedVariant?.price?.amount || "0"))}
 						</div>
 						{selectedVariant.quantityAvailable === 0 && selectedVariant.availableForSale === false ? (
-							<Badge className="h-5 bg-orange-100 px-2 py-0 text-orange-700 hover:bg-orange-100 hover:text-orange-700" variant="secondary">
+							<Badge
+								className="h-5 bg-orange-100 px-2 py-0 text-orange-700 hover:bg-orange-100 hover:text-orange-700"
+								variant="secondary"
+							>
 								Backorder
 							</Badge>
 						) : selectedVariant.quantityAvailable <= 3 && selectedVariant.quantityAvailable > 0 ? (
-							<Badge className="h-5 bg-red-100 px-2 py-0 text-red-700 hover:bg-red-100 hover:text-red-700" variant="secondary">
+							<Badge
+								className="h-5 bg-red-100 px-2 py-0 text-red-700 hover:bg-red-100 hover:text-red-700"
+								variant="secondary"
+							>
 								Low Stock
 							</Badge>
 						) : (
-							<Badge className="h-5 bg-green-100 px-2 py-0 text-green-700 hover:bg-green-100 hover:text-green-700" variant="secondary">
+							<Badge
+								className="h-5 bg-green-100 px-2 py-0 text-green-700 hover:bg-green-100 hover:text-green-700"
+								variant="secondary"
+							>
 								In Stock
 							</Badge>
 						)}
 					</div>
 
 					{/* Action Buttons */}
-					<div className="flex flex-shrink-0 items-center gap-2">
+					<div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
 						<Button
-							className={
-								Number.parseFloat(selectedVariant?.price?.amount || "0") === 0
-									? "bg-primary text-foreground hover:bg-primary/90 dark:text-background dark:hover:bg-primary/80"
-									: "bg-foreground text-background hover:bg-foreground/90 dark:bg-background dark:text-foreground dark:border dark:border-border dark:hover:bg-accent"
-							}
+							className="h-9 px-3 sm:px-4"
 							disabled={isLoading}
 							onClick={handleAddToCart}
 							size="sm"
+							variant="outline"
 						>
 							{isLoading ? (
 								<Loader2 className="h-4 w-4 animate-spin" />
 							) : (
 								<>
-									<ShoppingCart className="mr-1.5 h-4 w-4" />
+									<ShoppingCart className="h-4 w-4 sm:mr-1.5" />
 									<span className="hidden sm:inline">
 										{Number.parseFloat(selectedVariant?.price?.amount || "0") === 0 ? "Claim Free" : "Add"}
 									</span>
@@ -385,18 +389,14 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 							)}
 						</Button>
 						{Number.parseFloat(selectedVariant?.price?.amount || "0") > 0 && (
-							<Button
-								className="bg-primary text-foreground hover:bg-primary/90 dark:text-background dark:hover:bg-primary/80"
-								disabled={isBuyingNow}
-								onClick={handleBuyNow}
-								size="sm"
-							>
+							<Button className="h-9 px-3 sm:px-4" disabled={isBuyingNow} onClick={handleBuyNow} size="sm">
 								{isBuyingNow ? (
 									<Loader2 className="h-4 w-4 animate-spin" />
 								) : (
 									<>
-										Buy Now
-										<ArrowRight className="ml-1.5 h-4 w-4" />
+										<span className="hidden sm:inline">Buy Now</span>
+										<span className="sm:hidden">Buy</span>
+										<ArrowRight className="ml-1 h-4 w-4 sm:ml-1.5" />
 									</>
 								)}
 							</Button>
@@ -500,7 +500,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						</Label>
 						<div className="flex items-center space-x-2">
 							<Input
-								className="w-24"
+								className="w-32 sm:w-24"
 								id="quantity"
 								max={selectedVariant.quantityAvailable || 9999}
 								min="1"
@@ -516,16 +516,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 
 					{/* Action Buttons */}
 					<div className="space-y-3" ref={buttonRef}>
-						<Button
-							className={
-								Number.parseFloat(selectedVariant?.price?.amount || "0") === 0
-									? "w-full bg-primary text-foreground hover:bg-primary/90 dark:text-background dark:hover:bg-primary/80"
-									: "w-full bg-foreground text-background hover:bg-foreground/90 dark:bg-background dark:text-foreground dark:border dark:border-border dark:hover:bg-accent"
-							}
-							disabled={isLoading}
-							onClick={handleAddToCart}
-							variant="secondary"
-						>
+						<Button className="w-full" disabled={isLoading} onClick={handleAddToCart} size="lg" variant="outline">
 							{isLoading ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -539,12 +530,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 							)}
 						</Button>
 						{Number.parseFloat(selectedVariant?.price?.amount || "0") > 0 && (
-							<Button
-								className="w-full bg-primary text-foreground hover:bg-primary/90 dark:text-background dark:hover:bg-primary/80"
-								disabled={isBuyingNow}
-								onClick={handleBuyNow}
-								variant="default"
-							>
+							<Button className="w-full" disabled={isBuyingNow} onClick={handleBuyNow} size="lg">
 								{isBuyingNow ? (
 									<>
 										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -562,7 +548,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						{/* Wishlist and Share Buttons */}
 						<div className="mt-4 flex gap-2">
 							<Button
-								className={cn("flex-1", isWishlisted && "border-primary bg-primary/5 text-primary")}
+								className={cn("flex-1", isWishlisted && "border-primary bg-primary/5 text-primary hover:bg-primary/10")}
 								onClick={handleWishlist}
 								variant="outline"
 							>
@@ -599,127 +585,81 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						</div>
 					</div>
 
-					{/* Trust Badges */}
-					<div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4">
-						<div className="mb-3 text-center font-semibold text-foreground text-sm">Why Shop With Us</div>
-						<div className="grid grid-cols-1 gap-2.5">
-							<div className="flex items-center gap-3 rounded-md bg-background p-2.5 transition-colors hover:bg-accent">
-								<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-									<Shield className="h-4 w-4 text-primary" />
-								</div>
-								<div className="flex-1">
-									<div className="font-medium text-foreground text-xs">Secure Checkout</div>
-									<div className="text-muted-foreground text-xs">SSL encrypted payment</div>
-								</div>
-							</div>
-							<div className="flex items-center gap-3 rounded-md bg-background p-2.5 transition-colors hover:bg-accent">
-								<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-									<TruckIcon className="h-4 w-4 text-primary" />
-								</div>
-								<div className="flex-1">
-									<div className="font-medium text-foreground text-xs">Fast Shipping</div>
-									<div className="text-muted-foreground text-xs">Free 3-8 day delivery</div>
-								</div>
-							</div>
-							<div className="flex items-center gap-3 rounded-md bg-background p-2.5 transition-colors hover:bg-accent">
-								<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-									<HeartHandshake className="h-4 w-4 text-primary" />
-								</div>
-								<div className="flex-1">
-									<div className="font-medium text-foreground text-xs">Satisfaction Guaranteed</div>
-									<div className="text-muted-foreground text-xs">30-day money back</div>
-								</div>
-							</div>
-							<div className="flex items-center gap-3 rounded-md bg-background p-2.5 transition-colors hover:bg-accent">
-								<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-									<Headphones className="h-4 w-4 text-primary" />
-								</div>
-								<div className="flex-1">
-									<div className="font-medium text-foreground text-xs">24/7 Support</div>
-									<div className="text-muted-foreground text-xs">Expert help anytime</div>
-								</div>
-							</div>
-						</div>
-					</div>
-
 					{/* Collapsible Information Sections */}
-					<Accordion className="w-full space-y-2" type="single">
+					<Accordion className="w-full space-y-0 divide-y divide-border/50" type="single">
 						{/* Secure Transaction */}
-						<AccordionItem
-							className="rounded-lg border bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 transition-all hover:shadow-sm"
-							value="secure-transaction"
-						>
-							<AccordionTrigger className="px-4 py-2 hover:no-underline hover:bg-transparent">
-								<div className="flex items-center">
-									<Shield className="mr-2 h-5 w-5 text-primary" />
-									<span className="font-semibold">Secure Transaction</span>
+						<AccordionItem className="border-0" value="secure-transaction">
+							<AccordionTrigger className="py-2.5 hover:no-underline">
+								<div className="flex items-center gap-2.5">
+									<div className="flex h-7 w-7 items-center justify-center rounded bg-primary/5">
+										<Shield className="h-3.5 w-3.5 text-primary" />
+									</div>
+									<span className="text-sm">Secure Transaction</span>
 								</div>
 							</AccordionTrigger>
-							<AccordionContent className="px-4 pb-4">
-								<div className="grid grid-cols-2 gap-2 text-sm">
-									<div className="flex items-center">
-										<Info className="mr-2 h-4 w-4 text-blue-500" />
-										<span>SSL Encrypted</span>
-									</div>
-									<div className="flex items-center">
-										<Info className="mr-2 h-4 w-4 text-blue-500" />
-										<span>PCI Compliant</span>
-									</div>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<div className="flex cursor-help items-center">
-												<TruckIcon className="mr-2 h-4 w-4 text-blue-500" />
-												<span className="font-medium">30-Day Returns</span>
-											</div>
-										</TooltipTrigger>
-										<TooltipContent>
-											<p>You can return the item within 30 days of receipt for a full refund or replacement</p>
-										</TooltipContent>
-									</Tooltip>
-									<div className="flex items-center">
-										<Shield className="mr-2 h-4 w-4 text-blue-500" />
-										<span>Buyer Protection</span>
+							<AccordionContent className="pt-0 pb-2.5">
+								<div className="ml-9.5 space-y-1.5">
+									<div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+										<div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+											<Check className="h-3 w-3 flex-shrink-0 text-primary" />
+											<span>SSL Encrypted</span>
+										</div>
+										<div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+											<Check className="h-3 w-3 flex-shrink-0 text-primary" />
+											<span>PCI Compliant</span>
+										</div>
+										<div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+											<Check className="h-3 w-3 flex-shrink-0 text-primary" />
+											<span>30-Day Returns</span>
+										</div>
+										<div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+											<Check className="h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Buyer Protection</span>
+										</div>
 									</div>
 								</div>
 							</AccordionContent>
 						</AccordionItem>
 
 						{/* Shipping Information */}
-						<AccordionItem className="rounded-lg border bg-accent/50 transition-all hover:shadow-sm hover:bg-accent/60" value="shipping">
-							<AccordionTrigger className="px-4 py-2 hover:no-underline hover:bg-transparent">
-								<div className="flex items-center">
-									<TruckIcon className="mr-2 h-5 w-5 text-primary" />
-									<span className="font-semibold">Shipping Information</span>
+						<AccordionItem className="border-0" value="shipping">
+							<AccordionTrigger className="py-2.5 hover:no-underline">
+								<div className="flex items-center gap-2.5">
+									<div className="flex h-7 w-7 items-center justify-center rounded bg-primary/5">
+										<TruckIcon className="h-3.5 w-3.5 text-primary" />
+									</div>
+									<span className="text-sm">Shipping Information</span>
 								</div>
 							</AccordionTrigger>
-							<AccordionContent className="px-4 pb-4">
-								<div className="space-y-2.5">
-									<div className="flex items-center text-green-600">
-										<span className="font-medium">Free Shipping</span>
-										<Badge className="ml-2 text-xs" variant="secondary">
+							<AccordionContent className="pt-0 pb-2.5">
+								<div className="ml-9.5 space-y-1.5">
+									<div className="flex flex-wrap items-center gap-1.5">
+										<Badge
+											className="h-5 border-green-600/20 bg-green-50 text-green-700 text-xs dark:bg-green-950/30 dark:text-green-400"
+											variant="outline"
+										>
+											Free Shipping
+										</Badge>
+										<Badge className="h-5 text-xs" variant="secondary">
 											Ships from USA
 										</Badge>
 									</div>
-									<div className="flex items-center text-muted-foreground">
-										<Package className="mr-2 h-4 w-4" />
-										<span>Estimated delivery: 3-5 business days</span>
-									</div>
-									<ul className="space-y-1.5 text-muted-foreground text-sm">
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											Order before 2 PM EST for same-day shipping
+									<ul className="space-y-1.5">
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Order before 2 PM EST for same-day shipping</span>
 										</li>
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											Express shipping available at checkout
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Express shipping available at checkout</span>
 										</li>
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											Real-time tracking provided
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Real-time tracking provided</span>
 										</li>
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											Insurance included on all orders
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Insurance included on all orders</span>
 										</li>
 									</ul>
 								</div>
@@ -727,66 +667,70 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						</AccordionItem>
 
 						{/* Discreet Packaging */}
-						<AccordionItem className="rounded-lg border bg-accent/50 transition-all hover:shadow-sm hover:bg-accent/60" value="packaging">
-							<AccordionTrigger className="px-4 py-2 hover:no-underline hover:bg-transparent">
-								<div className="flex items-center">
-									<Package className="mr-2 h-5 w-5 text-primary" />
-									<span className="font-semibold">Discreet Packaging</span>
+						<AccordionItem className="border-0" value="packaging">
+							<AccordionTrigger className="py-2.5 hover:no-underline">
+								<div className="flex items-center gap-2.5">
+									<div className="flex h-7 w-7 items-center justify-center rounded bg-primary/5">
+										<Package className="h-3.5 w-3.5 text-primary" />
+									</div>
+									<span className="text-sm">Discreet Packaging</span>
 								</div>
 							</AccordionTrigger>
-							<AccordionContent className="px-4 pb-4">
-								<ul className="space-y-2 text-sm">
-									<li className="flex items-center">
-										<Check className="mr-2 h-4 w-4 text-green-500" />
-										<span>Plain, unmarked outer box</span>
-									</li>
-									<li className="flex items-center">
-										<Check className="mr-2 h-4 w-4 text-green-500" />
-										<span>No visible product names or logos</span>
-									</li>
-									<li className="flex items-center">
-										<Check className="mr-2 h-4 w-4 text-green-500" />
-										<span>Secure, tamper-evident seal</span>
-									</li>
-									<li className="flex items-center">
-										<Check className="mr-2 h-4 w-4 text-green-500" />
-										<span>Neutral shipping label</span>
-									</li>
-								</ul>
-								<p className="mt-2 text-muted-foreground text-sm">
-									We prioritize your privacy. Our discreet packaging ensures your purchase remains confidential from
-									shipment to delivery.
-								</p>
+							<AccordionContent className="pt-0 pb-2.5">
+								<div className="ml-9.5 space-y-1.5">
+									<ul className="space-y-1.5">
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Plain, unmarked outer box</span>
+										</li>
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>No visible product names or logos</span>
+										</li>
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Secure, tamper-evident seal</span>
+										</li>
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Neutral shipping label</span>
+										</li>
+									</ul>
+									<p className="text-muted-foreground text-xs">
+										We prioritize your privacy. Our discreet packaging ensures your purchase remains confidential.
+									</p>
+								</div>
 							</AccordionContent>
 						</AccordionItem>
 
 						{/* Customer Satisfaction Guarantee */}
-						<AccordionItem className="rounded-lg border bg-accent/50 transition-all hover:shadow-sm hover:bg-accent/60" value="guarantee">
-							<AccordionTrigger className="px-4 py-2 hover:no-underline hover:bg-transparent">
-								<div className="flex items-center">
-									<HeartHandshake className="mr-2 h-5 w-5 text-primary" />
-									<span className="font-semibold">100% Satisfaction Guarantee</span>
+						<AccordionItem className="border-0" value="guarantee">
+							<AccordionTrigger className="py-2.5 hover:no-underline">
+								<div className="flex items-center gap-2.5">
+									<div className="flex h-7 w-7 items-center justify-center rounded bg-primary/5">
+										<HeartHandshake className="h-3.5 w-3.5 text-primary" />
+									</div>
+									<span className="text-sm">100% Satisfaction Guarantee</span>
 								</div>
 							</AccordionTrigger>
-							<AccordionContent className="px-4 pb-4">
-								<div className="space-y-3">
-									<p className="font-medium text-primary text-sm">Your satisfaction is our top priority</p>
-									<ul className="space-y-2 text-muted-foreground text-sm">
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											30-day money-back guarantee
+							<AccordionContent className="pt-0 pb-2.5">
+								<div className="ml-9.5">
+									<ul className="space-y-1.5">
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>30-day money-back guarantee</span>
 										</li>
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											Free replacements for any quality issues
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Free replacements for any quality issues</span>
 										</li>
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											No questions asked returns
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>No questions asked returns</span>
 										</li>
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											Lifetime support for your growing journey
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Lifetime support for your growing journey</span>
 										</li>
 									</ul>
 								</div>
@@ -798,60 +742,48 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 							debugLog("ProductActions", "Checking product handle:", productHandle);
 							return (
 								productHandle === "all-in-one-mushroom-grow-bags-1-pack" && (
-									<AccordionItem className="rounded-lg border bg-accent/50 transition-all hover:shadow-sm hover:bg-accent/60" value="discounts">
-										<AccordionTrigger className="px-4 py-2 hover:no-underline hover:bg-transparent">
-											<div className="flex items-center">
-												<Percent className="mr-2 h-5 w-5 text-primary" />
-												<span className="font-semibold">Volume Discounts</span>
-												<Badge
-													className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-													variant="secondary"
-												>
-													Save up to 40%
-												</Badge>
+									<AccordionItem className="border-0" value="discounts">
+										<AccordionTrigger className="py-2.5 hover:no-underline">
+											<div className="flex items-center gap-2.5">
+												<div className="flex h-7 w-7 items-center justify-center rounded bg-primary/5">
+													<Percent className="h-3.5 w-3.5 text-primary" />
+												</div>
+												<div className="flex flex-1 items-center gap-2">
+													<span className="text-sm">Volume Discounts</span>
+													<Badge
+														className="h-5 border-green-600/20 bg-green-50 text-green-700 text-xs dark:bg-green-950/30 dark:text-green-400"
+														variant="outline"
+													>
+														Save up to 40%
+													</Badge>
+												</div>
 											</div>
 										</AccordionTrigger>
-										<AccordionContent className="px-4 pb-4">
-											<div className="space-y-3">
-												<p className="font-medium text-primary text-sm">Buy more, save more!</p>
-												<ul className="space-y-2 divide-y text-muted-foreground text-sm">
-													<li className="flex items-center justify-between pt-2">
-														<span>2-4 Bags</span>
-														<Badge className="font-semibold text-green-600" variant="outline">
-															15% OFF
-														</Badge>
+										<AccordionContent className="pt-0 pb-2.5">
+											<div className="ml-9.5 space-y-1.5">
+												<ul className="space-y-1.5">
+													<li className="flex items-center justify-between text-xs">
+														<span className="text-muted-foreground">2-4 Bags</span>
+														<span className="font-medium text-green-600">15% OFF</span>
 													</li>
-													<li className="flex items-center justify-between pt-2">
-														<span>5-9 Bags</span>
-														<Badge className="font-semibold text-green-600" variant="outline">
-															25% OFF
-														</Badge>
+													<li className="flex items-center justify-between text-xs">
+														<span className="text-muted-foreground">5-9 Bags</span>
+														<span className="font-medium text-green-600">25% OFF</span>
 													</li>
-													<li className="flex items-center justify-between pt-2">
-														<span>10-19 Bags</span>
-														<Badge className="font-semibold text-green-600" variant="outline">
-															30% OFF
-														</Badge>
+													<li className="flex items-center justify-between text-xs">
+														<span className="text-muted-foreground">10-19 Bags</span>
+														<span className="font-medium text-green-600">30% OFF</span>
 													</li>
-													<li className="flex items-center justify-between pt-2">
-														<span>20-49 Bags</span>
-														<Badge className="font-semibold text-green-600" variant="outline">
-															35% OFF
-														</Badge>
+													<li className="flex items-center justify-between text-xs">
+														<span className="text-muted-foreground">20-49 Bags</span>
+														<span className="font-medium text-green-600">35% OFF</span>
 													</li>
-													<li className="flex items-center justify-between pt-2">
-														<span>50+ Bags</span>
-														<Badge
-															className="bg-green-50 font-semibold text-green-600 dark:bg-green-950/20"
-															variant="outline"
-														>
-															40% OFF
-														</Badge>
+													<li className="flex items-center justify-between text-xs">
+														<span className="text-muted-foreground">50+ Bags</span>
+														<span className="font-medium text-green-600">40% OFF</span>
 													</li>
 												</ul>
-												<p className="mt-2 text-muted-foreground text-xs">
-													✨ Bulk discounts automatically applied at checkout
-												</p>
+												<p className="text-muted-foreground text-xs">Discounts automatically applied at checkout</p>
 											</div>
 										</AccordionContent>
 									</AccordionItem>
@@ -860,83 +792,42 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						})()}
 
 						{/* Expert Support */}
-						<AccordionItem className="rounded-lg border bg-accent/50 transition-all hover:shadow-sm hover:bg-accent/60" value="support">
-							<AccordionTrigger className="px-4 py-2 hover:no-underline hover:bg-transparent">
-								<div className="flex items-center">
-									<Headphones className="mr-2 h-5 w-5 text-primary" />
-									<span className="font-semibold">Expert Support</span>
+						<AccordionItem className="border-0" value="support">
+							<AccordionTrigger className="py-2.5 hover:no-underline">
+								<div className="flex items-center gap-2.5">
+									<div className="flex h-7 w-7 items-center justify-center rounded bg-primary/5">
+										<Headphones className="h-3.5 w-3.5 text-primary" />
+									</div>
+									<span className="text-sm">Expert Support</span>
 								</div>
 							</AccordionTrigger>
-							<AccordionContent className="px-4 pb-4">
-								<div className="space-y-3">
-									<p className="font-medium text-primary text-sm">Get help from our mycology experts</p>
-									<ul className="space-y-2 text-muted-foreground text-sm">
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											Free growing guides and resources
+							<AccordionContent className="pt-0 pb-2.5">
+								<div className="ml-9.5 space-y-1.5">
+									<ul className="space-y-1.5">
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Free growing guides and resources</span>
 										</li>
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											24/7 email support
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>24/7 email support</span>
 										</li>
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											Priority phone support (Mon-Fri)
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Priority phone support (Mon-Fri)</span>
 										</li>
-										<li className="flex items-center">
-											<Check className="mr-2 h-4 w-4 text-green-500" />
-											Access to private growing community
+										<li className="flex items-start gap-1.5 text-muted-foreground text-xs">
+											<Check className="mt-0.5 h-3 w-3 flex-shrink-0 text-primary" />
+											<span>Access to private growing community</span>
 										</li>
 									</ul>
-									<Button className="h-auto p-0 font-medium text-primary" variant="link">
+									<Button className="mt-2 h-auto p-0 text-primary text-xs" variant="link">
 										Join our community
-										<ArrowRight className="ml-1 h-4 w-4" />
+										<ArrowRight className="ml-1 h-3 w-3" />
 									</Button>
 								</div>
 							</AccordionContent>
 						</AccordionItem>
-
-						{/* Social Proof */}
-						{/* <AccordionItem value="social-proof" className="border rounded-lg bg-accent/50">
-							<AccordionTrigger className="px-4 py-2 hover:no-underline">
-								<div className="flex items-center">
-									<Users className="h-5 w-5 mr-2 text-primary" />
-									<span className="font-semibold">Why Customers Love Us</span>
-								</div>
-							</AccordionTrigger>
-							<AccordionContent className="px-4 pb-4">
-								<div className="space-y-4">
-									<div className="flex items-center justify-between">
-										<div className="flex items-center">
-											<div className="flex">
-												{[1, 2, 3, 4, 5].map((star) => (
-													<Star key={star} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-												))}
-											</div>
-											<span className="ml-2 text-sm font-medium">4.9/5</span>
-										</div>
-										<span className="text-sm text-muted-foreground">Based on 1,500+ reviews</span>
-									</div>
-									<div className="space-y-3">
-										<div className="bg-background/50 p-3 rounded-lg">
-											<p className="text-sm italic">"Best quality I've found. Fast shipping and excellent results!"</p>
-											<p className="text-xs text-muted-foreground mt-1">- John D. (Verified Buyer)</p>
-										</div>
-										<div className="bg-background/50 p-3 rounded-lg">
-											<p className="text-sm italic">"The customer service is outstanding. They helped me every step of the way."</p>
-											<p className="text-xs text-muted-foreground mt-1">- Sarah M. (Verified Buyer)</p>
-										</div>
-									</div>
-									<div className="flex items-center justify-between text-sm">
-										<span className="text-primary font-medium">Join 10,000+ satisfied customers</span>
-										<Button variant="link" className="text-primary p-0 h-auto font-medium">
-											Read all reviews
-											<ArrowRight className="w-4 h-4 ml-1" />
-										</Button>
-									</div>
-								</div>
-							</AccordionContent>
-						</AccordionItem> */}
 					</Accordion>
 				</CardContent>
 			</Card>

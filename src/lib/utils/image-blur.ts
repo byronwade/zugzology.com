@@ -51,7 +51,7 @@ export function getShimmerDataURL(width = 700, height = 475): string {
 /**
  * Generate a colored blur placeholder based on theme
  */
-export function getColoredBlurDataURL(color = "#7c3aed"): string {
+export function getColoredBlurDataURL(color = "#2A6592"): string {
 	const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
       <filter id="b" color-interpolation-filters="sRGB">

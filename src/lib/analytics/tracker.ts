@@ -67,8 +67,8 @@ export type EngagementEventData = {
 // ============================================================================
 
 class AnalyticsTracker {
-	private enabled: boolean;
-	private debugMode: boolean;
+	private readonly enabled: boolean;
+	private readonly debugMode: boolean;
 
 	constructor() {
 		// Only enable in production or when explicitly enabled
@@ -81,7 +81,6 @@ class AnalyticsTracker {
 	 */
 	private trackEvent(eventName: string, data?: Record<string, any>) {
 		if (this.debugMode) {
-			console.log("[Analytics]", eventName, data);
 		}
 
 		if (!this.enabled) {
@@ -90,9 +89,7 @@ class AnalyticsTracker {
 
 		try {
 			track(eventName, data);
-		} catch (error) {
-			console.error("[Analytics] Failed to track event:", eventName, error);
-		}
+		} catch (_error) {}
 	}
 
 	// ========================================================================

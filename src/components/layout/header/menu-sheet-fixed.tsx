@@ -131,7 +131,7 @@ export function MenuSheetFixed({ items }: MenuSheetProps) {
 												</button>
 												{/* Render submenu items if they exist */}
 												{item.items && item.items.length > 0 && (
-													<div className="ml-4 mt-1 space-y-1 border-muted-foreground/20 border-l pl-3">
+													<div className="mt-1 ml-4 space-y-1 border-muted-foreground/20 border-l pl-3">
 														{item.items.map((subItem) => (
 															<button
 																className="group flex w-full items-center justify-between rounded-lg p-2 text-left transition-colors hover:bg-muted"

@@ -12,7 +12,7 @@ import { rankProducts, searchProducts } from "@/lib/ranking/product-ranker";
 import type { ShopifyProduct } from "@/lib/types";
 
 // Loading component
-const ProductsLoading = () => (
+const _ProductsLoading = () => (
 	<div className="space-y-8">
 		<div className="mb-8 w-full border-b p-4">
 			<Skeleton className="mb-4 h-8 w-64" />
@@ -152,40 +152,38 @@ export const SimpleProductsContent = React.memo(function SimpleProductsContent({
 
 	// Product list component
 	const ProductList = useCallback(
-		({ products }: { products: ShopifyProduct[] }) => {
-			return (
-				<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-					{products.map((product) => {
-						const firstVariant = product.variants?.nodes?.[0];
+		({ products }: { products: ShopifyProduct[] }) => (
+			<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+				{products.map((product) => {
+					const firstVariant = product.variants?.nodes?.[0];
 
-						if (!firstVariant) {
-							return null;
-						}
+					if (!firstVariant) {
+						return null;
+					}
 
-						return (
-							<div className="group relative" key={product.id}>
-								<div className="sm:hidden">
-									<ProductCard
-										product={product}
-										quantity={firstVariant.quantityAvailable}
-										variantId={firstVariant.id}
-										view="list"
-									/>
-								</div>
-								<div className="hidden sm:block">
-									<ProductCard
-										product={product}
-										quantity={firstVariant.quantityAvailable}
-										variantId={firstVariant.id}
-										view="grid"
-									/>
-								</div>
+					return (
+						<div className="group relative" key={product.id}>
+							<div className="sm:hidden">
+								<ProductCard
+									product={product}
+									quantity={firstVariant.quantityAvailable}
+									variantId={firstVariant.id}
+									view="list"
+								/>
 							</div>
-						);
-					})}
-				</div>
-			);
-		},
+							<div className="hidden sm:block">
+								<ProductCard
+									product={product}
+									quantity={firstVariant.quantityAvailable}
+									variantId={firstVariant.id}
+									view="grid"
+								/>
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		),
 		[]
 	);
 
@@ -195,10 +193,7 @@ export const SimpleProductsContent = React.memo(function SimpleProductsContent({
 			return (
 				<>
 					<ProductsHeader description={description} title={title} totalProducts={totalProductsCount} />
-					<EmptyState
-						description="Try adjusting your search or browse our collections."
-						title="No Products Found"
-					/>
+					<EmptyState description="Try adjusting your search or browse our collections." title="No Products Found" />
 				</>
 			);
 		}
@@ -222,7 +217,17 @@ export const SimpleProductsContent = React.memo(function SimpleProductsContent({
 				)}
 			</>
 		);
-	}, [displayProducts, title, description, totalProductsCount, totalPages, currentPage, searchQuery, collection?.handle, ProductList]);
+	}, [
+		displayProducts,
+		title,
+		description,
+		totalProductsCount,
+		totalPages,
+		currentPage,
+		searchQuery,
+		collection?.handle,
+		ProductList,
+	]);
 
 	return (
 		<main className="container mx-auto px-4 py-12" itemScope itemType="https://schema.org/CollectionPage">

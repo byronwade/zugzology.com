@@ -94,41 +94,48 @@ const ProductsHeaderInner = memo(function ProductsHeaderInner({
 	const hasDescription = description && description.trim().length > 0;
 
 	return (
-		<div className={cn("mb-8 w-full border-b border-border bg-muted/30", className)}>
+		<div className={cn("mb-8 w-full border-border border-b bg-muted/30", className)}>
 			<div className="container mx-auto px-4 py-3">
 				{/* Title, Description and Sort */}
 				<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-				<div className="flex min-w-0 flex-1 items-center gap-4">
-					{image?.url && (
-						<div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-border">
-							<Image alt={image.altText || title} className="object-cover" fill priority sizes="64px" src={image.url} />
+					<div className="flex min-w-0 flex-1 items-center gap-4">
+						{image?.url && (
+							<div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-border">
+								<Image
+									alt={image.altText || title}
+									className="object-cover"
+									fill
+									priority
+									sizes="64px"
+									src={image.url}
+								/>
+							</div>
+						)}
+						<div className="min-w-0 flex-1">
+							<h1 className="truncate font-bold text-2xl text-foreground tracking-tight md:text-3xl">{title}</h1>
+							{hasDescription && <p className="mt-1 line-clamp-3 max-w-[500px] text-muted-foreground">{description}</p>}
 						</div>
-					)}
-					<div className="min-w-0 flex-1">
-						<h1 className="truncate font-bold text-2xl tracking-tight text-foreground md:text-3xl">{title}</h1>
-						{hasDescription && <p className="mt-1 line-clamp-3 max-w-[500px] text-muted-foreground">{description}</p>}
+					</div>
+
+					{/* Sort Dropdown */}
+					<div className="flex-shrink-0">
+						<Select onValueChange={handleUpdateSort} value={currentSort}>
+							<SelectTrigger className="w-full bg-background md:w-[180px]">
+								<div className="flex items-center gap-2">
+									<ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+									<SelectValue placeholder="Sort by" />
+								</div>
+							</SelectTrigger>
+							<SelectContent>
+								{sortOptions.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 				</div>
-
-				{/* Sort Dropdown */}
-				<div className="flex-shrink-0">
-					<Select onValueChange={handleUpdateSort} value={currentSort}>
-						<SelectTrigger className="w-full bg-background md:w-[180px]">
-							<div className="flex items-center gap-2">
-								<ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-								<SelectValue placeholder="Sort by" />
-							</div>
-						</SelectTrigger>
-						<SelectContent>
-							{sortOptions.map((option) => (
-								<SelectItem key={option.value} value={option.value}>
-									{option.label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
-			</div>
 
 				{/* Active Filters */}
 				{hasActiveFilters && (
@@ -181,7 +188,7 @@ export const ProductsHeader = memo(function ProductsHeader(props: ProductsHeader
 	return (
 		<Suspense
 			fallback={
-				<div className={cn("mb-8 w-full border-b border-border bg-muted/30", props.className)}>
+				<div className={cn("mb-8 w-full border-border border-b bg-muted/30", props.className)}>
 					<div className="container mx-auto px-4 py-3">
 						<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 							<div className="flex min-w-0 flex-1 items-center gap-4">
@@ -191,7 +198,9 @@ export const ProductsHeader = memo(function ProductsHeader(props: ProductsHeader
 									</div>
 								)}
 								<div className="min-w-0 flex-1">
-									<h1 className="truncate font-bold text-2xl tracking-tight text-foreground md:text-3xl">{props.title}</h1>
+									<h1 className="truncate font-bold text-2xl text-foreground tracking-tight md:text-3xl">
+										{props.title}
+									</h1>
 									{props.description && (
 										<p className="mt-1 line-clamp-3 max-w-[500px] text-muted-foreground">{props.description}</p>
 									)}

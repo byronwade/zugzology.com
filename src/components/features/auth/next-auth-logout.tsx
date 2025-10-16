@@ -17,10 +17,7 @@ export function NextAuthLogout({ onSignOut }: NextAuthLogoutProps) {
 	};
 
 	return (
-		<DropdownMenuItem
-			className="rounded-md text-foreground hover:bg-accent focus:bg-accent"
-			onClick={handleSignOut}
-		>
+		<DropdownMenuItem className="rounded-md text-foreground hover:bg-muted focus:bg-muted" onClick={handleSignOut}>
 			<LogOut className="mr-2 h-4 w-4 text-muted-foreground" />
 			Sign Out
 		</DropdownMenuItem>

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { BookOpen, Home, Search } from "lucide-react";
 import Image from "next/image";
-import { Search, BookOpen, Home } from "lucide-react";
-import { Link } from "@/components/ui/link";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Link } from "@/components/ui/link";
 
 const blogNotFoundMessages = [
 	"This article wandered off the path",
@@ -41,12 +41,12 @@ export default function BlogNotFound() {
 		<div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden">
 			{/* Full-screen Background Image */}
 			<Image
-				src="https://images.unsplash.com/photo-1470058869958-2a77ade41c02?w=1920&q=80"
 				alt="Mushroom on wood"
-				fill
 				className="object-cover"
+				fill
 				priority
 				quality={90}
+				src="https://images.unsplash.com/photo-1470058869958-2a77ade41c02?w=1920&q=80"
 			/>
 
 			{/* Dark Gradient Overlay */}
@@ -55,13 +55,9 @@ export default function BlogNotFound() {
 			{/* Content */}
 			<div className="relative z-10 mx-auto max-w-2xl px-6 py-16 text-center">
 				<div className="mb-12 space-y-6">
-					<h1 className="font-bold text-6xl text-white tracking-tight sm:text-7xl">
-						Article Not Found
-					</h1>
+					<h1 className="font-bold text-6xl text-white tracking-tight sm:text-7xl">Article Not Found</h1>
 
-					<p className="text-2xl text-white/90 sm:text-3xl">
-						{funnyMessage}
-					</p>
+					<p className="text-2xl text-white/90 sm:text-3xl">{funnyMessage}</p>
 
 					<p className="mx-auto max-w-md text-lg text-white/70">
 						The blog post you're looking for might have been moved or is still being cultivated by our content team.
@@ -70,22 +66,18 @@ export default function BlogNotFound() {
 
 				{/* Search Bar */}
 				<div className="mx-auto mb-8 max-w-xl">
-					<form onSubmit={handleSearch} className="flex gap-3">
+					<form className="flex gap-3" onSubmit={handleSearch}>
 						<div className="relative flex-1">
-							<Search className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-white/40" />
+							<Search className="-translate-y-1/2 absolute top-1/2 left-4 h-5 w-5 text-white/40" />
 							<Input
-								type="search"
-								placeholder="Search our knowledge base..."
-								value={searchQuery}
+								className="border-white/20 bg-white/10 py-6 pl-12 text-white backdrop-blur-sm placeholder:text-white/40 focus:border-white/30 focus:bg-white/15"
 								onChange={(e) => setSearchQuery(e.target.value)}
-								className="border-white/20 bg-white/10 py-6 pl-12 text-white placeholder:text-white/40 backdrop-blur-sm focus:border-white/30 focus:bg-white/15"
+								placeholder="Search our knowledge base..."
+								type="search"
+								value={searchQuery}
 							/>
 						</div>
-						<Button
-							type="submit"
-							size="lg"
-							className="bg-white px-8 text-black hover:bg-white/90"
-						>
+						<Button className="bg-white px-8 text-black hover:bg-white/90" size="lg" type="submit">
 							Search
 						</Button>
 					</form>
@@ -93,11 +85,7 @@ export default function BlogNotFound() {
 
 				{/* Quick Actions */}
 				<div className="flex flex-wrap justify-center gap-4">
-					<Button
-						asChild
-						size="lg"
-						className="gap-2 bg-white text-black hover:bg-white/90"
-					>
+					<Button asChild className="gap-2 bg-white text-black hover:bg-white/90" size="lg">
 						<Link href="/blogs">
 							<BookOpen className="h-5 w-5" />
 							All Articles
@@ -105,20 +93,13 @@ export default function BlogNotFound() {
 					</Button>
 					<Button
 						asChild
-						variant="outline"
-						size="lg"
 						className="gap-2 border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
-					>
-						<Link href="/products">
-							Browse Products
-						</Link>
-					</Button>
-					<Button
-						asChild
-						variant="ghost"
 						size="lg"
-						className="gap-2 text-white hover:bg-white/10"
+						variant="outline"
 					>
+						<Link href="/products">Browse Products</Link>
+					</Button>
+					<Button asChild className="gap-2 text-white hover:bg-white/10" size="lg" variant="ghost">
 						<Link href="/">
 							<Home className="h-5 w-5" />
 							Go Home
@@ -129,7 +110,6 @@ export default function BlogNotFound() {
 
 			{/* Structured Data */}
 			<script
-				type="application/ld+json"
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify({
 						"@context": "https://schema.org",
@@ -142,6 +122,7 @@ export default function BlogNotFound() {
 						},
 					}),
 				}}
+				type="application/ld+json"
 			/>
 		</div>
 	);

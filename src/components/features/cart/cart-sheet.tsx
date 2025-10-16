@@ -335,7 +335,7 @@ export function CartSheet() {
 					</div>
 				)}
 
-				<div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted">
+				<div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted flex-1 overflow-y-auto">
 					<div className="px-6">
 						{!isLoading && cartData.items.length > 0 && (
 							<div className="space-y-3 py-6">
@@ -366,7 +366,7 @@ export function CartSheet() {
 													<h3 className="line-clamp-2 font-medium text-foreground text-sm leading-tight">
 														{node.merchandise.product.title}
 													</h3>
-													<p className="whitespace-nowrap font-semibold text-foreground text-base">
+													<p className="whitespace-nowrap font-semibold text-base text-foreground">
 														{formatPrice(Number.parseFloat(node.cost.totalAmount.amount))}
 													</p>
 												</div>
@@ -398,7 +398,9 @@ export function CartSheet() {
 														pattern="[0-9]*"
 														type="text"
 														value={
-															pendingUpdates[node.id] !== undefined ? pendingUpdates[node.id] : quantities[node.id] || ""
+															pendingUpdates[node.id] !== undefined
+																? pendingUpdates[node.id]
+																: quantities[node.id] || ""
 														}
 													/>
 													<button
@@ -475,7 +477,9 @@ export function CartSheet() {
 											</div>
 
 											<div className="min-w-0 flex-1">
-												<h4 className="line-clamp-1 font-medium text-foreground text-sm leading-tight">{product.title}</h4>
+												<h4 className="line-clamp-1 font-medium text-foreground text-sm leading-tight">
+													{product.title}
+												</h4>
 												<p className="mt-0.5 font-medium text-muted-foreground text-xs">
 													{product.priceRange?.minVariantPrice?.amount
 														? formatPrice(Number.parseFloat(product.priceRange.minVariantPrice.amount))
@@ -510,7 +514,7 @@ export function CartSheet() {
 						<div className="flex items-center justify-between rounded-lg bg-muted/50 p-4">
 							<div>
 								<p className="text-muted-foreground text-xs uppercase tracking-wide">Subtotal</p>
-								<p className="mt-0.5 font-semibold text-foreground text-2xl">{formatPrice(cartData.cartTotal)}</p>
+								<p className="mt-0.5 font-semibold text-2xl text-foreground">{formatPrice(cartData.cartTotal)}</p>
 							</div>
 							<div className="flex flex-col items-end">
 								<div className="flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-1 text-green-600 dark:text-green-500">
@@ -523,7 +527,7 @@ export function CartSheet() {
 					</div>
 
 					<Button
-						className="h-12 w-full rounded-xl bg-primary font-semibold text-primary-foreground text-base shadow-lg transition-all duration-200 hover:bg-primary/90 hover:shadow-xl disabled:opacity-50"
+						className="h-12 w-full rounded-xl bg-primary font-semibold text-base text-primary-foreground shadow-lg transition-all duration-200 hover:bg-primary/90 hover:shadow-xl disabled:opacity-50"
 						disabled={!cartData.checkoutUrl || isLoading || cartData.items.length === 0}
 						onClick={() => cartData.checkoutUrl && (window.location.href = cartData.checkoutUrl)}
 					>

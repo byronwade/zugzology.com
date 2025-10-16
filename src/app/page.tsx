@@ -4,11 +4,11 @@ import { Suspense } from "react";
 import { ProductCard } from "@/components/features/products/product-card";
 import { BestSellersShowcase } from "@/components/sections/best-sellers-showcase";
 import { FeaturedCollections } from "@/components/sections/featured-collections";
-import { PrefetchLink } from "@/components/ui/prefetch-link";
-import { HeroModern } from "@/components/sections/hero-modern";
+import { HeroVideoCinematic } from "@/components/sections/hero-video-cinematic";
 import { LatestProducts } from "@/components/sections/latest-products";
 import { SaleProducts } from "@/components/sections/sale-products";
 import { Button } from "@/components/ui/button";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { getPaginatedProducts, getSiteSettings } from "@/lib/api/shopify/actions";
 import {
 	getEnhancedFAQSchema,
@@ -60,7 +60,7 @@ async function fetchHomePageData(): Promise<HomePageData> {
 				Number.parseFloat(firstVariant.compareAtPrice.amount) > Number.parseFloat(firstVariant.price.amount || "0")
 			);
 		})
-		.slice(0, 8);
+		.slice(0, 5);
 
 	return {
 		site: {
@@ -69,10 +69,10 @@ async function fetchHomePageData(): Promise<HomePageData> {
 			url: siteSettings?.primaryDomain?.url?.replace(/\/$/, ""),
 		},
 		heroProduct,
-		featuredProducts: featuredProducts.slice(0, 8),
-		saleProducts,
-		newProducts: newProducts.slice(0, 8),
-		bestSellingProducts: bestSellingProducts.slice(0, 8),
+		featuredProducts: featuredProducts.slice(0, 5),
+		saleProducts: saleProducts.slice(0, 5),
+		newProducts: newProducts.slice(0, 5),
+		bestSellingProducts: bestSellingProducts.slice(0, 5),
 	};
 }
 
@@ -161,8 +161,8 @@ async function HomeContent() {
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="space-y-0">
-				{/* Modern Minimal Hero */}
-				<HeroModern products={featuredProducts.slice(0, 3)} />
+				{/* Netflix-Style Video Hero */}
+				<HeroVideoCinematic products={featuredProducts.slice(0, 3)} />
 
 				<ProductGridSection
 					ctaHref="/collections/all"
@@ -219,11 +219,11 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 
 	return (
 		<section className="bg-background">
-			<div className="container mx-auto px-4 py-12">
-				<div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+			<div className="container mx-auto px-4 py-8 sm:py-12">
+				<div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
 					<div>
-						<h2 className="font-bold text-3xl text-foreground tracking-tight sm:text-4xl">{title}</h2>
-						{subtitle && <p className="mt-2 max-w-2xl text-lg text-muted-foreground">{subtitle}</p>}
+						<h2 className="font-bold text-2xl text-foreground tracking-tight sm:text-3xl md:text-4xl">{title}</h2>
+						{subtitle && <p className="mt-2 max-w-2xl text-base text-muted-foreground sm:text-lg">{subtitle}</p>}
 					</div>
 					{ctaHref && ctaLabel && (
 						<Button asChild variant="outline">
@@ -232,7 +232,28 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 					)}
 				</div>
 
-				<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+				{/* Mobile: List view */}
+				<div className="flex flex-col gap-0 sm:hidden">
+					{products.map((product) => {
+						const firstVariant = product.variants?.nodes?.[0];
+						if (!firstVariant) {
+							return null;
+						}
+
+						return (
+							<ProductCard
+								key={product.id}
+								product={product}
+								quantity={firstVariant.quantityAvailable}
+								variantId={firstVariant.id}
+								view="list"
+							/>
+						);
+					})}
+				</div>
+
+				{/* Desktop: Grid view */}
+				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 					{products.map((product) => {
 						const firstVariant = product.variants?.nodes?.[0];
 						if (!firstVariant) {

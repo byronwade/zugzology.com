@@ -15,7 +15,7 @@ export function DynamicPromoBanner({ showPromo, onDismiss }: DynamicPromoBannerP
 	}
 
 	return (
-		<div className="bg-primary py-2 text-sm text-primary-foreground">
+		<div className="bg-primary py-2 text-primary-foreground text-sm">
 			<div className="container mx-auto flex items-center justify-between px-4">
 				<div className="flex-1 text-center">
 					<span className="font-medium">{CONTENT.promoBanner.default}</span>

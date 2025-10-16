@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import { Suspense } from "react";
@@ -8,6 +7,7 @@ import { BlogShareToolbar } from "@/components/features/blog/blog-share-toolbar"
 import { BlogShareToolbarHorizontal } from "@/components/features/blog/blog-share-toolbar-horizontal";
 import { FrequentlyBoughtTogether } from "@/components/features/products/sections/frequently-bought-together";
 import { BreadcrumbConfigs, UniversalBreadcrumb } from "@/components/layout";
+import { Link } from "@/components/ui/link";
 import { getLimitedProducts, getProductsByTags } from "@/lib/actions/shopify/index";
 import { getAllBlogPosts, getArticleByHandles, getBlogByHandle } from "@/lib/api/shopify/actions";
 import {
@@ -335,11 +335,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 			<div className="min-h-screen w-full bg-background">
 				<div className="container mx-auto px-4 py-12">
-					<article
-						className="relative w-full bg-background"
-						itemScope
-						itemType="https://schema.org/BlogPosting"
-					>
+					<article className="relative w-full bg-background" itemScope itemType="https://schema.org/BlogPosting">
 						{/* Breadcrumb - moved inside article */}
 						<div className="mx-auto mb-6 max-w-4xl">
 							<Suspense fallback={<div className="mb-8 h-12 w-1/4 rounded bg-neutral-200 dark:bg-neutral-700" />}>
@@ -560,37 +556,37 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 						<footer className="w-full border-neutral-200 border-t dark:border-neutral-800">
 							<div className="container mx-auto px-4 py-12">
 								<div className="max-w-4xl">
-								<div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-									<div className="flex items-center gap-5">
-										<div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
-											<span className="font-medium text-3xl text-neutral-600 dark:text-neutral-400">
-												{article.author.name.charAt(0)}
-											</span>
+									<div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+										<div className="flex items-center gap-5">
+											<div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+												<span className="font-medium text-3xl text-neutral-600 dark:text-neutral-400">
+													{article.author.name.charAt(0)}
+												</span>
+											</div>
+											<div className="flex flex-col">
+												<span className="font-medium text-neutral-900 text-xl dark:text-neutral-100">
+													Written by {article.author.name}
+												</span>
+												<time className="text-neutral-600 dark:text-neutral-400" dateTime={article.publishedAt}>
+													Published on{" "}
+													{new Date(article.publishedAt).toLocaleDateString("en-US", {
+														month: "long",
+														day: "numeric",
+														year: "numeric",
+													})}
+												</time>
+											</div>
 										</div>
-										<div className="flex flex-col">
-											<span className="font-medium text-neutral-900 text-xl dark:text-neutral-100">
-												Written by {article.author.name}
-											</span>
-											<time className="text-neutral-600 dark:text-neutral-400" dateTime={article.publishedAt}>
-												Published on{" "}
-												{new Date(article.publishedAt).toLocaleDateString("en-US", {
-													month: "long",
-													day: "numeric",
-													year: "numeric",
-												})}
-											</time>
-										</div>
-									</div>
 
-									<div className="flex items-center gap-3">
-										<Link
-											className="inline-flex items-center rounded-full bg-neutral-100 px-5 py-2.5 font-medium text-neutral-600 text-sm transition-colors hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700"
-											href={`/blogs/${article.blog?.handle || nextParams.blog}`}
-										>
-											More from {article.blog?.title || "Blog"}
-										</Link>
+										<div className="flex items-center gap-3">
+											<Link
+												className="inline-flex items-center rounded-full bg-neutral-100 px-5 py-2.5 font-medium text-neutral-600 text-sm transition-colors hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700"
+												href={`/blogs/${article.blog?.handle || nextParams.blog}`}
+											>
+												More from {article.blog?.title || "Blog"}
+											</Link>
+										</div>
 									</div>
-								</div>
 								</div>
 							</div>
 						</footer>
@@ -677,7 +673,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 											Shop All Products
 										</Link>
 										<Link
-											className="inline-flex items-center rounded-full border bg-card px-8 py-4 font-medium text-base text-foreground transition-colors hover:bg-accent"
+											className="inline-flex items-center rounded-full border bg-card px-8 py-4 font-medium text-base text-foreground transition-all duration-200 hover:border-primary/30 hover:bg-primary/5"
 											href="/collections/starter-kits"
 										>
 											View Starter Kits

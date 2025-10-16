@@ -3,12 +3,12 @@
 import { Dialog } from "@headlessui/react";
 import { Loader2, X } from "lucide-react";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCart } from "@/components/providers/cart-provider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Link } from "@/components/ui/link";
 import { addToCart, createCart } from "@/lib/actions/shopify";
 import { formatPrice } from "@/lib/utils";
 

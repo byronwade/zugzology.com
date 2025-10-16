@@ -208,7 +208,7 @@ function ReviewForm({ productId, productSku, onSuccess }: ReviewFormProps) {
 						</div>
 					))}
 					{images.length < 5 && (
-						<label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-md border-2 border-dashed transition-colors hover:border-primary">
+						<label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-md border-2 border-dashed transition-all duration-200 hover:border-primary/50 hover:bg-primary/5">
 							<input accept="image/*" className="hidden" multiple onChange={handleImageUpload} type="file" />
 							<Upload className="h-6 w-6 text-neutral-400" />
 						</label>

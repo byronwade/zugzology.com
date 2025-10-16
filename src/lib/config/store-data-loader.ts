@@ -116,8 +116,8 @@ export const loadStoreConfiguration = cache(async (): Promise<StoreConfig> => {
 			},
 
 			branding: {
-				primaryColor: shop.brand?.colors?.primary?.background || "#7c3aed",
-				secondaryColor: shop.brand?.colors?.secondary?.background || "#06b6d4",
+				primaryColor: shop.brand?.colors?.primary?.background || "#2A6592",
+				secondaryColor: shop.brand?.colors?.secondary?.background || "#C18A3C",
 				logoUrl: shop.brand?.logo?.image?.url,
 				faviconUrl: shop.brand?.logo?.image?.url, // Use logo as favicon fallback
 			},

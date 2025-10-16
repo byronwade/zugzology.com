@@ -1,9 +1,9 @@
 import { ArrowRight, Clock, Shield, ShoppingCart, Star, Truck } from "lucide-react";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { AddToCartButton } from "@/components/features/products/add-to-cart-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import type { ShopifyProduct } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 

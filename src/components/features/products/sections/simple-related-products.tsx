@@ -14,24 +14,20 @@ type RelatedProductsProps = {
 	maxItems?: number;
 };
 
-export function RelatedProducts({
-	products,
-	currentProductId,
-	currentProduct,
-	maxItems = 8,
-}: RelatedProductsProps) {
+export function RelatedProducts({ products, currentProductId, currentProduct, maxItems = 8 }: RelatedProductsProps) {
 	const { addItem } = useCart();
 
 	// Get related products using simple tag/type matching
-	const relatedProducts = useMemo(() => {
-		return getRelatedProducts(currentProduct, products, maxItems);
-	}, [currentProduct, products, maxItems]);
+	const relatedProducts = useMemo(
+		() => getRelatedProducts(currentProduct, products, maxItems),
+		[currentProduct, products, maxItems]
+	);
 
 	if (!relatedProducts.length) {
 		return null;
 	}
 
-	const handleAddToCart = async (productId: string, variantId: string) => {
+	const handleAddToCart = async (_productId: string, variantId: string) => {
 		if (!variantId) {
 			toast.error("Please select a product variant");
 			return;
@@ -57,12 +53,8 @@ export function RelatedProducts({
 		<div className="mb-16 last:mb-0">
 			{/* Header */}
 			<div className="mb-8">
-				<h2 className="mb-2 font-bold text-2xl text-neutral-900 dark:text-neutral-100">
-					You May Also Like
-				</h2>
-				<p className="text-neutral-600 text-sm dark:text-neutral-400">
-					Similar products based on type and category
-				</p>
+				<h2 className="mb-2 font-bold text-2xl text-neutral-900 dark:text-neutral-100">You May Also Like</h2>
+				<p className="text-neutral-600 text-sm dark:text-neutral-400">Similar products based on type and category</p>
 			</div>
 
 			{/* Products grid */}

@@ -116,8 +116,8 @@ export const getDefaultStoreConfig = (): Partial<StoreConfig> => ({
 		symbol: process.env.SHOPIFY_CURRENCY_SYMBOL || "$",
 	},
 	branding: {
-		primaryColor: process.env.NEXT_PUBLIC_PRIMARY_COLOR || "#7c3aed",
-		secondaryColor: process.env.NEXT_PUBLIC_SECONDARY_COLOR || "#06b6d4",
+		primaryColor: process.env.NEXT_PUBLIC_PRIMARY_COLOR || "#2A6592",
+		secondaryColor: process.env.NEXT_PUBLIC_SECONDARY_COLOR || "#C18A3C",
 	},
 	navigation: {
 		mainMenu: process.env.SHOPIFY_MAIN_MENU_HANDLE || "main-menu",

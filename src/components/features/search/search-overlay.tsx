@@ -51,13 +51,8 @@ export function SearchResults() {
 	// Show loading state if no products are loaded yet
 	if (totalProducts === 0) {
 		return (
-			<div className="w-full py-12">
-				<div className="mx-auto max-w-screen-xl px-4">
-					<div className="text-center">
-						<h2 className="mb-2 font-semibold text-xl">Loading Products</h2>
-						<p className="text-muted-foreground">Please wait while we fetch the products...</p>
-					</div>
-				</div>
+			<div className="w-full py-6">
+				<ProductsLoading />
 			</div>
 		);
 	}
@@ -89,8 +84,8 @@ export function SearchResults() {
 						<ProductsContent
 							collection={virtualCollection as any}
 							currentPage={1}
-							title={virtualCollection.title}
 							description={virtualCollection.description}
+							title={virtualCollection.title}
 						/>
 					</Suspense>
 				</section>

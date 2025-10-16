@@ -286,3 +286,140 @@ export const MENU_ITEM_FRAGMENT = `
     }
   }
 `;
+
+// Metaobject Fragment for page sections
+export const METAOBJECT_FRAGMENT = `
+  fragment MetaobjectFragment on Metaobject {
+    id
+    type
+    handle
+    fields {
+      key
+      value
+      type
+      reference {
+        ... on MediaImage {
+          id
+          image {
+            url
+            altText
+            width
+            height
+          }
+        }
+        ... on Product {
+          id
+          handle
+          title
+          images(first: 1) {
+            nodes {
+              url
+              altText
+              width
+              height
+            }
+          }
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+        }
+        ... on Collection {
+          id
+          handle
+          title
+          image {
+            url
+            altText
+            width
+            height
+          }
+        }
+      }
+      references(first: 20) {
+        nodes {
+          ... on MediaImage {
+            id
+            image {
+              url
+              altText
+              width
+              height
+            }
+          }
+          ... on Product {
+            id
+            handle
+            title
+            images(first: 1) {
+              nodes {
+                url
+                altText
+                width
+                height
+              }
+            }
+            priceRange {
+              minVariantPrice {
+                amount
+                currencyCode
+              }
+            }
+          }
+          ... on Collection {
+            id
+            handle
+            title
+            description
+            image {
+              url
+              altText
+              width
+              height
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+// Page Fragment with metafields and metaobjects
+export const PAGE_FRAGMENT = `
+  fragment PageFragment on Page {
+    id
+    title
+    handle
+    body
+    bodySummary
+    seo {
+      title
+      description
+    }
+    createdAt
+    updatedAt
+    metafields(identifiers: [
+      {namespace: "custom", key: "sections"},
+      {namespace: "custom", key: "layout"},
+      {namespace: "custom", key: "theme"},
+      {namespace: "custom", key: "hero_image"}
+    ]) {
+      id
+      namespace
+      key
+      value
+      type
+      reference {
+        ...MetaobjectFragment
+      }
+      references(first: 50) {
+        nodes {
+          ...MetaobjectFragment
+        }
+      }
+    }
+  }
+  ${METAOBJECT_FRAGMENT}
+`;

@@ -2,11 +2,11 @@
 
 import { ArrowLeft, Check, Circle, Download, Gift, Loader2, Mail, Package, Printer } from "lucide-react";
 import Image from "next/image";
-import { Link } from "@/components/ui/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCart } from "@/components/providers/cart-provider";
 import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
 import { addToCart, createCart } from "@/lib/actions/shopify";
 import type { ShopifyCustomer } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
@@ -387,7 +387,7 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 							{giftCards.length > 0 && (
 								<div className="card mb-6 rounded-lg bg-white p-6 shadow">
 									<div className="mb-4 flex items-center">
-										<Gift className="mr-2 h-5 w-5 text-purple-600" />
+										<Gift className="mr-2 h-5 w-5 text-primary" />
 										<h2 className="font-semibold text-xl">Gift Cards</h2>
 									</div>
 									<div className="space-y-4">
@@ -416,8 +416,8 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 											</div>
 										))}
 									</div>
-									<div className="mt-4 rounded-lg bg-purple-50 p-4">
-										<p className="text-purple-700 text-sm">
+									<div className="mt-4 rounded-lg bg-primary/10 p-4">
+										<p className="text-primary text-sm">
 											Gift cards have been sent to the recipient&apos;s email address.
 										</p>
 									</div>

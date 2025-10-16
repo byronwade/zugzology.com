@@ -4,7 +4,7 @@
 /// <reference types="react" />
 
 declare global {
-	interface Window {
+	type Window = {
 		// Google AdSense
 		adsbygoogle?: any[];
 
@@ -25,13 +25,13 @@ declare global {
 
 		// Model Viewer (3D Models)
 		// Custom element for <model-viewer> tag
-	}
+	};
 }
 
 // Declare model-viewer custom element for react-jsx mode
 declare module "react/jsx-runtime" {
 	namespace JSX {
-		interface IntrinsicElements {
+		type IntrinsicElements = {
 			"model-viewer": {
 				src?: string;
 				poster?: string;
@@ -69,7 +69,7 @@ declare module "react/jsx-runtime" {
 				ref?: React.RefObject<any>;
 				children?: React.ReactNode;
 			};
-		}
+		};
 	}
 }
 

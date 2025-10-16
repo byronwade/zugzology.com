@@ -1,7 +1,7 @@
 "use client";
 
-import { Link } from "@/components/ui/link";
 import { usePathname } from "next/navigation";
+import { Link } from "@/components/ui/link";
 
 type Category = {
 	id: string;

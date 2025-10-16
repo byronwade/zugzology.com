@@ -1,8 +1,8 @@
 "use client";
 
 import { memo, Suspense, useMemo } from "react";
-import { ProductCard } from "@/components/features/products/product-card";
 import { ProductFilters } from "@/components/features/filters";
+import { ProductCard } from "@/components/features/products/product-card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PaginationControlsSSR } from "@/components/ui/pagination";
@@ -42,7 +42,15 @@ function ProductGridLoading() {
 }
 
 // Header component
-function ProductsHeader({ title, description, totalProducts }: { title: string; description?: string; totalProducts: number }) {
+function ProductsHeader({
+	title,
+	description,
+	totalProducts,
+}: {
+	title: string;
+	description?: string;
+	totalProducts: number;
+}) {
 	return (
 		<div className="mb-8 w-full border-border/60 border-b p-4">
 			<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -65,7 +73,7 @@ function ProductsHeader({ title, description, totalProducts }: { title: string; 
 // Memoized product item component for stable props
 const ProductItem = memo(function ProductItem({
 	product,
-	isPriority
+	isPriority,
 }: {
 	product: ShopifyProduct;
 	isPriority: boolean;
@@ -73,7 +81,9 @@ const ProductItem = memo(function ProductItem({
 	// Memoize variant extraction to prevent recalculation
 	const variantData = useMemo(() => {
 		const firstVariant = product.variants?.nodes?.[0];
-		if (!firstVariant) return null;
+		if (!firstVariant) {
+			return null;
+		}
 
 		return {
 			id: firstVariant.id,
@@ -81,7 +91,9 @@ const ProductItem = memo(function ProductItem({
 		};
 	}, [product.variants]);
 
-	if (!variantData) return null;
+	if (!variantData) {
+		return null;
+	}
 
 	return (
 		<div className="group relative">
@@ -110,7 +122,7 @@ const ProductItem = memo(function ProductItem({
 // Product grid component - memoized for performance
 const ProductGrid = memo(function ProductGrid({
 	products,
-	priority = false
+	priority = false,
 }: {
 	products: ShopifyProduct[];
 	priority?: boolean;
@@ -118,11 +130,7 @@ const ProductGrid = memo(function ProductGrid({
 	return (
 		<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 			{products.map((product, index) => (
-				<ProductItem
-					key={product.id}
-					isPriority={priority && index < 4}
-					product={product}
-				/>
+				<ProductItem isPriority={priority && index < 4} key={product.id} product={product} />
 			))}
 		</div>
 	);
@@ -162,10 +170,7 @@ export function ProductGridWithFilters({
 				{/* Product Filters */}
 				<ProductFilters products={initialProducts} showCollections={showCollectionFilter} />
 
-				<EmptyState
-					description="Try adjusting your filters or browse our collections."
-					title="No Products Found"
-				/>
+				<EmptyState description="Try adjusting your filters or browse our collections." title="No Products Found" />
 			</main>
 		);
 	}

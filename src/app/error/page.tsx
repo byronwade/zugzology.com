@@ -1,9 +1,9 @@
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import { Link } from "@/components/ui/link";
 import { LoginButton } from "@/components/features/auth/next-auth-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "@/components/ui/link";
 
 export const metadata: Metadata = {
 	title: "Authentication Error | Zugzology",

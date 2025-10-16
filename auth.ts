@@ -1,9 +1,9 @@
-import NextAuth, { type AuthOptions, type Session } from "next-auth";
 import type { Account } from "next-auth";
+import NextAuth, { type AuthOptions, type Session } from "next-auth";
 import type { JWT } from "next-auth/jwt";
-import Shopify from "./src/auth/providers/shopify";
 import Credentials from "next-auth/providers/credentials";
 import { logAuthEvent } from "@/lib/config/auth";
+import Shopify from "./src/auth/providers/shopify";
 
 // Ensure environment variables are properly typed
 const shopifyConfig = {
@@ -13,41 +13,34 @@ const shopifyConfig = {
 	clientSecret: process.env.SHOPIFY_CLIENT_SECRET,
 };
 
-const hasShopifyCredentials = Boolean(
-	shopifyConfig.shopId && shopifyConfig.clientId && shopifyConfig.clientSecret
-);
+const hasShopifyCredentials = Boolean(shopifyConfig.shopId && shopifyConfig.clientId && shopifyConfig.clientSecret);
 
 if (!hasShopifyCredentials) {
-	console.warn(
-		"[NextAuth] Shopify OAuth credentials are missing. Set SHOPIFY_SHOP_ID, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET to enable login."
-	);
 }
 
 const providers = hasShopifyCredentials
 	? [
-		Shopify({
-			shopId: shopifyConfig.shopId as string,
-			clientId: shopifyConfig.clientId,
-			clientSecret: shopifyConfig.clientSecret as string,
-		}),
-	]
+			Shopify({
+				shopId: shopifyConfig.shopId as string,
+				clientId: shopifyConfig.clientId,
+				clientSecret: shopifyConfig.clientSecret as string,
+			}),
+		]
 	: [
-		Credentials({
-			id: "shopify",
-			name: "Shopify",
-			credentials: {},
-			authorize: async () => {
-				throw new Error(
-					"Shopify authentication is not configured. Please set SHOPIFY_SHOP_ID, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET."
-				);
-			},
-		}),
-	];
+			Credentials({
+				id: "shopify",
+				name: "Shopify",
+				credentials: {},
+				authorize: async () => {
+					throw new Error(
+						"Shopify authentication is not configured. Please set SHOPIFY_SHOP_ID, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET."
+					);
+				},
+			}),
+		];
 
 // Add custom error logging for debugging
-const logAuthError = (message: string, error?: unknown) => {
-	console.error(`🔐 [NextAuth] ${message}`, error);
-};
+const logAuthError = (_message: string, _error?: unknown) => {};
 
 export const authConfig: AuthOptions = {
 	debug: false, // Disable debug mode
@@ -73,7 +66,7 @@ export const authConfig: AuthOptions = {
 			} catch (error) {
 				logAuthError("Error in session callback", error);
 				return session;
-		}
+			}
 		},
 		async jwt({ token, account }: { token: JWT; account?: Account | null }) {
 			try {
@@ -106,7 +99,8 @@ export const authConfig: AuthOptions = {
 				// Ensure we always redirect to a valid URL
 				if (url.startsWith(baseUrl)) {
 					return url;
-				} else if (url.startsWith("/")) {
+				}
+				if (url.startsWith("/")) {
 					return `${baseUrl}${url}`;
 				}
 				return baseUrl;
@@ -163,16 +157,16 @@ export { handlers, auth, signIn, signOut, GET, POST };
 
 // Extend the Session type to include Shopify access token and ID token
 declare module "next-auth" {
-	interface Session {
+	type Session = {
 		shopifyAccessToken?: string;
 		idToken?: string;
-	}
+	};
 }
 
 // Extend JWT to include Shopify access token and ID token
 declare module "next-auth" {
-	interface JWT {
+	type JWT = {
 		shopifyAccessToken?: string;
 		idToken?: string;
-	}
+	};
 }

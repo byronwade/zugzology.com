@@ -2,7 +2,6 @@
 
 import { getProductFAQsForSchema, ProductFAQs } from "@/components/utilities/product-faqs";
 import { SEO } from "@/components/utilities/seo/seo";
-import { TrustIndicators } from "@/components/utilities/trust-indicators";
 import type { ShopifyProduct } from "@/lib/types";
 
 type SEOProductWrapperProps = {
@@ -41,7 +40,7 @@ export function SEOProductWrapper({ product, children }: SEOProductWrapperProps)
 	// Get review data if available from product.metafields
 	const reviewCount = product.metafields?.find((m) => m?.key === "review_count")?.value || "0";
 	const ratingValue = product.metafields?.find((m) => m?.key === "rating")?.value || "0";
-	const hasReviews = Number.parseInt(reviewCount || "0", 10) > 0 && Number.parseFloat(ratingValue || "0") > 0;
+	const _hasReviews = Number.parseInt(reviewCount || "0", 10) > 0 && Number.parseFloat(ratingValue || "0") > 0;
 
 	return (
 		<>
@@ -50,20 +49,6 @@ export function SEOProductWrapper({ product, children }: SEOProductWrapperProps)
 
 			{/* Original product content */}
 			{children}
-
-			{/* Trust indicators to boost confidence */}
-			<div className="container mx-auto my-8 px-4">
-				<TrustIndicators
-					showPopular={hasReviews && Number.parseFloat(ratingValue || "0") >= 4.5}
-					showQuickDelivery={product.availableForSale}
-					showSustainable={product.tags?.some(
-						(tag) =>
-							typeof tag === "string" &&
-							(tag.toLowerCase().includes("eco") || tag.toLowerCase().includes("sustainable"))
-					)}
-					variant="full"
-				/>
-			</div>
 
 			{/* FAQs section */}
 			<div className="container mx-auto my-8 px-4">
