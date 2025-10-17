@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import { cache, Suspense } from "react";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { ProductGridWithFilters } from "@/components/features/products/product-grid-with-filters";
 import { BreadcrumbConfigs, UniversalBreadcrumb } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
