@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Script from "next/script";
+import { unstable_noStore as noStore } from "next/cache";
 import { cache, Suspense } from "react";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 import { ProductGridWithFilters } from "@/components/features/products/product-grid-with-filters";
 import { BreadcrumbConfigs, UniversalBreadcrumb } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -19,7 +17,7 @@ import {
 } from "@/lib/seo/enhanced-jsonld";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 
-// Dynamic rendering handled by dynamicIO experimental feature
+// Dynamic rendering handled by opting out of caching at request time
 
 // Define the page props
 export type CollectionPageProps = {
@@ -29,6 +27,8 @@ export type CollectionPageProps = {
 
 // Cache the collection data
 const getCachedCollection = cache(async (handle: string, sort = "featured", page = 1) => {
+        // Opt the collection page into dynamic rendering without route segment config
+        noStore();
 	try {
 		// Check if handle is valid
 		if (!handle || typeof handle !== "string") {
