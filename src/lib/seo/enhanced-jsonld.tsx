@@ -128,8 +128,8 @@ export const getEnhancedLocalBusinessSchema = (): WithContext<LocalBusiness> => 
 		},
 		geo: {
 			"@type": "GeoCoordinates",
-			latitude: 37.7749, // Update with your actual coordinates
-			longitude: -122.4194,
+			latitude: BUSINESS.geo.latitude,
+			longitude: BUSINESS.geo.longitude,
 		},
 		openingHoursSpecification: [
 			{
@@ -699,34 +699,29 @@ export const getHowToSchema = (guide: {
 		image?: string;
 		url?: string;
 	}>;
-}): WithContext<HowTo> => {
-	const config = getStoreConfigSafe();
-	const _baseUrl = `https://${config.storeDomain}`;
-
-	return {
-		"@context": "https://schema.org",
-		"@type": "HowTo",
-		name: guide.name,
-		description: guide.description,
-		totalTime: guide.totalTime,
-		supply: guide.supply?.map((s) => ({
-			"@type": "HowToSupply",
-			name: s,
-		})),
-		tool: guide.tool?.map((t) => ({
-			"@type": "HowToTool",
-			name: t,
-		})),
-		step: guide.steps.map((step, index) => ({
-			"@type": "HowToStep",
-			name: step.name,
-			text: step.text,
-			position: index + 1,
-			url: step.url,
-			image: step.image,
-		})),
-	};
-};
+}): WithContext<HowTo> => ({
+	"@context": "https://schema.org",
+	"@type": "HowTo",
+	name: guide.name,
+	description: guide.description,
+	totalTime: guide.totalTime,
+	supply: guide.supply?.map((s) => ({
+		"@type": "HowToSupply",
+		name: s,
+	})),
+	tool: guide.tool?.map((t) => ({
+		"@type": "HowToTool",
+		name: t,
+	})),
+	step: guide.steps.map((step, index) => ({
+		"@type": "HowToStep",
+		name: step.name,
+		text: step.text,
+		position: index + 1,
+		url: step.url,
+		image: step.image,
+	})),
+});
 
 /**
  * Speakable Schema for voice search optimization

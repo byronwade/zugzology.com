@@ -164,7 +164,7 @@ export function FrequentlyBoughtTogether({ mainProduct, complementaryProducts }:
 				<Separator />
 				<div className="flex items-center justify-between">
 					<div>
-						<p className="text-gray-500 text-sm">
+						<p className="text-muted-foreground text-sm">
 							Total for {selectedProducts.size} item{selectedProducts.size !== 1 ? "s" : ""}
 						</p>
 						<p className="font-bold text-2xl">${totalPrice.toFixed(2)}</p>

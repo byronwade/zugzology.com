@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 type UseAuthOptions = {
 	redirectTo?: string;
-	onAuthStateChange?: (isAuthenticated: boolean, user?: any) => void;
+	onAuthStateChange?: (isAuthenticated: boolean, user?: User) => void;
 };
 
 type User = {
@@ -38,9 +38,6 @@ export function useAuth(options: UseAuthOptions = {}) {
 				});
 
 				const data = await response.json();
-
-				if (!silent) {
-				}
 
 				// Update authentication state
 				setIsAuthenticated(data.authenticated);
@@ -205,7 +202,7 @@ export function useAuth(options: UseAuthOptions = {}) {
 				headers,
 			});
 
-			const _data = await response.json();
+			await response.json();
 
 			// Clear local storage and state
 			localStorage.removeItem("csrfToken");
@@ -219,6 +216,8 @@ export function useAuth(options: UseAuthOptions = {}) {
 			}
 			router.push("/login");
 		} catch (_err) {
+			// Silently handle logout errors - user experience shouldn't be affected
+			setError("Failed to logout");
 		} finally {
 			setIsLoading(false);
 		}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { unstable_noStore as noStore } from "next/cache";
 import { notFound } from "next/navigation";
 import Script from "next/script";
-import { unstable_noStore as noStore } from "next/cache";
 import { cache, Suspense } from "react";
 import { ProductGridWithFilters } from "@/components/features/products/product-grid-with-filters";
 import { BreadcrumbConfigs, UniversalBreadcrumb } from "@/components/layout";
@@ -27,27 +27,17 @@ export type CollectionPageProps = {
 
 // Cache the collection data
 const getCachedCollection = cache(async (handle: string, sort = "featured", page = 1) => {
-        // Opt the collection page into dynamic rendering without route segment config
-        noStore();
+	// Opt the collection page into dynamic rendering without route segment config
+	noStore();
 	try {
 		// Check if handle is valid
 		if (!handle || typeof handle !== "string") {
 			return null;
 		}
 
-		// Get timestamp for performance tracking
-		const _startTime = typeof window !== "undefined" ? Date.now() : 0;
-
 		// Special case for the "all" or "all-products" collection - create a virtual collection
 		if (handle === "all" || handle === "all-products") {
-			// Use the imported getPaginatedProducts function
-
-			// Removed console.log for performance
-
 			const { products, totalCount } = await getPaginatedProducts(page, sort, 24);
-
-			// Removed console.log for performance
-			const _endTime = typeof window !== "undefined" ? Date.now() : 0;
 
 			// Create a virtual collection object that matches the ShopifyCollectionWithPagination structure
 			return {
@@ -87,8 +77,6 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 				// Create a fallback virtual collection with all products if no specific collection exists
 				const { products, totalCount } = await getPaginatedProducts(page, sort, 24);
 
-				const _endTime = typeof window !== "undefined" ? Date.now() : 0;
-
 				return {
 					id: handle,
 					handle,
@@ -111,15 +99,10 @@ const getCachedCollection = cache(async (handle: string, sort = "featured", page
 				} as ShopifyCollectionWithPagination;
 			}
 
-			const _endTime = typeof window !== "undefined" ? Date.now() : 0;
-			// Removed console.log for performance
 			return collection;
 		} catch (_error) {
 			// Create a fallback virtual collection with all products if there's an error
 			const { products, totalCount } = await getPaginatedProducts(page, sort, 24);
-
-			const _endTime = typeof window !== "undefined" ? Date.now() : 0;
-			// Removed console.log for performance
 
 			return {
 				id: handle,

@@ -34,7 +34,7 @@ export function extractFilterOptions(products: ShopifyProduct[]): FilterOptions 
 	let minPrice = Number.POSITIVE_INFINITY;
 	let maxPrice = 0;
 
-	products.forEach((product) => {
+	for (const product of products) {
 		// Extract product type
 		if (product.productType) {
 			productTypes.add(product.productType);
@@ -47,18 +47,18 @@ export function extractFilterOptions(products: ShopifyProduct[]): FilterOptions 
 
 		// Extract tags (filter out internal tags starting with __)
 		if (product.tags) {
-			product.tags.forEach((tag) => {
+			for (const tag of product.tags) {
 				if (!tag.startsWith("__")) {
 					tags.add(tag);
 				}
-			});
+			}
 		}
 
 		// Extract collections
 		if (product.collections?.edges) {
-			product.collections.edges.forEach((edge) => {
+			for (const edge of product.collections.edges) {
 				collections.add(edge.node.handle);
-			});
+			}
 		}
 
 		// Calculate price range
@@ -69,7 +69,7 @@ export function extractFilterOptions(products: ShopifyProduct[]): FilterOptions 
 		if (price > maxPrice) {
 			maxPrice = price;
 		}
-	});
+	}
 
 	return {
 		priceRange: {

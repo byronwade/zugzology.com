@@ -42,7 +42,8 @@ export default function ProductNotFound() {
 				if (Array.isArray(products)) {
 					setRecommendedProducts(products);
 				}
-			} catch (_error) {
+			} catch {
+				// Silently handle errors - products will remain empty
 			} finally {
 				setIsLoading(false);
 			}
@@ -145,6 +146,7 @@ export default function ProductNotFound() {
 							{isLoading ? (
 								<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 									{[...new Array(8)].map((_, i) => (
+										// biome-ignore lint/suspicious/noArrayIndexKey: Loading skeleton - static placeholder
 										<div className="h-96 animate-pulse rounded-xl bg-white/5" key={i} />
 									))}
 								</div>
@@ -162,6 +164,7 @@ export default function ProductNotFound() {
 
 			{/* Structured Data */}
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify({
 						"@context": "https://schema.org",

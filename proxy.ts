@@ -41,7 +41,7 @@ function handleProtectedRoute(request: NextRequest, pathname: string, isAuthenti
 	const url = new URL("/login", request.url);
 	url.searchParams.set("callbackUrl", pathname);
 	const response = NextResponse.redirect(url);
-	response.headers.set("x-middleware-cache", "no-cache");
+	response.headers.set("x-proxy-cache", "no-cache");
 	return response;
 }
 
@@ -58,11 +58,11 @@ function handleAuthRoute(request: NextRequest, isAuthenticated: boolean): NextRe
 			: new URL("/account", request.url);
 
 	const response = NextResponse.redirect(redirectUrl);
-	response.headers.set("x-middleware-cache", "no-cache");
+	response.headers.set("x-proxy-cache", "no-cache");
 	return response;
 }
 
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
 	const { pathname } = request.nextUrl;
 	const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
 	const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/register");

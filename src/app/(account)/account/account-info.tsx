@@ -2,7 +2,6 @@
 
 import Cookies from "js-cookie";
 import { Loader2, Mail, MapPin, Plus, User } from "lucide-react";
-import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -30,8 +29,6 @@ type AccountInfoProps = {
 };
 
 export default function AccountInfo({ customer }: AccountInfoProps) {
-	const _router = useRouter();
-
 	const [profile, setProfile] = useState({
 		name: `${customer.firstName} ${customer.lastName}`,
 		email: customer.email,
@@ -380,8 +377,8 @@ export default function AccountInfo({ customer }: AccountInfoProps) {
 							{/* Total Spent Card */}
 							<div className="flex items-center justify-between rounded-lg border bg-muted/30 p-4">
 								<div className="flex items-center space-x-2">
-									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-										<span className="font-medium text-blue-600">$</span>
+									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10">
+										<span className="font-medium text-blue-600 dark:text-blue-400">$</span>
 									</div>
 									<div>
 										<p className="font-medium">Total Spent</p>
@@ -389,7 +386,7 @@ export default function AccountInfo({ customer }: AccountInfoProps) {
 									</div>
 								</div>
 								<div className="text-right">
-									<p className="font-bold text-2xl text-blue-600">
+									<p className="font-bold text-2xl text-blue-600 dark:text-blue-400">
 										$
 										{customer.orders.edges
 											.reduce((total, { node }) => total + Number.parseFloat(node.totalPrice.amount), 0)
@@ -402,8 +399,8 @@ export default function AccountInfo({ customer }: AccountInfoProps) {
 							{/* Store Credit Card */}
 							<div className="flex items-center justify-between rounded-lg border p-4">
 								<div className="flex items-center space-x-2">
-									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-										<span className="font-medium text-green-600">$</span>
+									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
+										<span className="font-medium text-green-600 dark:text-green-400">$</span>
 									</div>
 									<div>
 										<p className="font-medium">Store Credit</p>

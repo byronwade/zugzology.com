@@ -76,18 +76,22 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 		window.print();
 	};
 
-	const handleDownload = () => {};
+	const handleDownload = () => {
+		// TODO: Implement download functionality
+	};
 
-	const handleEmail = () => {};
+	const handleEmail = () => {
+		// TODO: Implement email functionality
+	};
 
 	// Calculate order totals
 	const subtotal = order.lineItems.edges.reduce(
-		(total, { node: item }) => total + Number.parseFloat(item.originalTotalPrice.amount),
+		(accumulator, { node: item }) => accumulator + Number.parseFloat(item.originalTotalPrice.amount),
 		0
 	);
 
 	const shipping = 0; // Free shipping
-	const total = subtotal + shipping;
+	const orderTotal = subtotal + shipping;
 
 	// Format the fulfillment status
 	const _formatStatus = (status: string) =>
@@ -116,6 +120,48 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 	const giftCards = order.lineItems.edges.filter(({ node }) => node.title.toLowerCase().includes("gift card"));
 	const physicalItems = order.lineItems.edges.filter(({ node }) => !node.title.toLowerCase().includes("gift card"));
 
+	// Helper function to get status indicator
+	const getStatusIndicator = (status: "completed" | "partial" | "current" | "pending") => {
+		if (status === "completed") {
+			return (
+				<div className="rounded-full bg-green-500 p-1">
+					<Check className="h-5 w-5 text-white" />
+				</div>
+			);
+		}
+		if (status === "partial") {
+			return (
+				<div className="relative overflow-hidden rounded-full border-2 border-yellow-500 p-1">
+					<Circle className="h-5 w-5 text-yellow-500" />
+					<div className="absolute inset-0 bg-yellow-500" style={{ clipPath: "inset(0 50% 0 0)" }} />
+				</div>
+			);
+		}
+		if (status === "current") {
+			return (
+				<div className="rounded-full border-2 border-blue-500 p-1">
+					<Circle className="h-5 w-5 animate-pulse fill-blue-500 text-blue-500" />
+				</div>
+			);
+		}
+		return (
+			<div className="rounded-full border border-2 p-1">
+				<Circle className="h-5 w-5 text-muted-foreground/30" />
+			</div>
+		);
+	};
+
+	// Helper function to get step title className
+	const getStepTitleClassName = (status: "completed" | "partial" | "current" | "pending") => {
+		if (status === "pending") {
+			return "text-muted-foreground";
+		}
+		if (status === "partial") {
+			return "text-yellow-600";
+		}
+		return "text-foreground";
+	};
+
 	// Get timeline steps based on status
 	const getTimelineSteps = () => {
 		const isPartiallyFulfilled = order.fulfillmentStatus === "PARTIALLY_FULFILLED";
@@ -136,11 +182,15 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 			{
 				title: "Order Fulfilled",
 				description: isPartiallyFulfilled ? "Some items have been prepared" : "Items have been prepared for shipping",
-				status: isFullyFulfilled
-					? ("completed" as const)
-					: isPartiallyFulfilled
-						? ("partial" as const)
-						: ("pending" as const),
+				status: (() => {
+					if (isFullyFulfilled) {
+						return "completed" as const;
+					}
+					if (isPartiallyFulfilled) {
+						return "partial" as const;
+					}
+					return "pending" as const;
+				})(),
 			},
 			{
 				title: "Shipped",
@@ -225,19 +275,22 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 	return (
 		<>
 			{/* Add print styles */}
-			<style dangerouslySetInnerHTML={{ __html: printStyles }} />
+			<style
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: Print styles are safe CSS strings
+				dangerouslySetInnerHTML={{ __html: printStyles }}
+			/>
 
 			<div className="min-h-screen bg-muted pb-16 print:bg-white print:pb-0">
 				<main className="mx-auto w-full p-4 print:p-0">
 					{/* Back button - hide on print */}
 					<div className="no-print mb-6">
-						<Link className="flex items-center text-blue-600 hover:text-blue-800" href="/account">
+						<Link className="flex items-center text-primary hover:text-primary/80" href="/account">
 							<ArrowLeft className="mr-2 h-5 w-5" />
 							Back to Order History
 						</Link>
 					</div>
 
-					<div className="card mb-6 rounded-lg bg-white p-6 shadow">
+					<div className="card mb-6 rounded-lg bg-card p-6 shadow print:bg-white">
 						<div className="mb-8 flex items-center justify-between">
 							<div>
 								<h1 className="mb-2 font-bold text-2xl">Order #{order.orderNumber}</h1>
@@ -295,34 +348,11 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 											)}
 
 											{/* Status indicator */}
-											<div className="relative z-10 mb-3">
-												{step.status === "completed" ? (
-													<div className="rounded-full bg-green-500 p-1">
-														<Check className="h-5 w-5 text-white" />
-													</div>
-												) : step.status === "partial" ? (
-													<div className="relative overflow-hidden rounded-full border-2 border-yellow-500 p-1">
-														<Circle className="h-5 w-5 text-yellow-500" />
-														<div className="absolute inset-0 bg-yellow-500" style={{ clipPath: "inset(0 50% 0 0)" }} />
-													</div>
-												) : step.status === "current" ? (
-													<div className="rounded-full border-2 border-blue-500 p-1">
-														<Circle className="h-5 w-5 animate-pulse fill-blue-500 text-blue-500" />
-													</div>
-												) : (
-													<div className="rounded-full border border-2 p-1">
-														<Circle className="h-5 w-5 text-gray-200" />
-													</div>
-												)}
-											</div>
+											<div className="relative z-10 mb-3">{getStatusIndicator(step.status)}</div>
 
 											{/* Step content */}
 											<div className="flex-1">
-												<h3
-													className={`font-medium text-sm ${step.status === "pending" ? "text-muted-foreground" : step.status === "partial" ? "text-yellow-600" : "text-foreground"}`}
-												>
-													{step.title}
-												</h3>
+												<h3 className={`font-medium text-sm ${getStepTitleClassName(step.status)}`}>{step.title}</h3>
 												<p className="mt-1 text-muted-foreground text-xs">{step.description}</p>
 												{step.date && <p className="mt-1 text-muted-foreground text-xs">{step.date}</p>}
 											</div>
@@ -335,7 +365,7 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 
 					<div className="grid grid-cols-1 gap-6 md:grid-cols-3 print:block">
 						<div className="md:col-span-1">
-							<div className="card mb-6 rounded-lg bg-white p-6 shadow">
+							<div className="card mb-6 rounded-lg bg-card p-6 shadow print:bg-white">
 								<h2 className="mb-4 font-semibold text-xl">Order Summary</h2>
 
 								{/* Order Summary Details */}
@@ -350,7 +380,7 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 									</div>
 									<div className="flex justify-between py-2 font-semibold">
 										<span>Total</span>
-										<span>{formatPrice(total)}</span>
+										<span>{formatPrice(orderTotal)}</span>
 									</div>
 								</div>
 							</div>
@@ -385,7 +415,7 @@ export default function OrderDetails({ order, customer }: OrderDetailsProps) {
 						<div className="md:col-span-2">
 							{/* Gift Cards Section */}
 							{giftCards.length > 0 && (
-								<div className="card mb-6 rounded-lg bg-white p-6 shadow">
+								<div className="card mb-6 rounded-lg bg-card p-6 shadow print:bg-white">
 									<div className="mb-4 flex items-center">
 										<Gift className="mr-2 h-5 w-5 text-primary" />
 										<h2 className="font-semibold text-xl">Gift Cards</h2>

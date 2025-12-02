@@ -153,7 +153,7 @@ export function FAQSEO({ questions }: { questions: Array<{ question: string; ans
 							{q.question}
 						</h3>
 						<div itemProp="acceptedAnswer" itemScope itemType="https://schema.org/Answer">
-							<div className="text-gray-600" itemProp="text">
+							<div className="text-muted-foreground" itemProp="text">
 								{q.answer}
 							</div>
 						</div>

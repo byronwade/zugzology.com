@@ -346,21 +346,21 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						</div>
 						{selectedVariant.quantityAvailable === 0 && selectedVariant.availableForSale === false ? (
 							<Badge
-								className="h-5 bg-orange-100 px-2 py-0 text-orange-700 hover:bg-orange-100 hover:text-orange-700"
+								className="h-5 border-orange-600/20 bg-orange-500/10 px-2 py-0 text-orange-600 hover:bg-orange-500/10 dark:text-orange-400"
 								variant="secondary"
 							>
 								Backorder
 							</Badge>
 						) : selectedVariant.quantityAvailable <= 3 && selectedVariant.quantityAvailable > 0 ? (
 							<Badge
-								className="h-5 bg-red-100 px-2 py-0 text-red-700 hover:bg-red-100 hover:text-red-700"
+								className="h-5 border-red-600/20 bg-red-500/10 px-2 py-0 text-red-600 hover:bg-red-500/10 dark:text-red-400"
 								variant="secondary"
 							>
 								Low Stock
 							</Badge>
 						) : (
 							<Badge
-								className="h-5 bg-green-100 px-2 py-0 text-green-700 hover:bg-green-100 hover:text-green-700"
+								className="h-5 border-green-600/20 bg-green-500/10 px-2 py-0 text-green-600 hover:bg-green-500/10 dark:text-green-400"
 								variant="secondary"
 							>
 								In Stock
@@ -439,33 +439,31 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 						{/* Stock and Shipping Info */}
 						<div className="space-y-2">
 							{/* Stock Status */}
-							<div className="flex items-center justify-between">
-								<div className="flex items-center">
-									<h3 className="font-medium text-base">Stock Status</h3>
-									{selectedVariant.quantityAvailable === 0 && selectedVariant.availableForSale === false ? (
-										<Badge
-											className="ml-2 h-5 bg-orange-100 px-2 py-0 text-orange-700 hover:bg-orange-100 hover:text-orange-700"
-											variant="secondary"
-										>
-											Backorder
-										</Badge>
-									) : selectedVariant.quantityAvailable <= 3 && selectedVariant.quantityAvailable > 0 ? (
-										<Badge
-											className="ml-2 h-5 bg-red-100 px-2 py-0 text-red-700 hover:bg-red-100 hover:text-red-700"
-											variant="secondary"
-										>
-											Low Stock
-										</Badge>
-									) : (
-										<Badge
-											className="ml-2 h-5 bg-green-100 px-2 py-0 text-green-700 hover:bg-green-100 hover:text-green-700"
-											variant="secondary"
-										>
-											In Stock
-										</Badge>
-									)}
-								</div>
-								<span className="text-muted-foreground text-sm">{formatQuantityAvailable(selectedVariant)}</span>
+							<div className="flex flex-wrap items-center gap-2">
+								<h3 className="font-medium text-base">Stock Status</h3>
+								{selectedVariant.quantityAvailable === 0 && selectedVariant.availableForSale === false ? (
+									<Badge
+										className="h-5 border-orange-600/20 bg-orange-500/10 px-2 py-0 text-orange-600 hover:bg-orange-500/10 dark:text-orange-400"
+										variant="secondary"
+									>
+										Backorder
+									</Badge>
+								) : selectedVariant.quantityAvailable <= 3 && selectedVariant.quantityAvailable > 0 ? (
+									<Badge
+										className="h-5 border-red-600/20 bg-red-500/10 px-2 py-0 text-red-600 hover:bg-red-500/10 dark:text-red-400"
+										variant="secondary"
+									>
+										Low Stock
+									</Badge>
+								) : (
+									<Badge
+										className="h-5 border-green-600/20 bg-green-500/10 px-2 py-0 text-green-600 hover:bg-green-500/10 dark:text-green-400"
+										variant="secondary"
+									>
+										In Stock
+									</Badge>
+								)}
+								<span className="text-muted-foreground text-sm">({formatQuantityAvailable(selectedVariant)})</span>
 							</div>
 
 							{/* Shipping Info - Adjusted for backordered items */}

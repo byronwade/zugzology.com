@@ -121,12 +121,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 		<>
 			{/* JSON-LD Structured Data */}
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(breadcrumbSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(websiteSchema),
 				}}
@@ -134,6 +136,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 			/>
 			{searchResultsSchema && (
 				<script
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 					dangerouslySetInnerHTML={{
 						__html: JSON.stringify(searchResultsSchema),
 					}}

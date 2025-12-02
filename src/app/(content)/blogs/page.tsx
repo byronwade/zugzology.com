@@ -210,24 +210,28 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 		<>
 			{/* JSON-LD Structured Data */}
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(breadcrumbSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(blogSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(websiteSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(organizationSchema),
 				}}

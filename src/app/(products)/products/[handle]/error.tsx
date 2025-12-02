@@ -122,6 +122,7 @@ export default function ProductError({ error, reset }: ProductErrorProps) {
 
 			{/* Structured Data */}
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify({
 						"@context": "https://schema.org",

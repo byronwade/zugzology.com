@@ -31,5 +31,3 @@ export function HomeLoading() {
 		</div>
 	);
 }
-
-export default Loading;

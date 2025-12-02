@@ -20,12 +20,14 @@ export default function BlogLoading() {
 		<>
 			{/* JSON-LD Structured Data for Blog Loading State */}
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(websiteSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(organizationSchema),
 				}}
@@ -71,6 +73,7 @@ export default function BlogLoading() {
 							</div>
 							<div className="grid gap-8 md:grid-cols-3">
 								{[...new Array(3)].map((_, i) => (
+									// biome-ignore lint/suspicious/noArrayIndexKey: Loading skeleton - static placeholder
 									<div className="group block overflow-hidden rounded-xl bg-card shadow-sm" key={i}>
 										<div className="flex h-full flex-col">
 											{/* Image */}
@@ -115,6 +118,7 @@ export default function BlogLoading() {
 
 							<div className="space-y-8">
 								{[...new Array(6)].map((_, i) => (
+									// biome-ignore lint/suspicious/noArrayIndexKey: Loading skeleton - static placeholder
 									<BlogCardSkeleton key={i} />
 								))}
 							</div>
@@ -130,6 +134,7 @@ export default function BlogLoading() {
 							</div>
 							<div className="grid grid-cols-2 gap-6 md:grid-cols-4">
 								{[...new Array(4)].map((_, i) => (
+									// biome-ignore lint/suspicious/noArrayIndexKey: Loading skeleton - static placeholder
 									<div className="overflow-hidden rounded-lg bg-card shadow-sm" key={i}>
 										<div className="relative aspect-square">
 											<Skeleton className="h-full w-full" />

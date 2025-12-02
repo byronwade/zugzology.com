@@ -38,16 +38,12 @@ export async function GET() {
  */
 function generateRSSFeed(articles: any[], baseUrl: string, config: any): string {
 	const now = new Date().toUTCString();
-	const latestPubDate = articles[0]?.publishedAt
-		? new Date(articles[0].publishedAt).toUTCString()
-		: now;
+	const latestPubDate = articles[0]?.publishedAt ? new Date(articles[0].publishedAt).toUTCString() : now;
 
 	const feedItems = articles
 		.slice(0, 50) // Limit to 50 most recent articles
 		.map((article) => {
-			const pubDate = article.publishedAt
-				? new Date(article.publishedAt).toUTCString()
-				: now;
+			const pubDate = article.publishedAt ? new Date(article.publishedAt).toUTCString() : now;
 
 			const blogHandle = article.blog?.handle || "news";
 			const articleUrl = `${baseUrl}/blogs/${blogHandle}/${article.handle}`;

@@ -62,7 +62,7 @@ export function BestSellersShowcase({ products }: BestSellersShowcaseProps) {
 					<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 						{products.slice(0, 5).map((product, index) => (
 							<div className="group relative" key={product.id}>
-								<div className="hover:-translate-y-1 relative overflow-hidden rounded-lg bg-neutral-100 shadow-lg transition-all duration-300 hover:shadow-xl dark:bg-neutral-950">
+								<div className="hover:-translate-y-1 relative overflow-hidden rounded-lg bg-muted shadow-lg transition-all duration-300 hover:shadow-xl">
 									{/* Best Seller Badge - Top Right */}
 									<div className="absolute top-3 right-3 z-20">
 										<Badge className="bg-primary font-semibold text-primary-foreground shadow-md">
@@ -79,7 +79,7 @@ export function BestSellersShowcase({ products }: BestSellersShowcaseProps) {
 									/>
 
 									{/* Rating Section - Below Product Card */}
-									<div className="flex items-center justify-between gap-2 rounded-b-lg bg-neutral-100 px-3 py-2 dark:bg-[#111111]">
+									<div className="flex items-center justify-between gap-2 rounded-b-lg bg-muted px-3 py-2">
 										<div className="flex items-center gap-1">
 											{[...new Array(5)].map((_, i) => (
 												<Star className="h-4 w-4 fill-yellow-400 text-yellow-400" key={i} />

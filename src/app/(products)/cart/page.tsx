@@ -37,6 +37,7 @@ export default function CartPage() {
 		<>
 			{/* JSON-LD Structured Data */}
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(breadcrumbSchema),
 				}}

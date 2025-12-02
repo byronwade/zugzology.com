@@ -23,23 +23,24 @@ npm run lint:fix         # Auto-fix linting issues
 npm run format           # Format code with Biome
 npm run type-check       # TypeScript validation (no emit)
 npm run clean            # Clean .next and cache directories
+npm run knip             # Check for unused code and dependencies
+npm run knip:fix         # Auto-fix unused code issues
 ```
 
 ## Architecture Overview
 
-This is a **Next.js 16 (canary) e-commerce storefront** for Zugzology, a premium mushroom growing supplies store. The application is deeply integrated with **Shopify's Storefront API (2024-01)** and **Customer Account OAuth flow**.
+This is a **Next.js 16 e-commerce storefront** for Zugzology, a premium mushroom growing supplies store. The application is deeply integrated with **Shopify's Storefront API (2024-01)** and **Customer Account OAuth flow**.
 
 ### Technology Stack
 
-- **Next.js 16 Canary** with App Router, Turbopack, React Compiler, and Partial Prerendering (cacheComponents)
+- **Next.js 16.0.6** (stable) with App Router, Turbopack, React Compiler, and Partial Prerendering (cacheComponents)
 - **React 19.2** with Server Components as the default rendering strategy
 - **TypeScript 5.9** with strict mode and comprehensive type safety
 - **Tailwind CSS** + **shadcn/ui** component system built on Radix UI primitives
 - **Biome** (via Ultracite preset) for linting and formatting
+- **Knip** for detecting unused code and dependencies
 - **Shopify Storefront API 2024-01** for product, collection, and cart data
 - **NextAuth** with custom Shopify Customer Account provider for authentication
-- **Zustand** for lightweight client-side state management
-- **SWR** for client-side data fetching with automatic revalidation
 
 ### Critical Environment Variables
 
@@ -143,7 +144,7 @@ See `.env.example` for the complete list of optional configuration variables (an
   /types                         # TypeScript type definitions
 
 /auth.ts                         # NextAuth configuration
-/middleware.ts                   # Auth protection and security headers
+/proxy.ts                        # Auth protection and security headers (Next.js 16 proxy pattern)
 /next.config.ts                  # Next.js configuration
 /tailwind.config.ts              # Tailwind configuration
 /biome.jsonc                     # Biome linting/formatting config
@@ -209,7 +210,7 @@ The authentication system uses NextAuth with a custom Shopify provider (`auth/pr
 - Session management with access tokens and ID tokens
 
 **Protected Routes:**
-The middleware (`middleware.ts`) protects `/account/*` routes by:
+The proxy (`proxy.ts`) protects `/account/*` routes by:
 1. Checking for three required cookies: `customerAccessToken`, `accessToken`, `idToken`
 2. Redirecting unauthenticated users to `/login?callbackUrl=<original-path>`
 3. Setting security headers on all responses

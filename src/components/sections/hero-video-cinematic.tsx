@@ -10,8 +10,8 @@ type HeroVideoCinematicProps = {
 // Server Component - no client JS needed
 // CSS animations replace Framer Motion for better performance
 export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
-        return (
-                <section className="hero-section relative w-full overflow-hidden bg-black py-16 sm:py-20 md:h-[calc(100vh-var(--header-height))] md:py-0">
+	return (
+		<section className="hero-section relative w-full overflow-hidden bg-black py-16 sm:py-20 md:h-[calc(100vh-var(--header-height))] md:py-0">
 			{/* Video Background - using CSS for scale effect */}
 			<div className="video-container absolute inset-0">
 				{/* Animated gradient background - fallback while video loads */}
@@ -30,7 +30,8 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 					loop
 					muted
 					playsInline
-					poster="https://bevgyjm5apuichhj.public.blob.vercel-storage.com/hero-poster-optimized-LKjMxN8vQp2YzBqGF5qKxTrJ9X3yE1.jpg" preload="none"
+					poster="https://bevgyjm5apuichhj.public.blob.vercel-storage.com/hero-poster-optimized-LKjMxN8vQp2YzBqGF5qKxTrJ9X3yE1.jpg"
+					preload="none"
 				>
 					<source src="/videos/mushroom-hero.webm" type="video/webm" />
 					<source src="/videos/mushroom-hero.mp4" type="video/mp4" />
@@ -40,7 +41,7 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_70%,rgba(0,0,0,0.8)_100%)]" />
 
 				{/* Bottom Gradient - Fades to background color */}
-                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(5,12,30,0.92)] via-black/70 to-transparent dark:from-background dark:via-black/80" />
+				<div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(5,12,30,0.92)] via-black/70 to-transparent dark:from-background dark:via-black/80" />
 
 				{/* Left Gradient for text readability */}
 				<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
@@ -50,7 +51,7 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 			</div>
 
 			{/* Content - CSS animations instead of Framer Motion */}
-                        <div className="hero-content relative z-10 flex items-start md:h-full md:items-center">
+			<div className="hero-content relative z-10 flex items-start md:h-full md:items-center">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="max-w-3xl lg:max-w-4xl">
 						{/* Small badge */}

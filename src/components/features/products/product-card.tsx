@@ -284,7 +284,10 @@ export function ProductCard({
 						)}
 						<div className="flex items-baseline gap-2">
 							{hasValidPrice ? (
-								<span aria-label={`Price: ${formatPrice(Number.parseFloat(price))}`} className="font-bold text-foreground text-xl">
+								<span
+									aria-label={`Price: ${formatPrice(Number.parseFloat(price))}`}
+									className="font-bold text-foreground text-xl"
+								>
 									{isFreeProduct ? (
 										"Free"
 									) : (
@@ -332,7 +335,9 @@ export function ProductCard({
 				{recentPurchases > 0 && (
 					<div className="mt-2 sm:mt-3">
 						<div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 sm:gap-1.5 sm:px-3 sm:py-1.5 dark:bg-primary/20">
-							<Users className={cn("h-3 w-3 text-primary sm:h-3.5 sm:w-3.5", getOpticalIconClasses("Users", "inline"))} />
+							<Users
+								className={cn("h-3 w-3 text-primary sm:h-3.5 sm:w-3.5", getOpticalIconClasses("Users", "inline"))}
+							/>
 							<span className="font-medium text-[10px] text-primary sm:text-xs">{purchaseText}</span>
 						</div>
 					</div>

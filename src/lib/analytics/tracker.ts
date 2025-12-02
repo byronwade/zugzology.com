@@ -461,4 +461,3 @@ export const {
 } = analytics;
 
 // Export the tracker instance for advanced use
-export default analytics;

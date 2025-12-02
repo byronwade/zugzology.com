@@ -90,14 +90,14 @@ export default function OrderHistory({ orders: initialOrders }: OrderHistoryProp
 	const getStatusColor = (status: string) => {
 		switch (status.toLowerCase()) {
 			case "fulfilled":
-				return "text-green-600";
+				return "text-green-600 dark:text-green-400";
 			case "in_progress":
 			case "partially_fulfilled":
-				return "text-yellow-600";
+				return "text-yellow-600 dark:text-yellow-400";
 			case "unfulfilled":
-				return "text-red-600";
+				return "text-red-600 dark:text-red-400";
 			default:
-				return "text-gray-600";
+				return "text-muted-foreground";
 		}
 	};
 
@@ -229,7 +229,7 @@ export default function OrderHistory({ orders: initialOrders }: OrderHistoryProp
 							<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
 								{order.lineItems.edges.slice(0, 4).map(({ node: item }, index) => (
 									<div className="group relative" key={`${order.id}-item-${index}`}>
-										<div className="aspect-h-1 aspect-w-1 overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-75">
+										<div className="aspect-h-1 aspect-w-1 overflow-hidden rounded-lg bg-muted group-hover:opacity-75">
 											<Image
 												alt={item.variant.image?.altText || item.title}
 												className="h-full w-full object-cover object-center"

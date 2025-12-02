@@ -214,7 +214,7 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 					</div>
 
 					{/* Right Column - Purchase actions */}
-					<div className="order-3 space-y-8 lg:order-3 lg:col-start-2 lg:row-start-1 lg:self-start xl:order-3 xl:col-span-1 xl:col-start-3 xl:row-start-1">
+					<div className="order-3 mt-8 lg:order-3 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:self-start xl:order-3 xl:col-span-1 xl:col-start-3 xl:row-start-1">
 						<ProductActions
 							onQuantityChange={handleQuantityChange}
 							productHandle={product.handle}
@@ -234,5 +234,3 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 		</>
 	);
 };
-
-export default ProductContentClient;

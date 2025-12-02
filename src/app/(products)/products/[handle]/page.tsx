@@ -114,6 +114,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 			<ErrorBoundary fallback={<ProductError />}>
 				{/* JSON-LD Structured Data */}
 				<script
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 					dangerouslySetInnerHTML={{
 						__html: JSON.stringify({
 							"@context": "https://schema.org",

@@ -77,6 +77,12 @@ export const BUSINESS = {
 		countryCode: "US",
 	},
 
+	// Geographic coordinates (for Schema.org LocalBusiness)
+	geo: {
+		latitude: 37.7749,
+		longitude: -122.4194,
+	},
+
 	// Operating hours (for Schema.org)
 	hours: {
 		weekday: {
@@ -1306,6 +1312,3 @@ export function isFeatureEnabled(featureId: string): boolean {
 
 export type StoreConfig = ReturnType<typeof getStoreConfig>;
 export type ConfigSection = keyof StoreConfig;
-
-// Default export
-export default getStoreConfig;

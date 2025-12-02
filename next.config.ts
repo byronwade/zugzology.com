@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
 	// Turbopack is now stable and the default bundler in Next.js 16
 	// No configuration needed - it's used automatically
 
+	// Partial Prerendering (PPR) - moved from experimental in Next.js 16
+	cacheComponents: true,
+
 	experimental: {
 		// CSS inlining optimization
 		inlineCss: true,
@@ -24,8 +27,6 @@ const nextConfig: NextConfig = {
 			"@radix-ui/react-popover",
 			"recharts",
 		],
-		// Partial Prerendering (PPR) - now uses cacheComponents
-		cacheComponents: true,
 	},
 
 	typescript: {
@@ -71,6 +72,24 @@ const nextConfig: NextConfig = {
 	// Performance optimizations
 	compress: true,
 	poweredByHeader: false,
+
+	// Allow iframe embedding from byronwade.com and subdomains
+	async headers() {
+		return [
+			{
+				source: "/:path*",
+				headers: [
+					{
+						key: "Content-Security-Policy",
+						value:
+							"default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.shopify.com https://*.googletagmanager.com https://*.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cdn.shopify.com https://*.shopify.com https://*.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com; frame-src 'self' https://*.shopify.com; frame-ancestors 'self' https://byronwade.com https://*.byronwade.com http://localhost:3000",
+					},
+					// Note: X-Frame-Options is deprecated in favor of CSP frame-ancestors
+					// Removed from middleware.ts to avoid conflicts
+				],
+			},
+		];
+	},
 
 	env: {
 		NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || "https://zugzology.com",

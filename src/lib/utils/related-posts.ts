@@ -1,5 +1,8 @@
 import type { ShopifyBlogArticle } from "@/lib/types";
 
+// Regex patterns for word splitting (moved to top level for performance)
+const WORD_SPLIT_REGEX = /\W+/;
+
 export function findRelatedPosts(
 	currentPost: ShopifyBlogArticle,
 	allPosts: ShopifyBlogArticle[],
@@ -13,14 +16,14 @@ export function findRelatedPosts(
 		let score = 0;
 
 		// Score based on title similarity
-		const titleWords = new Set(currentPost.title.toLowerCase().split(/\W+/));
-		const postTitleWords = new Set(post.title.toLowerCase().split(/\W+/));
+		const titleWords = new Set(currentPost.title.toLowerCase().split(WORD_SPLIT_REGEX));
+		const postTitleWords = new Set(post.title.toLowerCase().split(WORD_SPLIT_REGEX));
 		const titleIntersection = new Set([...titleWords].filter((x) => postTitleWords.has(x)));
 		score += titleIntersection.size * 2;
 
 		// Score based on content similarity (using excerpt as a proxy)
-		const contentWords = new Set(currentPost.excerpt?.toLowerCase().split(/\W+/) || []);
-		const postContentWords = new Set(post.excerpt?.toLowerCase().split(/\W+/) || []);
+		const contentWords = new Set(currentPost.excerpt?.toLowerCase().split(WORD_SPLIT_REGEX) || []);
+		const postContentWords = new Set(post.excerpt?.toLowerCase().split(WORD_SPLIT_REGEX) || []);
 		const contentIntersection = new Set([...contentWords].filter((x) => postContentWords.has(x)));
 		score += contentIntersection.size;
 

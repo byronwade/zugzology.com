@@ -21,6 +21,10 @@ import type { ShopifyBlogArticle, ShopifyImage, ShopifyProduct } from "@/lib/typ
 import { formatPrice } from "@/lib/utils";
 import { findRelatedPosts } from "@/lib/utils/related-posts";
 
+// Regex patterns (moved to top level for performance)
+const WHITESPACE_REGEX = /\s+/;
+const HOW_TO_GUIDE_REGEX = /how to|guide|tutorial|step[- ]by[- ]step/;
+
 type BlogArticleAuthor = {
 	name: string;
 	email?: string;
@@ -66,7 +70,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 		});
 	}
 
-	const wordCount = article.content?.split(/\s+/).length || 0;
+	const wordCount = article.content?.split(WHITESPACE_REGEX).length || 0;
 	const _readingTime = Math.ceil(wordCount / 200);
 
 	const title = `${article.title} - Expert Mushroom Cultivation Guide`;
@@ -143,17 +147,55 @@ async function getArticleByHandle(
 }
 
 // Add a modified version of FrequentlyBoughtTogether that accepts custom title and description
+// Helper function to get grid classes based on product count
+function getProductGridClasses(count: number): string {
+	if (count === 1) {
+		return "mx-auto max-w-xs grid-cols-1";
+	}
+	if (count === 2) {
+		return "mx-auto max-w-2xl grid-cols-1 sm:grid-cols-2";
+	}
+	if (count === 3) {
+		return "mx-auto max-w-4xl grid-cols-1 sm:grid-cols-2 md:grid-cols-3";
+	}
+	return "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+}
+
+// Helper function to get grid classes for featured products
+function getFeaturedProductGridClasses(count: number): string {
+	if (count === 1) {
+		return "mx-auto max-w-xs grid-cols-1";
+	}
+	if (count === 2) {
+		return "mx-auto max-w-2xl grid-cols-1 sm:grid-cols-2";
+	}
+	if (count === 3) {
+		return "mx-auto max-w-4xl grid-cols-1 sm:grid-cols-2 md:grid-cols-3";
+	}
+	return "grid-cols-2 md:grid-cols-4";
+}
+
+// Helper function to get grid classes for related posts
+function getRelatedPostsGridClasses(count: number): string {
+	if (count === 1) {
+		return "mx-auto max-w-md grid-cols-1";
+	}
+	if (count === 2) {
+		return "mx-auto max-w-3xl grid-cols-1 md:grid-cols-2";
+	}
+	return "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+}
+
 function _BlogProductRecommendations({
-	mainProduct,
 	complementaryProducts,
-	title = "Products Related to This Article",
-	description = "These products are perfect companions for the techniques discussed in this article",
+	mainProduct,
 }: {
 	mainProduct: ShopifyProduct;
 	complementaryProducts: ShopifyProduct[];
 	title?: string;
 	description?: string;
 }) {
+	// title and description are kept in the type for API compatibility but not used in this component
 	// Skip if no products
 	if (!complementaryProducts.length) {
 		return null;
@@ -213,7 +255,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 	// Calculate reading time
 	const wordsPerMinute = 200;
-	const wordCount = article.content.split(/\s+/).length;
+	const wordCount = article.content.split(WHITESPACE_REGEX).length;
 	const readingTime = Math.ceil(wordCount / wordsPerMinute);
 
 	// Generate enhanced structured data
@@ -238,7 +280,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 	});
 
 	// Check if article is a how-to guide and add HowTo schema
-	const isHowToGuide = article.title.toLowerCase().match(/how to|guide|tutorial|step[- ]by[- ]step/);
+	const isHowToGuide = HOW_TO_GUIDE_REGEX.test(article.title.toLowerCase());
 	const howToSchema = isHowToGuide
 		? {
 				"@context": "https://schema.org",
@@ -271,24 +313,28 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 		<>
 			{/* JSON-LD Structured Data */}
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(breadcrumbSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(blogPostSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(websiteSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(organizationSchema),
 				}}
@@ -296,6 +342,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 			/>
 			{howToSchema && (
 				<script
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 					dangerouslySetInnerHTML={{
 						__html: JSON.stringify(howToSchema),
 					}}
@@ -423,17 +470,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 												Quality supplies for your mushroom cultivation journey
 											</p>
 										</div>
-										<div
-											className={`grid gap-6 ${
-												complementaryProducts.length === 1
-													? "mx-auto max-w-xs grid-cols-1"
-													: complementaryProducts.length === 2
-														? "mx-auto max-w-2xl grid-cols-1 sm:grid-cols-2"
-														: complementaryProducts.length === 3
-															? "mx-auto max-w-4xl grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
-															: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-											}`}
-										>
+										<div className={`grid gap-6 ${getProductGridClasses(complementaryProducts.length)}`}>
 											{complementaryProducts.map((product) => (
 												<Link
 													className="group block overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md"
@@ -472,6 +509,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 							<div className="mx-auto max-w-4xl">
 								<div className="prose dark:prose-invert prose-lg md:prose-xl max-w-none prose-a:font-medium prose-a:text-primary prose-headings:text-neutral-900 prose-p:text-neutral-700 prose-headings:dark:text-neutral-100 prose-p:dark:text-neutral-300">
 									<div
+										// biome-ignore lint/security/noDangerouslySetInnerHtml: Content from Shopify CMS is trusted
 										dangerouslySetInnerHTML={{
 											__html: article.contentHtml || "",
 										}}
@@ -500,17 +538,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 												Discover our most popular mushroom growing supplies
 											</p>
 										</div>
-										<div
-											className={`grid gap-6 ${
-												featuredProducts.length === 1
-													? "mx-auto max-w-xs grid-cols-1"
-													: featuredProducts.length === 2
-														? "mx-auto max-w-2xl grid-cols-1 sm:grid-cols-2"
-														: featuredProducts.length === 3
-															? "mx-auto max-w-4xl grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
-															: "grid-cols-2 md:grid-cols-4"
-											}`}
-										>
+										<div className={`grid gap-6 ${getFeaturedProductGridClasses(featuredProducts.length)}`}>
 											{featuredProducts.map((product: ShopifyProduct) => (
 												<Link
 													className="group block overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md"
@@ -599,15 +627,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 										<h2 className="mb-10 font-bold text-3xl text-neutral-900 dark:text-neutral-100">
 											More Articles You Might Enjoy
 										</h2>
-										<div
-											className={`grid gap-8 ${
-												relatedPosts.length === 1
-													? "mx-auto max-w-md grid-cols-1"
-													: relatedPosts.length === 2
-														? "mx-auto max-w-3xl grid-cols-1 md:grid-cols-2"
-														: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-											}`}
-										>
+										<div className={`grid gap-8 ${getRelatedPostsGridClasses(relatedPosts.length)}`}>
 											{relatedPosts.map((relatedArticle) => (
 												<Link
 													className="group block overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md"

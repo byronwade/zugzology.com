@@ -15,8 +15,7 @@ const shopifyConfig = {
 
 const hasShopifyCredentials = Boolean(shopifyConfig.shopId && shopifyConfig.clientId && shopifyConfig.clientSecret);
 
-if (!hasShopifyCredentials) {
-}
+// Credentials will fall back to error provider if not configured
 
 const providers = hasShopifyCredentials
 	? [
@@ -31,7 +30,7 @@ const providers = hasShopifyCredentials
 				id: "shopify",
 				name: "Shopify",
 				credentials: {},
-				authorize: async () => {
+				authorize: () => {
 					throw new Error(
 						"Shopify authentication is not configured. Please set SHOPIFY_SHOP_ID, SHOPIFY_CLIENT_ID, and SHOPIFY_CLIENT_SECRET."
 					);
@@ -39,13 +38,15 @@ const providers = hasShopifyCredentials
 			}),
 		];
 
-// Add custom error logging for debugging
+// Add custom error logging for debugging - noop in production
+// biome-ignore lint/suspicious/noEmptyBlockStatements: intentional noop
 const logAuthError = (_message: string, _error?: unknown) => {};
 
 export const authConfig: AuthOptions = {
 	debug: false, // Disable debug mode
 	providers,
 	callbacks: {
+		// biome-ignore lint/suspicious/useAwait: NextAuth requires async callbacks
 		async session({ session, token }: { session: Session; token: JWT }) {
 			try {
 				logAuthEvent("[NextAuth] session callback invoked", {
@@ -68,6 +69,7 @@ export const authConfig: AuthOptions = {
 				return session;
 			}
 		},
+		// biome-ignore lint/suspicious/useAwait: NextAuth requires async callbacks
 		async jwt({ token, account }: { token: JWT; account?: Account | null }) {
 			try {
 				logAuthEvent("[NextAuth] jwt callback invoked", {
@@ -90,6 +92,7 @@ export const authConfig: AuthOptions = {
 				return token;
 			}
 		},
+		// biome-ignore lint/suspicious/useAwait: NextAuth requires async callbacks
 		async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
 			try {
 				logAuthEvent("[NextAuth] redirect callback invoked", {
@@ -115,7 +118,7 @@ export const authConfig: AuthOptions = {
 		error: "/error",
 	},
 	events: {
-		async signIn(message) {
+		signIn(message) {
 			try {
 				logAuthEvent("[NextAuth] signIn event", {
 					userEmail: message?.user?.email,
@@ -126,7 +129,7 @@ export const authConfig: AuthOptions = {
 				logAuthError("Error in signIn event", error);
 			}
 		},
-		async signOut(message) {
+		signOut(message) {
 			try {
 				logAuthEvent("[NextAuth] signOut event", {
 					hasToken: !!message?.token,
@@ -135,7 +138,7 @@ export const authConfig: AuthOptions = {
 				logAuthError("Error in signOut event", error);
 			}
 		},
-		async session(message) {
+		session(message) {
 			try {
 				logAuthEvent("[NextAuth] session event", {
 					hasSession: !!message?.session,
@@ -157,6 +160,7 @@ export { handlers, auth, signIn, signOut, GET, POST };
 
 // Extend the Session type to include Shopify access token and ID token
 declare module "next-auth" {
+	// biome-ignore lint/nursery/noShadow: Module augmentation requires same name
 	type Session = {
 		shopifyAccessToken?: string;
 		idToken?: string;
@@ -165,6 +169,7 @@ declare module "next-auth" {
 
 // Extend JWT to include Shopify access token and ID token
 declare module "next-auth" {
+	// biome-ignore lint/nursery/noShadow: Module augmentation requires same name
 	type JWT = {
 		shopifyAccessToken?: string;
 		idToken?: string;

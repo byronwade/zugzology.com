@@ -68,11 +68,8 @@ export const getProducts = cache(async () => {
 		let allProducts: ShopifyProduct[] = [];
 		let hasNextPage = true;
 		let cursor = null;
-		let _batchCount = 0;
 
 		while (hasNextPage) {
-			_batchCount++;
-
 			const {
 				data,
 			}: { data: { products: { nodes: ShopifyProduct[]; pageInfo: { hasNextPage: boolean; endCursor: string } } } } =
@@ -148,7 +145,6 @@ export const getProducts = cache(async () => {
 
 			hasNextPage = data.products.pageInfo.hasNextPage;
 			cursor = data.products.pageInfo.endCursor;
-
 		}
 
 		return allProducts;
@@ -245,7 +241,7 @@ export const getCollection = cache(
 								break;
 							}
 
-							currentCursor = edges.at(-1).cursor;
+							currentCursor = edges[edges.length - 1]?.cursor ?? null;
 							currentPage++;
 						}
 					}
@@ -1070,11 +1066,8 @@ const _getCachedProducts = unstable_cache(
 			let allProducts: ShopifyProduct[] = [];
 			let hasNextPage = true;
 			let cursor = null;
-			let _batchCount = 0;
 
 			while (hasNextPage) {
-				_batchCount++;
-
 				const response: { data: ProductsResponse } = await shopifyFetch<ProductsResponse>({
 					query: `
 						query getProducts($cursor: String) {
@@ -1147,7 +1140,6 @@ const _getCachedProducts = unstable_cache(
 				allProducts = [...allProducts, ...products];
 				hasNextPage = pageInfo.hasNextPage;
 				cursor = pageInfo.endCursor;
-
 			}
 
 			return {
@@ -1294,7 +1286,7 @@ export async function getAllProducts(sort = "featured", page = 1, perPage = PROD
 							break;
 						}
 
-						cursor = edges.at(-1).cursor;
+						cursor = edges[edges.length - 1]?.cursor ?? null;
 						currentItems += edges.length;
 
 						if (!cursorResponse.data?.products?.pageInfo?.hasNextPage) {
@@ -1331,7 +1323,7 @@ export async function getAllProducts(sort = "featured", page = 1, perPage = PROD
 
 					const edges = cursorResponse.data?.products?.edges || [];
 					if (edges.length > 0) {
-						after = edges.at(-1).cursor;
+						after = edges[edges.length - 1]?.cursor ?? null;
 					}
 				}
 			}
@@ -1454,7 +1446,8 @@ export async function getAllProducts(sort = "featured", page = 1, perPage = PROD
 		let productsCount = countQuery.data?.products?.edges?.length || 0;
 		// If there are more products, we need to count them all
 		if (countQuery.data?.products?.pageInfo?.hasNextPage) {
-			let cursor = countQuery.data.products.edges.at(-1)?.cursor;
+			const edges = countQuery.data.products.edges;
+			let cursor = edges.length > 0 ? edges[edges.length - 1]?.cursor : undefined;
 			let hasMore = true;
 			while (hasMore && productsCount < 10_000) {
 				const nextBatch = await shopifyFetch<{

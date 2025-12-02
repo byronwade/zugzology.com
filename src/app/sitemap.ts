@@ -178,10 +178,7 @@ function _generateImageSitemapData(images: any[]) {
  * @see https://developers.google.com/search/docs/advanced/sitemaps/large-sitemaps
  */
 export async function generateSitemaps() {
-	return [
-		{ id: "main" },
-		{ id: "images" },
-	];
+	return [{ id: "main" }, { id: "images" }];
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

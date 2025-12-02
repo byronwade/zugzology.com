@@ -71,7 +71,7 @@ export function generateCsrfToken(): string {
 }
 
 // Generate a base64 encoded token
-export function generateToken(data: Record<string, any>, expiresIn = "1h"): string {
+export function generateToken(data: Record<string, unknown>, expiresIn = "1h"): string {
 	// In a real implementation, sign this with a secret key
 	// For now, just encode the data with expiration
 	const payload = {
@@ -86,7 +86,7 @@ export function generateToken(data: Record<string, any>, expiresIn = "1h"): stri
 }
 
 // Parse a token
-export function parseToken(token: string): any {
+export function parseToken(token: string): Record<string, unknown> | null {
 	try {
 		// Use atob for base64 decoding which is available in browser environments
 		const decoded = typeof atob !== "undefined" ? atob(token) : Buffer.from(token, "base64").toString();
@@ -98,7 +98,15 @@ export function parseToken(token: string): any {
 }
 
 // Simple logging function for auth events
-export function logAuthEvent(_event: string, _data?: any) {
+export function logAuthEvent(event: string, data?: unknown): void {
 	if (process.env.NODE_ENV === "development") {
+		const timestamp = new Date().toISOString();
+		if (data !== undefined) {
+			// biome-ignore lint/suspicious/noConsole: Intentional debug logging for auth events
+			console.debug(`[${timestamp}] [Auth] ${event}`, data);
+		} else {
+			// biome-ignore lint/suspicious/noConsole: Intentional debug logging for auth events
+			console.debug(`[${timestamp}] [Auth] ${event}`);
+		}
 	}
 }

@@ -7,12 +7,12 @@ body {
 }
 
 @layer utilities {
-        .text-balance {
-                text-wrap: balance;
-        }
-        .safe-area-top {
-                padding-top: var(--safe-area-inset-top);
-        }
+	.text-balance {
+		text-wrap: balance;
+	}
+	.safe-area-top {
+		padding-top: var(--safe-area-inset-top);
+	}
 	/* Improved scrollbar utilities */
 	.scrollbar-hide {
 		scrollbar-width: none;
@@ -97,7 +97,8 @@ body {
 	}
 
 	@keyframes scrollDot {
-		0%, 100% {
+		0%,
+		100% {
 			transform: translateY(0);
 		}
 		50% {
@@ -106,7 +107,8 @@ body {
 	}
 
 	@keyframes heroPulse {
-		0%, 100% {
+		0%,
+		100% {
 			opacity: 1;
 		}
 		50% {
@@ -187,10 +189,10 @@ body {
 }
 
 @layer base {
-        :root {
-                --safe-area-inset-top: env(safe-area-inset-top, 0px);
-                /* Zugzology Mushroom Theme - Light Mode */
-                --primary: 206 55 37;
+	:root {
+		--safe-area-inset-top: env(safe-area-inset-top, 0px);
+		/* Zugzology Mushroom Theme - Light Mode */
+		--primary: 206 55 37;
 		/* Psilocybin Blue - professional, trustworthy */
 		--primary-foreground: 0 0 100;
 
@@ -244,15 +246,19 @@ body {
 		--sidebar-accent-foreground: 8 10 16;
 		--sidebar-border: 48 20 85;
 		--sidebar-ring: 206 55 37;
-                --header-top-height: 60px;
-                --header-nav-height: 40px;
-                --header-height: calc(var(--safe-area-inset-top) + var(--header-top-height) + var(--header-nav-height));
-                --header-offset: var(--header-height);
-                --removed-body-scroll-bar-size: 0px;
-        }
-        .dark {
-                --safe-area-inset-top: env(safe-area-inset-top, 0px);
-                --primary: 206 55 37;
+		--header-top-height: 60px;
+		--header-nav-height: 40px;
+		--header-height: calc(
+			var(--safe-area-inset-top) +
+			var(--header-top-height) +
+			var(--header-nav-height)
+		);
+		--header-offset: var(--header-height);
+		--removed-body-scroll-bar-size: 0px;
+	}
+	.dark {
+		--safe-area-inset-top: env(safe-area-inset-top, 0px);
+		--primary: 206 55 37;
 		/* Psilocybin Blue - same brand color in both modes */
 		--primary-foreground: 0 0 100;
 
@@ -508,7 +514,7 @@ h6[id] {
 	left: -1.5rem;
 	opacity: 0.5;
 	font-weight: normal;
-	color: #2a6592;
+	color: hsl(var(--primary));
 }
 
 /* Optimize TOC for mobile */

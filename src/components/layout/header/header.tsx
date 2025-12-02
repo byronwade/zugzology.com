@@ -91,11 +91,11 @@ async function HeaderContent() {
 
 // Loading component with skeleton UI
 function HeaderLoading() {
-        return (
-                <div className="safe-area-top h-16 w-full animate-pulse bg-background">
-                        <div className="mx-auto flex h-full max-w-screen-xl items-center justify-between px-4">
-                                <div className="h-8 w-32 rounded bg-muted" />
-                                <div className="mx-4 flex-1">
+	return (
+		<div className="safe-area-top h-16 w-full animate-pulse bg-background">
+			<div className="mx-auto flex h-full max-w-screen-xl items-center justify-between px-4">
+				<div className="h-8 w-32 rounded bg-muted" />
+				<div className="mx-4 flex-1">
 					<div className="h-10 w-full rounded bg-muted" />
 				</div>
 				<div className="flex space-x-2">

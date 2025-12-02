@@ -22,7 +22,7 @@ import { formatPrice } from "@/lib/utils";
 const POSTS_PER_PAGE = 12;
 
 // Get blog data
-async function getBlogData(handle: string) {
+function getBlogData(handle: string) {
 	noStore();
 	return getBlogByHandle(handle);
 }
@@ -167,6 +167,7 @@ const _BlogLoading = () => (
 			<div className="mb-8 h-12 w-1/4 rounded bg-neutral-200 dark:bg-neutral-700" />
 			<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{[...new Array(8)].map((_, i) => (
+					// biome-ignore lint/suspicious/noArrayIndexKey: Loading skeleton - static placeholder
 					<div className="animate-pulse" key={i}>
 						<div className="mb-4 aspect-video rounded-lg bg-neutral-200 dark:bg-neutral-700" />
 						<div className="mb-2 h-4 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700" />
@@ -288,24 +289,28 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
 		<>
 			{/* JSON-LD Structured Data */}
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(breadcrumbSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(blogCategorySchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(websiteSchema),
 				}}
 				type="application/ld+json"
 			/>
 			<script
+				// biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data is safe with JSON.stringify
 				dangerouslySetInnerHTML={{
 					__html: JSON.stringify(organizationSchema),
 				}}

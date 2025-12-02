@@ -205,7 +205,7 @@ export default function CartContent() {
 	);
 
 	const handleRemoveItem = useCallback(
-		async (lineId: string, productData?: any) => {
+		async (lineId: string, productData?: { id: string; title: string }) => {
 			setUpdating(lineId);
 			try {
 				await removeItem(lineId);
@@ -278,7 +278,7 @@ export default function CartContent() {
 				<UniversalBreadcrumb items={BreadcrumbConfigs.cart()} />
 
 				<div className="mx-auto max-w-4xl px-3 py-6 sm:px-4 sm:py-8">
-					<div className="rounded-lg bg-white p-6 text-center shadow-sm sm:p-8">
+					<div className="rounded-lg bg-card p-6 text-center shadow-sm sm:p-8">
 						<div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 p-5 sm:mb-6 sm:h-24 sm:w-24 sm:p-6">
 							<ShoppingCart className="h-10 w-10 text-primary sm:h-12 sm:w-12" />
 						</div>
@@ -314,7 +314,7 @@ export default function CartContent() {
 					</p>
 				</div>
 
-				<div className="rounded-lg bg-white shadow-sm">
+				<div className="rounded-lg bg-card shadow-sm">
 					<div className="p-4 sm:p-6">
 						<div className="space-y-4 sm:space-y-6">
 							{cartItems.map(({ node }) => {
@@ -328,10 +328,10 @@ export default function CartContent() {
 
 								return (
 									<div
-										className="flex gap-3 border-gray-200 border-b py-4 last:border-b-0 sm:gap-4 sm:py-6"
+										className="flex gap-3 border-border border-b py-4 last:border-b-0 sm:gap-4 sm:py-6"
 										key={node.id}
 									>
-										<div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-muted/50 sm:h-24 sm:w-24">
+										<div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-border bg-muted/50 sm:h-24 sm:w-24">
 											{node.merchandise.product.images.edges[0]?.node ? (
 												<Image
 													alt={node.merchandise.product.images.edges[0].node.altText || node.merchandise.product.title}
@@ -372,8 +372,9 @@ export default function CartContent() {
 											</div>
 
 											<div className="mt-3 flex items-center justify-between sm:mt-4">
-												<div className="flex items-center rounded-lg border border-gray-300">
+												<div className="flex items-center rounded-lg border border-border">
 													<button
+														type="button"
 														aria-label="Decrease quantity"
 														className="flex h-8 w-8 items-center justify-center rounded-l-lg text-muted-foreground hover:bg-muted/50 hover:text-muted-foreground disabled:opacity-50 disabled:hover:bg-transparent sm:h-10 sm:w-10"
 														disabled={updating === node.id || node.quantity <= 1}
@@ -381,7 +382,7 @@ export default function CartContent() {
 													>
 														<Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 													</button>
-													<div className="flex h-8 w-12 items-center justify-center border-gray-300 border-x font-medium text-xs sm:h-10 sm:w-16 sm:text-sm">
+													<div className="flex h-8 w-12 items-center justify-center border-border border-x font-medium text-xs sm:h-10 sm:w-16 sm:text-sm">
 														{updating === node.id ? (
 															<Loader2 className="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" />
 														) : (
@@ -389,6 +390,7 @@ export default function CartContent() {
 														)}
 													</div>
 													<button
+														type="button"
 														aria-label="Increase quantity"
 														className="flex h-8 w-8 items-center justify-center rounded-r-lg text-muted-foreground hover:bg-muted/50 hover:text-muted-foreground disabled:opacity-50 disabled:hover:bg-transparent sm:h-10 sm:w-10"
 														disabled={updating === node.id}
@@ -399,6 +401,7 @@ export default function CartContent() {
 												</div>
 
 												<button
+													type="button"
 													className="flex items-center gap-1.5 font-medium text-red-600 text-xs hover:text-red-700 sm:gap-2 sm:text-sm"
 													disabled={updating === node.id}
 													onClick={() => handleRemoveItem(node.id, productData)}
@@ -414,13 +417,13 @@ export default function CartContent() {
 						</div>
 					</div>
 
-					<div className="rounded-b-lg border-gray-200 border-t bg-muted/50 p-4 sm:p-6">
+					<div className="rounded-b-lg border-border border-t bg-muted/50 p-4 sm:p-6">
 						<div className="mb-3 flex items-center justify-between sm:mb-4">
 							<span className="font-medium text-base text-foreground sm:text-lg">Subtotal</span>
 							<span className="font-medium text-base text-foreground sm:text-lg">{formatPrice(subtotal)}</span>
 						</div>
 
-						<div className="mb-4 flex items-center text-green-600 text-xs sm:mb-6 sm:text-sm">
+						<div className="mb-4 flex items-center text-green-600 text-xs sm:mb-6 sm:text-sm dark:text-green-400">
 							<Check className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
 							{subtotal >= 75 ? "Free shipping included!" : `Add ${formatPrice(75 - subtotal)} more for free shipping`}
 						</div>
@@ -428,14 +431,14 @@ export default function CartContent() {
 						{/* Trust signals */}
 						<div className="mb-4 grid grid-cols-3 gap-2 text-[10px] text-muted-foreground sm:mb-6 sm:gap-4 sm:text-xs">
 							<div className="text-center">
-								<div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-green-100 sm:h-8 sm:w-8">
-									<Check className="h-3 w-3 text-green-600 sm:h-4 sm:w-4" />
+								<div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-green-500/10 sm:h-8 sm:w-8">
+									<Check className="h-3 w-3 text-green-600 sm:h-4 sm:w-4 dark:text-green-400" />
 								</div>
 								<span>Secure Checkout</span>
 							</div>
 							<div className="text-center">
-								<div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 sm:h-8 sm:w-8">
-									<ArrowLeft className="h-3 w-3 text-blue-600 sm:h-4 sm:w-4" />
+								<div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/10 sm:h-8 sm:w-8">
+									<ArrowLeft className="h-3 w-3 text-blue-600 sm:h-4 sm:w-4 dark:text-blue-400" />
 								</div>
 								<span>30-Day Returns</span>
 							</div>

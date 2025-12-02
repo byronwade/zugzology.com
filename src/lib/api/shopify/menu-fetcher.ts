@@ -20,8 +20,6 @@ const MEMORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  */
 export const getMenuRobust = cache(async (handle: string): Promise<ShopifyMenuItem[]> => {
 	try {
-		const startTime = Date.now();
-
 		const { data } = await shopifyFetch<{ menu: { items: ShopifyMenuItem[] } | null }>({
 			query: `
 				query getMenu($handle: String!) {
@@ -38,7 +36,6 @@ export const getMenuRobust = cache(async (handle: string): Promise<ShopifyMenuIt
 			next: { revalidate: 300 }, // Cache for 5 minutes
 		});
 
-		const _duration = Date.now() - startTime;
 		const items = data?.menu?.items ?? [];
 
 		// Update memory cache on success

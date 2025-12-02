@@ -45,57 +45,57 @@ export function BlogShareToolbar({ title, url, description }: BlogShareToolbarPr
 			{/* Desktop fixed toolbar */}
 			<div className="fixed top-1/3 left-4 z-50 hidden flex-col items-center space-y-3 md:flex">
 				<div className="flex flex-col items-center space-y-4 rounded-lg border bg-card p-3 shadow-lg">
-					<span className="mb-1 font-medium text-[#6b6b6b] text-xs dark:text-[#a8a8a8]">Share</span>
+					<span className="mb-1 font-medium text-muted-foreground text-xs">Share</span>
 
 					<Button
 						aria-label="Share on Facebook"
-						className="rounded-full transition-colors hover:bg-[#f0f0f0] dark:hover:bg-[#2f2f2f]"
+						className="rounded-full transition-colors hover:bg-muted"
 						onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, "_blank")}
 						size="icon"
 						variant="ghost"
 					>
-						<Facebook className="h-5 w-5 text-[#1877F2]" />
+						<Facebook className="h-5 w-5 text-blue-600" />
 					</Button>
 
 					<Button
 						aria-label="Share on Twitter"
-						className="rounded-full transition-colors hover:bg-[#f0f0f0] dark:hover:bg-[#2f2f2f]"
+						className="rounded-full transition-colors hover:bg-muted"
 						onClick={() =>
 							window.open(`https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`, "_blank")
 						}
 						size="icon"
 						variant="ghost"
 					>
-						<Twitter className="h-5 w-5 text-[#1DA1F2]" />
+						<Twitter className="h-5 w-5 text-sky-500" />
 					</Button>
 
 					<Button
 						aria-label="Share on LinkedIn"
-						className="rounded-full transition-colors hover:bg-[#f0f0f0] dark:hover:bg-[#2f2f2f]"
+						className="rounded-full transition-colors hover:bg-muted"
 						onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, "_blank")}
 						size="icon"
 						variant="ghost"
 					>
-						<Linkedin className="h-5 w-5 text-[#0A66C2]" />
+						<Linkedin className="h-5 w-5 text-blue-700" />
 					</Button>
 
 					<Button
 						aria-label="Share via Email"
-						className="rounded-full transition-colors hover:bg-[#f0f0f0] dark:hover:bg-[#2f2f2f]"
+						className="rounded-full transition-colors hover:bg-muted"
 						onClick={() =>
 							window.open(`mailto:?subject=${encodedTitle}&body=${encodedDescription}%0A%0A${encodedUrl}`, "_blank")
 						}
 						size="icon"
 						variant="ghost"
 					>
-						<Mail className="h-5 w-5 text-[#6b6b6b] dark:text-[#a8a8a8]" />
+						<Mail className="h-5 w-5 text-muted-foreground" />
 					</Button>
 
-					<div className="my-1 h-px w-full bg-[#e6e6e6] dark:bg-[#2f2f2f]" />
+					<div className="my-1 h-px w-full bg-border" />
 
 					<Button
 						aria-label="Copy Link"
-						className="rounded-full transition-colors hover:bg-[#f0f0f0] dark:hover:bg-[#2f2f2f]"
+						className="rounded-full transition-colors hover:bg-muted"
 						onClick={handleCopyLink}
 						size="icon"
 						variant="ghost"
@@ -103,7 +103,7 @@ export function BlogShareToolbar({ title, url, description }: BlogShareToolbarPr
 						{copied ? (
 							<Check className="h-5 w-5 text-green-500" />
 						) : (
-							<Link2 className="h-5 w-5 text-[#6b6b6b] dark:text-[#a8a8a8]" />
+							<Link2 className="h-5 w-5 text-muted-foreground" />
 						)}
 					</Button>
 				</div>
@@ -124,7 +124,7 @@ export function BlogShareToolbar({ title, url, description }: BlogShareToolbarPr
 				{/* Mobile share menu */}
 				{showMobileShare && (
 					<div className="absolute right-0 bottom-16 w-64 rounded-lg border bg-card p-4 shadow-lg">
-						<h3 className="mb-3 font-medium text-[#242424] text-sm dark:text-[#e6e6e6]">Share this article</h3>
+						<h3 className="mb-3 font-medium text-foreground text-sm">Share this article</h3>
 						<div className="grid grid-cols-3 gap-3">
 							<Button
 								className="flex h-16 flex-col items-center justify-center rounded-lg hover:bg-muted"
@@ -132,7 +132,7 @@ export function BlogShareToolbar({ title, url, description }: BlogShareToolbarPr
 								size="icon"
 								variant="ghost"
 							>
-								<Facebook className="mb-1 h-6 w-6 text-[#1877F2]" />
+								<Facebook className="mb-1 h-6 w-6 text-blue-600" />
 								<span className="text-muted-foreground text-xs">Facebook</span>
 							</Button>
 
@@ -144,7 +144,7 @@ export function BlogShareToolbar({ title, url, description }: BlogShareToolbarPr
 								size="icon"
 								variant="ghost"
 							>
-								<Twitter className="mb-1 h-6 w-6 text-[#1DA1F2]" />
+								<Twitter className="mb-1 h-6 w-6 text-sky-500" />
 								<span className="text-muted-foreground text-xs">Twitter</span>
 							</Button>
 
@@ -156,7 +156,7 @@ export function BlogShareToolbar({ title, url, description }: BlogShareToolbarPr
 								size="icon"
 								variant="ghost"
 							>
-								<Linkedin className="mb-1 h-6 w-6 text-[#0A66C2]" />
+								<Linkedin className="mb-1 h-6 w-6 text-blue-700" />
 								<span className="text-muted-foreground text-xs">LinkedIn</span>
 							</Button>
 

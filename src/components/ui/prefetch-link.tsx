@@ -256,4 +256,3 @@ export const PrefetchLink = ({
 PrefetchLink.displayName = "PrefetchLink";
 
 // Re-export as default for convenience
-export default PrefetchLink;

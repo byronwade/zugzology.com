@@ -11,21 +11,34 @@ import { shopifyFetch } from "@/lib/api/shopify/client";
 import { PRODUCT_CARD_FRAGMENT } from "@/lib/api/shopify/fragments-optimized";
 
 // Dynamic imports for below-fold sections - reduces initial bundle
-const BestSellersShowcase = dynamic(() => import("@/components/sections/best-sellers-showcase").then((mod) => ({ default: mod.BestSellersShowcase })), {
-	loading: () => null,
-});
+const BestSellersShowcase = dynamic(
+	() => import("@/components/sections/best-sellers-showcase").then((mod) => ({ default: mod.BestSellersShowcase })),
+	{
+		loading: () => null,
+	}
+);
 
-const FeaturedCollections = dynamic(() => import("@/components/sections/featured-collections").then((mod) => ({ default: mod.FeaturedCollections })), {
-	loading: () => null,
-});
+const FeaturedCollections = dynamic(
+	() => import("@/components/sections/featured-collections").then((mod) => ({ default: mod.FeaturedCollections })),
+	{
+		loading: () => null,
+	}
+);
 
-const LatestProducts = dynamic(() => import("@/components/sections/latest-products").then((mod) => ({ default: mod.LatestProducts })), {
-	loading: () => null,
-});
+const LatestProducts = dynamic(
+	() => import("@/components/sections/latest-products").then((mod) => ({ default: mod.LatestProducts })),
+	{
+		loading: () => null,
+	}
+);
 
-const SaleProducts = dynamic(() => import("@/components/sections/sale-products").then((mod) => ({ default: mod.SaleProducts })), {
-	loading: () => null,
-});
+const SaleProducts = dynamic(
+	() => import("@/components/sections/sale-products").then((mod) => ({ default: mod.SaleProducts })),
+	{
+		loading: () => null,
+	}
+);
+
 import {
 	getEnhancedFAQSchema,
 	getEnhancedLocalBusinessSchema,
@@ -36,7 +49,6 @@ import {
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 // Removed AI layout optimizer types
 import type { ShopifyProduct } from "@/lib/types";
-import HomeLoading from "./loading";
 
 type HomePageData = {
 	site: {
@@ -188,7 +200,7 @@ function ProductGridSkeleton() {
 				<div className="mb-8 h-10 w-64 animate-pulse rounded bg-muted sm:mb-10" />
 				<div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 					{[...Array(5)].map((_, i) => (
-						<div key={i} className="space-y-4">
+						<div className="space-y-4" key={i}>
 							<div className="aspect-square w-full animate-pulse rounded-lg bg-muted" />
 							<div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
 							<div className="h-6 w-1/2 animate-pulse rounded bg-muted" />
@@ -359,8 +371,8 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 
 						return (
 							<ProductCard
-						priority={index === 0}
 								key={product.id}
+								priority={index === 0}
 								product={product}
 								quantity={firstVariant.quantityAvailable}
 								variantId={firstVariant.id}
@@ -381,7 +393,7 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 						return (
 							<div className="group relative" key={product.id}>
 								<ProductCard
-						priority={index === 0}
+									priority={index === 0}
 									product={product}
 									quantity={firstVariant.quantityAvailable}
 									variantId={firstVariant.id}

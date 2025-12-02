@@ -31,7 +31,7 @@
     "**/*.mts",
     "next.config.ts",
     "auth.ts",
-    "middleware.ts",
+    "proxy.ts",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
