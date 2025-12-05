@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 import { Footer, Header } from "@/components/layout";
 import { AuditProvider } from "@/components/utilities/seo/audit-provider";
@@ -34,6 +35,75 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	// Get store configuration for dynamic structured data
 	const storeConfig = getStoreConfigSafe();
 	const structuredData = generateStoreStructuredData();
+	const requestHeaders = await headers();
+	const secFetchSite = requestHeaders.get("sec-fetch-site") ?? "unknown";
+	const secFetchDest = requestHeaders.get("sec-fetch-dest") ?? "unknown";
+	const referer = requestHeaders.get("referer") ?? "none";
+	const origin = requestHeaders.get("origin") ?? "none";
+	const host = requestHeaders.get("host") ?? "unknown";
+	const frameAncestors = ["*"];
+	const hasWildcardAncestor = frameAncestors.includes("*");
+	let refererHost: string | null = null;
+	try {
+		refererHost = referer !== "none" ? new URL(referer).hostname : null;
+	} catch {
+		refererHost = null;
+	}
+	const isAllowedFrameAncestor =
+		hasWildcardAncestor ||
+		(refererHost === null
+			? null
+			: refererHost === "byronwade.com" ||
+				refererHost.endsWith(".byronwade.com") ||
+				referer.startsWith("http://localhost:3000"));
+
+	// #region agent log
+	await fetch("http://127.0.0.1:7242/ingest/9560ed6e-3480-46d0-a1ef-10f735eff877", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			sessionId: "debug-session",
+			runId: "post-csp",
+			hypothesisId: "H1",
+			location: "src/app/layout.tsx:request-context",
+			message: "Request context for iframe diagnosis",
+			data: { host, origin, referer, secFetchSite, secFetchDest },
+			timestamp: Date.now(),
+		}),
+	}).catch(() => {});
+	// #endregion
+
+	// #region agent log
+	await fetch("http://127.0.0.1:7242/ingest/9560ed6e-3480-46d0-a1ef-10f735eff877", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			sessionId: "debug-session",
+			runId: "post-csp",
+			hypothesisId: "H1",
+			location: "src/app/layout.tsx:frame-ancestor-check",
+			message: "Frame ancestor allow check",
+			data: { refererHost, isAllowedFrameAncestor, allowedList: frameAncestors, hasWildcardAncestor },
+			timestamp: Date.now(),
+		}),
+	}).catch(() => {});
+	// #endregion
+
+	// #region agent log
+	await fetch("http://127.0.0.1:7242/ingest/9560ed6e-3480-46d0-a1ef-10f735eff877", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			sessionId: "debug-session",
+			runId: "post-csp",
+			hypothesisId: "H2",
+			location: "src/app/layout.tsx:header-baseline",
+			message: "Current frame-ancestors policy used in next.config.ts",
+			data: { frameAncestors, hasWildcardAncestor },
+			timestamp: Date.now(),
+		}),
+	}).catch(() => {});
+	// #endregion
 
 	return (
 		<html lang="en" suppressHydrationWarning>

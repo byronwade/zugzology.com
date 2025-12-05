@@ -30,7 +30,7 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 					loop
 					muted
 					playsInline
-					poster="https://bevgyjm5apuichhj.public.blob.vercel-storage.com/hero-poster-optimized-LKjMxN8vQp2YzBqGF5qKxTrJ9X3yE1.jpg"
+					poster="/banner3.webp"
 					preload="none"
 				>
 					<source src="/videos/mushroom-hero.webm" type="video/webm" />
