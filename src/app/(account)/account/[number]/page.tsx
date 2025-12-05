@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { unstable_noStore as noStore } from "next/cache";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Script from "next/script";
@@ -7,6 +9,11 @@ import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 import { requireCustomerSession } from "@/lib/services/customer-session";
 import { AccountNavigation } from "../account-navigation";
 import OrderDetails from "./order-details";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+export const prerender = false;
 
 export async function generateMetadata({ params }: { params: { number: string } }): Promise<Metadata> {
 	const nextParams = await params;
@@ -29,7 +36,16 @@ export async function generateMetadata({ params }: { params: { number: string } 
 	});
 }
 
-export default async function OrderPage({ params }: { params: { number: string } }) {
+export default function OrderPage({ params }: { params: { number: string } }) {
+	return (
+		<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading order…</div>}>
+			<OrderPageContent params={params} />
+		</Suspense>
+	);
+}
+
+async function OrderPageContent({ params }: { params: { number: string } }) {
+	noStore();
 	const nextParams = await params;
 	const { customer } = await requireCustomerSession(`/account/${nextParams.number}`);
 	const orderEdge = customer.orders?.edges?.find(({ node }) => node.orderNumber.toString() === nextParams.number);

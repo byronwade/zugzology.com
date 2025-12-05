@@ -393,6 +393,8 @@ export async function getCustomer(customerAccessToken: string): Promise<ShopifyC
 			`,
 			variables: { customerAccessToken },
 			tags: ["customer"],
+			cache: "no-store",
+			next: { revalidate: 0 },
 		});
 
 		if (errors) {

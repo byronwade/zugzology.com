@@ -12,8 +12,8 @@ const nextConfig: NextConfig = {
 	// Turbopack is now stable and the default bundler in Next.js 16
 	// No configuration needed - it's used automatically
 
-	// Partial Prerendering (PPR) - moved from experimental in Next.js 16
-	cacheComponents: true,
+	// Partial Prerendering (PPR) - disabled here to allow dynamic routes with no-store
+	cacheComponents: false,
 
 	experimental: {
 		// CSS inlining optimization

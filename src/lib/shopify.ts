@@ -8,6 +8,8 @@ type ShopifyFetchParams = {
 	variables?: Record<string, unknown>;
 	headers?: Record<string, string>;
 	tags?: string[];
+	cache?: RequestCache;
+	next?: NextFetchRequestConfig;
 };
 
 type ShopifyResponse<T> = {
@@ -21,8 +23,13 @@ export async function shopifyFetch<T>({
 	variables = {},
 	headers = {},
 	tags = [],
+	cache,
+	next,
 }: ShopifyFetchParams): Promise<ShopifyResponse<T>> {
 	const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`;
+
+	const cacheMode = cache ?? "no-store";
+	const resolvedNext = cacheMode === "no-store" ? undefined : next ?? (tags.length ? { tags } : undefined);
 
 	const response = await fetch(endpoint, {
 		method: "POST",
@@ -35,7 +42,8 @@ export async function shopifyFetch<T>({
 			query,
 			variables,
 		}),
-		next: tags.length ? { tags } : undefined,
+		cache: cacheMode,
+		next: resolvedNext,
 	});
 
 	const json = await response.json();
