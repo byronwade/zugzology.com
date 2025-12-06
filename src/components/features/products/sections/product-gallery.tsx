@@ -14,6 +14,27 @@ import type {
 } from "@/lib/types";
 import { cn, debugLog } from "@/lib/utils";
 
+// #region agent log helper
+const agentLog = (payload: {
+	hypothesisId: string;
+	location: string;
+	message: string;
+	data?: Record<string, unknown>;
+	runId?: string;
+}) => {
+	fetch("http://127.0.0.1:7242/ingest/9560ed6e-3480-46d0-a1ef-10f735eff877", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			sessionId: "debug-session",
+			runId: payload.runId ?? "pre-fix",
+			...payload,
+			timestamp: Date.now(),
+		}),
+	}).catch(() => {});
+};
+// #endregion
+
 type ModelViewerAttributes = {
 	src: string;
 	poster?: string;
@@ -381,6 +402,17 @@ export function ProductGallery({
 					.filter((video): video is YouTubeMedia => Boolean(video));
 
 				debugLog("ProductGallery", "Final YouTube videos array:", youtubeVideos.length);
+				// #region agent log
+				agentLog({
+					hypothesisId: "H1",
+					location: "product-gallery:youtube-processing",
+					message: "Processed YouTube videos",
+					data: {
+						youtubeCount: youtubeVideos.length,
+						metafieldUrls: youtubeUrls.map((metafield) => metafield?.value ?? ""),
+					},
+				});
+				// #endregion
 				return [...items, ...youtubeVideos];
 			} catch (_error) {
 				return items;
@@ -408,6 +440,24 @@ export function ProductGallery({
 	if (process.env.NODE_ENV === "development") {
 		debugLog("ProductGallery", "Combined media array:", validMedia.length);
 	}
+
+	useEffect(() => {
+		// #region agent log
+		agentLog({
+			hypothesisId: "H2",
+			location: "product-gallery:media-state",
+			message: "Media state computed",
+			data: {
+				mediaCount: mediaItems.length,
+				validMediaCount: validMedia.length,
+				externalVideos: validMedia
+					.filter((media) => isExternalVideo(media))
+					.map((media) => ({ id: media.id, embedUrl: (media as ShopifyExternalVideo).embedUrl })),
+				mounted,
+			},
+		});
+		// #endregion
+	}, [mediaItems, validMedia.length, mounted]);
 
 	// Early return with debug message if no media
 	if (!(mounted && validMedia.length)) {
@@ -593,6 +643,37 @@ export function ProductGallery({
 	const activeMedia = validMedia[selectedMediaIndex];
 	debugLog("ProductGallery", "Active media:", activeMedia);
 
+	useEffect(() => {
+		// #region agent log
+		agentLog({
+			hypothesisId: "H3",
+			location: "product-gallery:selection",
+			message: "Media selection changed",
+			data: {
+				selectedMediaIndex,
+				activeMediaId: activeMedia?.id ?? null,
+				activeType: activeMedia?.mediaContentType ?? null,
+				activeEmbedUrl: isExternalVideo(activeMedia) ? activeMedia.embedUrl : null,
+			},
+		});
+		// #endregion
+	}, [activeMedia, selectedMediaIndex]);
+
+	if (isExternalVideo(activeMedia) && !activeMedia.embedUrl) {
+		// #region agent log
+		agentLog({
+			hypothesisId: "H4",
+			location: "product-gallery:missing-embed",
+			message: "External video missing embedUrl",
+			data: {
+				selectedMediaIndex,
+				activeMediaId: activeMedia.id,
+				mediaContentType: activeMedia.mediaContentType,
+			},
+		});
+		// #endregion
+	}
+
 	return (
 		<>
 			<Script
@@ -685,6 +766,20 @@ export function ProductGallery({
 									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 									allowFullScreen
 									className="h-full w-full"
+									onError={() => {
+										// #region agent log
+										agentLog({
+											hypothesisId: "H5",
+											location: "product-gallery:iframe-error",
+											message: "Iframe failed to load",
+											data: {
+												embedUrl: activeMedia.embedUrl,
+												selectedMediaIndex,
+												activeMediaId: activeMedia.id,
+											},
+										});
+										// #endregion
+									}}
 									src={activeMedia.embedUrl}
 								/>
 							)}
