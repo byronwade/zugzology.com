@@ -136,6 +136,67 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 				/>
 				<script
 					dangerouslySetInnerHTML={{
+						__html: `
+							// Minimal iframe render diagnostics
+							(function() {
+								const ingestUrl = "http://127.0.0.1:7242/ingest/9560ed6e-3480-46d0-a1ef-10f735eff877";
+								const safeString = (value) => {
+									try {
+										return typeof value === "string" ? value : JSON.stringify(value);
+									} catch (_err) {
+										return "unserializable";
+									}
+								};
+								const snapshot = () => {
+									try {
+										const body = document.body;
+										const html = document.documentElement;
+										const first = body.firstElementChild;
+										const firstStyle = first ? getComputedStyle(first) : null;
+										const payload = {
+											sessionId: "debug-session",
+											runId: "post-csp",
+											hypothesisId: "iframe-debug",
+											location: "layout:iframe-snapshot",
+											message: "Body snapshot for iframe render",
+											timestamp: Date.now(),
+											data: {
+												htmlClass: html?.className || "",
+												bodyChildren: body?.children?.length || 0,
+												bodyHeight: body?.getBoundingClientRect()?.height || 0,
+												firstChild: first
+													? {
+															tag: first.tagName,
+															id: first.id || "",
+															class: first.className || "",
+															display: firstStyle?.display || "",
+															visibility: firstStyle?.visibility || "",
+															opacity: firstStyle?.opacity || "",
+														}
+													: null,
+												textSample: (body?.innerText || "").slice(0, 1200),
+												nextData: typeof window.__NEXT_DATA__ !== "undefined" ? safeString(window.__NEXT_DATA__).slice(0, 1200) : null,
+											},
+										};
+										fetch(ingestUrl, {
+											method: "POST",
+											headers: { "Content-Type": "application/json" },
+											body: JSON.stringify(payload),
+										}).catch(() => {});
+									} catch (_err) {
+									}
+								};
+								if (document.readyState === "complete") {
+									snapshot();
+								} else {
+									window.addEventListener("load", snapshot, { once: true });
+								}
+							})();
+						`,
+					}}
+				/>
+				<script
+					dangerouslySetInnerHTML={{
 						__html: JSON.stringify({
 							"@context": "https://schema.org",
 							"@type": "Organization",
