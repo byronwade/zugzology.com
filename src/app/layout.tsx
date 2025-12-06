@@ -178,11 +178,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 												nextData: typeof window.__NEXT_DATA__ !== "undefined" ? safeString(window.__NEXT_DATA__).slice(0, 1200) : null,
 											},
 										};
+										try {
+											window.__IFRAME_DEBUG__ = payload;
+											console.log("[iframe-debug]", payload);
+										} catch (_err) {}
 										fetch(ingestUrl, {
 											method: "POST",
 											headers: { "Content-Type": "application/json" },
 											body: JSON.stringify(payload),
-										}).catch(() => {});
+										}).catch(() => {
+											// In cases where the ingest endpoint is unreachable (e.g., proxied env),
+											// we still keep the data on window.__IFRAME_DEBUG__ and console.
+										});
 									} catch (_err) {
 									}
 								};
