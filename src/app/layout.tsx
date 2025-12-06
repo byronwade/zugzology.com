@@ -204,6 +204,54 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 				/>
 				<script
 					dangerouslySetInnerHTML={{
+						__html: `
+							// Capture runtime errors inside iframe to surface silent failures
+							(function() {
+								const ingestUrl = "http://127.0.0.1:7242/ingest/9560ed6e-3480-46d0-a1ef-10f735eff877";
+								const errors = [];
+								const emit = (type, event) => {
+									try {
+										const message =
+											event?.message ||
+											event?.reason?.message ||
+											(event?.error && String(event.error)) ||
+											(event?.reason && String(event.reason)) ||
+											String(event ?? "unknown");
+										const payload = {
+											sessionId: "debug-session",
+											runId: "post-csp",
+											hypothesisId: "iframe-errors",
+											location: "layout:error-capture",
+											message: type,
+											timestamp: Date.now(),
+											data: {
+												message,
+												filename: event?.filename || null,
+												lineno: event?.lineno || null,
+												colno: event?.colno || null,
+												stack: event?.error?.stack || event?.reason?.stack || null,
+											},
+										};
+										errors.push(payload);
+										window.__IFRAME_ERRORS__ = errors;
+										console.error("[iframe-error]", payload);
+										fetch(ingestUrl, {
+											method: "POST",
+											headers: { "Content-Type": "application/json" },
+											body: JSON.stringify(payload),
+										}).catch(() => {});
+									} catch (_err) {}
+								};
+								window.addEventListener("error", (event) => emit("window-error", event));
+								window.addEventListener("unhandledrejection", (event) =>
+									emit("unhandled-rejection", event)
+								);
+							})();
+						`,
+					}}
+				/>
+				<script
+					dangerouslySetInnerHTML={{
 						__html: JSON.stringify({
 							"@context": "https://schema.org",
 							"@type": "Organization",
