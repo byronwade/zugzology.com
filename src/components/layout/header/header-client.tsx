@@ -100,14 +100,7 @@ const Logo = memo(function Logo({ onClick }: { onClick: () => void }) {
 		<div className="flex-shrink-0">
 			<Link className="flex items-center gap-3" href="/" onClick={onClick} prefetch={true}>
 				<div className="relative h-8 w-8">
-					<Image
-						alt={`${displayName} Logo`}
-						className="object-contain dark:invert"
-						fill
-						priority
-						sizes="24px"
-						src={logoUrl}
-					/>
+					<Image alt={`${displayName} Logo`} className="object-contain dark:invert" fill sizes="32px" src={logoUrl} />
 				</div>
 				<span className="hidden font-bold text-lg md:inline">{displayName}</span>
 			</Link>

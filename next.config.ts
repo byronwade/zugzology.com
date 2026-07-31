@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
 	cacheComponents: false,
 
 	experimental: {
-		inlineCss: true,
+		inlineCss: false,
 		optimizePackageImports: [
 			"lucide-react",
 			"@radix-ui/react-dialog",

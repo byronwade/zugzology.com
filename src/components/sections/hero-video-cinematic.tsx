@@ -1,6 +1,8 @@
 import { CheckCircle, Play, Sparkles, Star } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
+import { HeroVideo } from "./hero-video";
 
 // Server Component - no client JS needed
 // CSS animations replace Framer Motion for better performance
@@ -19,26 +21,21 @@ export function HeroVideoCinematic() {
 				</div>
 
 				{/*
-				 * Video Element - native browser autoplay.
-				 * The poster is frame 1 of this exact clip (38 KB) rather than a
-				 * separate banner, so there is no jump when playback takes over.
-				 * `preload="metadata"` keeps the fetch off the critical path;
-				 * autoplay pulls the rest once the element is ready.
+				 * The poster is server-rendered as the LCP image so it is discoverable
+				 * in the initial HTML and preloaded. HeroVideo then swaps in the clip
+				 * only where autoplay is worth its main-thread cost — see that file.
 				 */}
-				<video
-					autoPlay
-					className="video-hero absolute inset-0 h-full w-full object-cover"
-					disablePictureInPicture
-					disableRemotePlayback
-					loop
-					muted
-					playsInline
-					poster="/videos/mushroom-hero-poster.webp"
-					preload="metadata"
-					tabIndex={-1}
-				>
-					<source src="/videos/mushroom-hero.mp4" type="video/mp4" />
-				</video>
+				<Image
+					alt=""
+					className="absolute inset-0 h-full w-full object-cover"
+					fetchPriority="high"
+					fill
+					priority
+					sizes="100vw"
+					src="/videos/mushroom-hero-poster.webp"
+				/>
+
+				<HeroVideo />
 
 				{/* Vignette Overlay */}
 				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_70%,rgba(0,0,0,0.8)_100%)]" />

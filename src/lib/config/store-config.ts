@@ -109,11 +109,21 @@ import { BRAND, BUSINESS, CONTACT } from "./wadesdesign.config";
  * Default configuration - uses environment variables and Shopify API data
  */
 export const getDefaultStoreConfig = (): Partial<StoreConfig> => ({
-	storeName: process.env.SHOPIFY_STORE_NAME || BRAND.name,
-	storeDomain: process.env.SHOPIFY_STORE_DOMAIN || BRAND.domain,
+	/**
+	 * These fields are read by client components (useStoreConfig), so they must
+	 * resolve identically on both sides of hydration. Next only inlines
+	 * NEXT_PUBLIC_* into the browser bundle, so reading a server-only variable
+	 * here produced one value during SSR and another during hydration — the logo
+	 * alt text rendered "Your Store Name Logo" on the server and "Zugzology Logo"
+	 * on the client, which made React discard the server HTML for the whole
+	 * header subtree and re-render it. Public variable first, shared constant
+	 * second, and never a server-only variable.
+	 */
+	storeName: process.env.NEXT_PUBLIC_STORE_NAME || BRAND.name,
+	storeDomain: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || BRAND.domain,
 	currency: {
-		code: process.env.SHOPIFY_CURRENCY_CODE || "USD",
-		symbol: process.env.SHOPIFY_CURRENCY_SYMBOL || "$",
+		code: process.env.NEXT_PUBLIC_CURRENCY_CODE || "USD",
+		symbol: process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || "$",
 	},
 	branding: {
 		primaryColor: process.env.NEXT_PUBLIC_PRIMARY_COLOR || "#2A6592",

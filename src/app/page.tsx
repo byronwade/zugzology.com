@@ -312,7 +312,10 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 
 				{/* Mobile: List view */}
 				<div className="flex flex-col gap-0 sm:hidden">
-					{products.map((product, index) => {
+					{/* No card claims priority: the hero poster is the LCP element on every
+					    viewport, and eagerly fetching a below-fold product image alongside it
+					    just splits the connection and pushes the real LCP later. */}
+					{products.map((product) => {
 						const firstVariant = product.variants?.nodes?.[0];
 						if (!firstVariant) {
 							return null;
@@ -321,7 +324,7 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 						return (
 							<ProductCard
 								key={product.id}
-								priority={index === 0}
+								priority={false}
 								product={product}
 								quantity={firstVariant.quantityAvailable}
 								variantId={firstVariant.id}
@@ -333,7 +336,7 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 
 				{/* Desktop: Grid view */}
 				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-					{products.map((product, index) => {
+					{products.map((product) => {
 						const firstVariant = product.variants?.nodes?.[0];
 						if (!firstVariant) {
 							return null;
@@ -342,7 +345,7 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 						return (
 							<div className="group relative" key={product.id}>
 								<ProductCard
-									priority={index === 0}
+									priority={false}
 									product={product}
 									quantity={firstVariant.quantityAvailable}
 									variantId={firstVariant.id}

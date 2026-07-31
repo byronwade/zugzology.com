@@ -16,6 +16,12 @@
       "arrowParentheses": "always"
     }
   },
+  "files": {
+    // docs/product-data.json is a ~1MB captured API response kept for reference.
+    // Linting it produced ~15k formatting errors that buried every real finding
+    // in the source tree, and it is imported by nothing.
+    "includes": ["**", "!docs/product-data.json"]
+  },
   "linter": {
     "enabled": true,
     "rules": {

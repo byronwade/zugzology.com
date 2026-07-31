@@ -140,10 +140,13 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 		[wishlist, addToWishlist, removeFromWishlist, isInWishlist]
 	);
 
-	if (!isInitialized) {
-		return null;
-	}
-
+	// No gate on isInitialized here. This provider is the innermost wrapper around
+	// every page, so returning null until a client effect had read localStorage
+	// meant the entire site server-rendered to an empty <body> — no markup at all,
+	// on every route. addToWishlist/removeFromWishlist already check isInitialized
+	// themselves, so nothing can write before the stored value has been read; the
+	// only difference now is that children render with an empty wishlist until it
+	// loads, which is what the header badge already assumed.
 	return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
 }
 
