@@ -15,7 +15,7 @@ export function BestSellersShowcase({ products }: BestSellersShowcaseProps) {
 	}
 
 	return (
-		<section className="relative w-full overflow-hidden bg-muted/50 py-16">
+		<section className="relative w-full overflow-hidden bg-muted/50 py-12 sm:py-16">
 			{/* Background Pattern */}
 			<div className="absolute inset-0 z-0 opacity-5">
 				<div

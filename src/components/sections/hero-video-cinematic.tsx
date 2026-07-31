@@ -33,7 +33,6 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 					poster="/banner3.webp"
 					preload="none"
 				>
-					<source src="/videos/mushroom-hero.webm" type="video/webm" />
 					<source src="/videos/mushroom-hero.mp4" type="video/mp4" />
 				</video>
 

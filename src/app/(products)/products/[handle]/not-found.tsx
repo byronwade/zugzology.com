@@ -122,7 +122,7 @@ export default function ProductNotFound() {
 								size="lg"
 								variant="outline"
 							>
-								<Link href="/collections">Browse Collections</Link>
+								<Link href="/collections/all">Browse Collections</Link>
 							</Button>
 							<Button asChild className="gap-2 text-white hover:bg-white/10" size="lg" variant="ghost">
 								<Link href="/">

@@ -41,7 +41,7 @@ export const getEnhancedOrganizationSchema = (): WithContext<Organization> => {
 			height: "60",
 			caption: config.storeName,
 		},
-		image: config.seo.ogImage || `${baseUrl}/og-image.jpg`,
+		image: config.seo.ogImage || `${baseUrl}/opengraph-image`,
 		description: config.storeDescription,
 		email: config.contact.supportEmail,
 		telephone: config.contact.phone,
@@ -115,7 +115,7 @@ export const getEnhancedLocalBusinessSchema = (): WithContext<LocalBusiness> => 
 		telephone: CONTACT.phone.mainFormatted,
 		email: CONTACT.email.general,
 		logo: `${BRAND.url}${BRAND.logo.path}`,
-		image: config.seo.ogImage || `${BRAND.url}/og-image.jpg`,
+		image: config.seo.ogImage || `${BRAND.url}/opengraph-image`,
 		description: BRAND.tagline,
 		priceRange: BUSINESS.metrics.priceRange,
 		address: {

@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 			type: "website",
 			images: [
 				{
-					url: `${storeUrl}/register-og-image.jpg`,
+					url: `${storeUrl}/opengraph-image`,
 					width: 1200,
 					height: 630,
 					alt: `Register at ${storeName}`,
@@ -37,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
 			title: `Create Your ${storeName} Account`,
 			description:
 				"Join our community of mushroom cultivation enthusiasts. Get access to premium supplies and expert guidance.",
-			images: [`${storeUrl}/register-twitter-image.jpg`],
+			images: [`${storeUrl}/opengraph-image`],
 		},
 	};
 }

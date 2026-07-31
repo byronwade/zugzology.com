@@ -177,7 +177,7 @@ function HeroSkeleton() {
 function ProductGridSkeleton() {
 	return (
 		<section className="bg-background">
-			<div className="container mx-auto px-4 py-8 sm:py-12">
+			<div className="container mx-auto px-4 py-12 sm:py-16">
 				<div className="mb-8 h-10 w-64 animate-pulse rounded bg-muted sm:mb-10" />
 				<div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 					{[...Array(5)].map((_, i) => (
@@ -267,18 +267,9 @@ async function SaleSection() {
 async function BestSellersSection() {
 	const bestSellingProducts = await fetchOptimizedProducts("BEST_SELLING", 5);
 
-	return (
-		<>
-			<ProductGridSection
-				ctaHref="/collections/best-sellers"
-				ctaLabel="Browse best sellers"
-				products={bestSellingProducts}
-				subtitle="Top-rated essentials backed by real purchase data"
-				title="Customer Favorites"
-			/>
-			<BestSellersShowcase products={bestSellingProducts} />
-		</>
-	);
+	// BestSellersShowcase already presents this exact list with rank badges;
+	// a second grid above it repeated all five products verbatim.
+	return <BestSellersShowcase products={bestSellingProducts} />;
 }
 
 async function LatestSection() {
@@ -318,7 +309,7 @@ function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: Pr
 
 	return (
 		<section className="bg-background">
-			<div className="container mx-auto px-4 py-8 sm:py-12">
+			<div className="container mx-auto px-4 py-12 sm:py-16">
 				<div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
 					<div>
 						<h2 className="font-bold text-2xl text-foreground tracking-tight sm:text-3xl md:text-4xl">{title}</h2>
@@ -447,7 +438,7 @@ function StructuredData({
 		},
 		primaryImageOfPage: {
 			"@type": "ImageObject",
-			url: heroProduct?.images?.nodes?.[0]?.url || `${siteUrl}/og-image.jpg`,
+			url: heroProduct?.images?.nodes?.[0]?.url || `${siteUrl}/opengraph-image`,
 		},
 		datePublished: "2024-01-01T00:00:00Z",
 		dateModified: "2024-01-01T00:00:00Z",

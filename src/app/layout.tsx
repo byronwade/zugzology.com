@@ -54,6 +54,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
 			</head>
 			<body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable, fontMono.variable)}>
 				<Providers>
+					{/* First tab stop on every page: lets keyboard users past the header
+					    nav, which is otherwise ~20 stops before the first product. */}
+					<a
+						className="-translate-x-1/2 sr-only left-1/2 z-[100] rounded-md border bg-background px-4 py-2 font-medium text-foreground text-sm shadow-md focus:not-sr-only focus:fixed focus:top-3 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						href="#main-content"
+					>
+						Skip to main content
+					</a>
 					<div className="relative flex min-h-screen flex-col">
 						<Suspense fallback={<HeaderLoading />}>
 							<Header />
@@ -61,7 +69,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
 						<Suspense fallback={null}>
 							<ShopifyStatusBanner />
 						</Suspense>
-						<main className="flex-1">{children}</main>
+						<main className="flex-1" id="main-content" tabIndex={-1}>
+							{children}
+						</main>
 						<Suspense fallback={<FooterLoading />}>
 							<Footer />
 						</Suspense>

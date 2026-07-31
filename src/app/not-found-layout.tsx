@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 		type: "website",
 		images: [
 			{
-				url: "https://zugzology.com/404-og-image.jpg",
+				url: "https://zugzology.com/opengraph-image",
 				width: 1200,
 				height: 630,
 				alt: "404 Page Not Found",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		title: "404 - Page Not Found | Zugzology",
 		description: "The page you're looking for doesn't exist or has been moved. Return to our homepage.",
-		images: ["https://zugzology.com/404-twitter-image.jpg"],
+		images: ["https://zugzology.com/opengraph-image"],
 	},
 };
 

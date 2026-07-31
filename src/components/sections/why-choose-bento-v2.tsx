@@ -121,8 +121,8 @@ export function WhyChooseBentoV2({
 					</div>
 
 					{/* 24/7 Support */}
-					<div className="group overflow-hidden rounded-xl border border-border bg-card p-6 transition-all duration-300 hover:border-blue-500/30 hover:shadow-lg">
-						<div className="mb-4 inline-flex rounded-xl bg-blue-500/10 p-3 text-blue-600 dark:text-blue-400">
+					<div className="group overflow-hidden rounded-xl border border-border bg-card p-6 transition-all duration-300 hover:border-teal-500/30 hover:shadow-lg">
+						<div className="mb-4 inline-flex rounded-xl bg-teal-500/10 p-3 text-teal-600 dark:text-teal-400">
 							<Clock className="h-8 w-8" />
 						</div>
 						<div className="mb-2 flex items-baseline gap-2">
