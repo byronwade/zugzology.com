@@ -1,6 +1,4 @@
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ProductCardSkeleton } from "@/components/ui/skeletons/product-card-skeleton";
 import type { ProductSection } from "@/lib/api/shopify/product-sections";
 import {
 	getBestSellers,
@@ -30,39 +28,6 @@ type SectionLoaderProps = {
 		| "random";
 	priority: number;
 };
-
-// Single section loading skeleton
-function SectionLoadingSkeleton() {
-	return (
-		<section className="w-full">
-			<div className="container mx-auto px-4 py-8 sm:py-12">
-				<div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-					<div>
-						<Skeleton className="mb-2 h-9 w-48 sm:h-10" />
-						<Skeleton className="h-5 w-full max-w-2xl" />
-					</div>
-					<Skeleton className="h-10 w-40 rounded-lg" />
-				</div>
-
-				{/* Mobile: List view */}
-				<div className="flex flex-col gap-0 sm:hidden">
-					{[...new Array(5)].map((_, j) => (
-						<ProductCardSkeleton key={j} view="list" />
-					))}
-				</div>
-
-				{/* Desktop: Grid view */}
-				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-					{[...new Array(5)].map((_, j) => (
-						<div className="group relative" key={j}>
-							<ProductCardSkeleton view="grid" />
-						</div>
-					))}
-				</div>
-			</div>
-		</section>
-	);
-}
 
 // Individual section loader - fetches its own data
 async function SectionContent({ product, relatedProducts, sectionType, priority }: SectionLoaderProps) {
@@ -219,7 +184,7 @@ async function SectionContent({ product, relatedProducts, sectionType, priority 
 // Progressive section loader with independent Suspense boundaries
 export function ProgressiveSectionLoader({ product, relatedProducts, sectionType, priority }: SectionLoaderProps) {
 	return (
-		<Suspense fallback={<SectionLoadingSkeleton />}>
+		<Suspense fallback={null}>
 			<SectionContent
 				priority={priority}
 				product={product}

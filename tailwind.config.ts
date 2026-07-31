@@ -20,7 +20,7 @@ const config: Config = {
 		extend: {
 			fontFamily: {
 				sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
-				mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+				mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
 			},
 			boxShadow: {
 				/* shadcn leans on `shadow-xs` for controls; Tailwind v3 has no such step. */
@@ -100,82 +100,6 @@ const config: Config = {
 				"optical-icon-down": "0.0625rem", // 1px down for circular icons
 				"optical-icon-up": "-0.0625rem", // 1px up for bottom-heavy icons (heart)
 				"optical-icon-left": "-0.0625rem", // 1px left for heavy-left icons
-			},
-			keyframes: {
-				"accordion-down": {
-					from: {
-						height: "0",
-					},
-					to: {
-						height: "var(--radix-accordion-content-height)",
-					},
-				},
-				"accordion-up": {
-					from: {
-						height: "var(--radix-accordion-content-height)",
-					},
-					to: {
-						height: "0",
-					},
-				},
-				float: {
-					"0%, 100%": {
-						transform: "translateY(0px)",
-					},
-					"50%": {
-						transform: "translateY(-10px)",
-					},
-				},
-				"tilt-3d": {
-					"0%, 100%": {
-						transform: "perspective(1000px) rotateX(0deg) rotateY(0deg)",
-					},
-					"25%": {
-						transform: "perspective(1000px) rotateX(2deg) rotateY(-2deg)",
-					},
-					"75%": {
-						transform: "perspective(1000px) rotateX(-2deg) rotateY(2deg)",
-					},
-				},
-				"glow-pulse": {
-					"0%, 100%": {
-						opacity: "0.8",
-						boxShadow: "0 0 20px rgba(59, 130, 246, 0.5)",
-					},
-					"50%": {
-						opacity: "1",
-						boxShadow: "0 0 30px rgba(59, 130, 246, 0.8)",
-					},
-				},
-				"slide-up-fade": {
-					"0%": {
-						opacity: "0",
-						transform: "translateY(20px)",
-					},
-					"100%": {
-						opacity: "1",
-						transform: "translateY(0)",
-					},
-				},
-				"scale-in": {
-					"0%": {
-						opacity: "0",
-						transform: "scale(0.9)",
-					},
-					"100%": {
-						opacity: "1",
-						transform: "scale(1)",
-					},
-				},
-			},
-			animation: {
-				"accordion-down": "accordion-down 0.2s ease-out",
-				"accordion-up": "accordion-up 0.2s ease-out",
-				float: "float 3s ease-in-out infinite",
-				"tilt-3d": "tilt-3d 4s ease-in-out infinite",
-				"glow-pulse": "glow-pulse 2s ease-in-out infinite",
-				"slide-up-fade": "slide-up-fade 0.5s ease-out",
-				"scale-in": "scale-in 0.3s ease-out",
 			},
 		},
 	},

@@ -169,11 +169,6 @@ export function generateMetadata(): Metadata {
 	});
 }
 
-// Skeleton components for streaming
-function HeroSkeleton() {
-	return <div className="h-screen w-full animate-pulse bg-muted" />;
-}
-
 function ProductGridSkeleton() {
 	return (
 		<section className="bg-background">
@@ -197,10 +192,8 @@ export default function HomePage() {
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="space-y-0">
-				{/* Hero Section - streams first */}
-				<Suspense fallback={<HeroSkeleton />}>
-					<HeroSection />
-				</Suspense>
+				{/* Hero renders in the static shell: no data, no Suspense, no shift */}
+				<HeroVideoCinematic />
 
 				{/* Featured Products - streams independently */}
 				<Suspense fallback={<ProductGridSkeleton />}>
@@ -237,11 +230,6 @@ export default function HomePage() {
 }
 
 // Sections share cached fetches via React.cache — no duplicate Shopify calls
-async function HeroSection() {
-	const featuredProducts = await fetchOptimizedProducts("RELEVANCE", 5);
-	return <HeroVideoCinematic products={featuredProducts.slice(0, 3)} />;
-}
-
 async function FeaturedSection() {
 	const featuredProducts = await fetchOptimizedProducts("RELEVANCE", 5);
 

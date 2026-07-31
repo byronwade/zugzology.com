@@ -1,15 +1,10 @@
 import { CheckCircle, Play, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
-import type { ShopifyProduct } from "@/lib/types";
-
-type HeroVideoCinematicProps = {
-	products?: ShopifyProduct[];
-};
 
 // Server Component - no client JS needed
 // CSS animations replace Framer Motion for better performance
-export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
+export function HeroVideoCinematic() {
 	return (
 		<section className="hero-section relative w-full overflow-hidden bg-black py-16 sm:py-20 md:h-[calc(100vh-var(--header-height))] md:py-0">
 			{/* Video Background - using CSS for scale effect */}
@@ -23,15 +18,24 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 					<div className="mycelium-glow-2 absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,hsl(206_55_37/0.1)_0%,transparent_50%)]" />
 				</div>
 
-				{/* Video Element - native browser autoplay */}
+				{/*
+				 * Video Element - native browser autoplay.
+				 * The poster is frame 1 of this exact clip (38 KB) rather than a
+				 * separate banner, so there is no jump when playback takes over.
+				 * `preload="metadata"` keeps the fetch off the critical path;
+				 * autoplay pulls the rest once the element is ready.
+				 */}
 				<video
 					autoPlay
 					className="video-hero absolute inset-0 h-full w-full object-cover"
+					disablePictureInPicture
+					disableRemotePlayback
 					loop
 					muted
 					playsInline
-					poster="/banner3.webp"
-					preload="none"
+					poster="/videos/mushroom-hero-poster.webp"
+					preload="metadata"
+					tabIndex={-1}
 				>
 					<source src="/videos/mushroom-hero.mp4" type="video/mp4" />
 				</video>
