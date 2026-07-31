@@ -74,7 +74,7 @@ const nextConfig: NextConfig = {
 					{
 						key: "Content-Security-Policy",
 						value:
-							"default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.shopify.com https://*.googletagmanager.com https://*.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cdn.shopify.com https://*.shopify.com https://*.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com; frame-src *; child-src *; frame-ancestors *",
+							"default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.shopify.com https://unpkg.com https://ajax.googleapis.com https://*.googletagmanager.com https://*.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cdn.shopify.com https://*.shopify.com https://*.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://*.shopify.com; child-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://*.shopify.com; frame-ancestors 'self'",
 					},
 				],
 			},

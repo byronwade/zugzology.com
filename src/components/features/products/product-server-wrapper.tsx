@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import type { ShopifyProduct } from "@/lib/types";
 import { ProductContentClient } from "./product-content-client";
 import { ProgressiveSectionsManager } from "./sections/progressive-sections-manager";
@@ -14,21 +13,6 @@ type ProductServerWrapperProps = {
 	relatedProducts: ShopifyProduct[];
 };
 
-function ProductLoading(): React.ReactElement {
-	return (
-		<div className="w-full animate-pulse space-y-8">
-			<div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-				<div className="aspect-square rounded-lg bg-muted" />
-				<div className="space-y-4">
-					<div className="h-8 w-3/4 rounded bg-muted" />
-					<div className="h-4 w-1/2 rounded bg-muted" />
-					<div className="h-24 w-full rounded bg-muted" />
-				</div>
-			</div>
-		</div>
-	);
-}
-
 export async function ProductServerWrapper({
 	product,
 	relatedProducts,
@@ -42,9 +26,14 @@ export async function ProductServerWrapper({
 
 	return (
 		<>
-			<Suspense fallback={<ProductLoading />}>
-				<ProductContentClient product={productWithRecommendations} />
-			</Suspense>
+			{/*
+			 * No Suspense boundary here. ProductContentClient is a plain client
+			 * component rendered from props — it cannot suspend for data, so the
+			 * boundary only ever flashed a skeleton whose height differed from the
+			 * real gallery and buy box. That swap displaced everything below it and
+			 * was the product page's intermittent ~0.6 CLS.
+			 */}
+			<ProductContentClient product={productWithRecommendations} />
 			<ProgressiveSectionsManager product={product} relatedProducts={relatedProducts} />
 		</>
 	);

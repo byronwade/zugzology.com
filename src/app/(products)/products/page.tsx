@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
 		keywords,
 		url: "/products",
 		image: {
-			url: "/og-products.jpg",
+			url: "/opengraph-image",
 			width: 1200,
 			height: 630,
 			alt: "Premium Mushroom Cultivation Supplies - Complete Product Collection",

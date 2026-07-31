@@ -69,7 +69,7 @@ export default function Shopify<P extends ShopifyProfile>(
 			};
 		},
 		style: {
-			logo: "/shopify.svg",
+			logo: "/logo.png",
 			bg: "#95BF47",
 			text: "#ffffff",
 		},

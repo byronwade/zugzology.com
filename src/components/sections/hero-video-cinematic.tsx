@@ -59,14 +59,16 @@ export function HeroVideoCinematic() {
 					<div className="max-w-3xl lg:max-w-4xl">
 						{/* Small badge */}
 						<div className="hero-badge mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-md sm:mb-6">
-							<Sparkles className="h-4 w-4 text-primary" />
+							<Sparkles className="h-4 w-4 text-[oklch(0.68_0.115_242)]" />
 							<span className="text-sm text-white/90 uppercase tracking-wider">Premium Cultivation</span>
 						</div>
 
 						{/* Main Headline */}
 						<h1 className="hero-title mb-4 font-black text-5xl text-white leading-[1.1] tracking-tight sm:mb-6 sm:text-6xl md:text-7xl lg:text-8xl">
 							<span className="block">Grow</span>
-							<span className="block text-primary">Extraordinary</span>
+							{/* The plate behind this is always dark, so the accent uses the dark-mode
+							    primary in both themes instead of dimming to 3.6:1 in light mode. */}
+							<span className="block text-[oklch(0.68_0.115_242)]">Extraordinary</span>
 							<span className="block">Mushrooms</span>
 						</h1>
 
@@ -115,14 +117,14 @@ export function HeroVideoCinematic() {
 							<div className="h-4 w-px bg-white/20" />
 
 							<div className="flex items-center gap-2">
-								<Star className="h-5 w-5 fill-primary text-primary" />
+								<Star className="h-5 w-5 fill-[oklch(0.68_0.115_242)] text-[oklch(0.68_0.115_242)]" />
 								<span className="text-sm text-white/70">4.9/5 Rating</span>
 							</div>
 
 							<div className="h-4 w-px bg-white/20" />
 
 							<div className="flex items-center gap-2">
-								<CheckCircle className="h-5 w-5 text-primary" />
+								<CheckCircle className="h-5 w-5 text-[oklch(0.68_0.115_242)]" />
 								<span className="text-sm text-white/70">95% Success Rate</span>
 							</div>
 						</div>

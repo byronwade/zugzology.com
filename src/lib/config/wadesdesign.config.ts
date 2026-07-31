@@ -460,7 +460,7 @@ export const CONTENT = {
 			defaultSubtitle: "Everything you need for successful mushroom cultivation, from spawn to harvest.",
 			ctaPrimary: "Shop Now",
 			ctaSecondary: "Browse Products",
-			trustBadge: "Free shipping on orders over $50",
+			trustBadge: "Free shipping on orders over $75",
 		},
 		sections: {
 			featured: {
@@ -768,49 +768,19 @@ export const FAQ_TEMPLATES = {
 // ============================================================================
 
 export const ASSETS = {
-	// Logo & branding
+	// Every path here must exist in /public. The banner, mycelium, category and
+	// strain tables that used to live in this object referenced ~75 MB of images
+	// that nothing rendered — only `placeholders.collection` was ever read — so
+	// the files and their entries were removed together.
 	logo: "/logo.png",
 	logoInverted: "/logo.png", // Same file, inverted via CSS
 	favicon: "/favicon.ico",
-
-	// Hero/Banner images
-	banners: {
-		hero1: "/banner.png",
-		hero2: "/banner2.png",
-		hero3: "/banner3.png",
-		default: "/mycelium-roots.png",
-	},
-
-	// Background/decorative images
-	backgrounds: {
-		mycelium1: "/mycelium.png",
-		mycelium2: "/mycelium1.png",
-		mycelium3: "/mycelium2.png",
-		mycelium4: "/mycelium-3.png",
-		mycelium5: "/mycelium4.png",
-		mycelium6: "/mycelium5.png",
-		mycelium7: "/mycelium6.png",
-		myceliumRoots: "/mycelium-roots.png",
-		myceliumRoots1: "/mycelium-roots1.png",
-	},
-
-	// Category images
-	categories: {
-		food: "/categories/food.png",
-		liquidCulture: "/categories/liquid-culture.png",
-		spawn: "/categories/spawn.png",
-		substrate: "/categories/substrate.png",
-		supplements: "/categories/suppliments.png",
-		subscriptionBox: "/categories/subscription-box.png",
-		tea: "/categories/tea.png",
-		tinctures: "/categories/tinchers.png",
-	},
 
 	// Fallback/placeholder images
 	placeholders: {
 		product: "/placeholder-product.png",
 		general: "/placeholder.svg",
-		collection: "/mycelium-roots.png",
+		collection: "/collection-placeholder.webp",
 	},
 
 	// Icons & misc
@@ -818,7 +788,7 @@ export const ASSETS = {
 		usaFlag: "/usa.png",
 	},
 
-	// OG/Social images
+	// OG/Social images — served by the generated /opengraph-image route
 	social: {
 		ogImageDefault: "/opengraph-image",
 		twitterImageDefault: "/opengraph-image",

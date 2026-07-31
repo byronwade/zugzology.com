@@ -11,6 +11,7 @@ import {
 	Truck,
 	Users,
 } from "lucide-react";
+import { POLICIES } from "@/lib/config/wadesdesign.config";
 import { cn } from "@/lib/utils";
 
 type WhyChooseBentoV2Props = {
@@ -117,7 +118,9 @@ export function WhyChooseBentoV2({
 							<Truck className="h-8 w-8" />
 						</div>
 						<h3 className="mb-2 font-bold text-foreground text-xl">Free Shipping</h3>
-						<p className="text-muted-foreground text-sm">On orders over $50 with fast delivery</p>
+						<p className="text-muted-foreground text-sm">
+							On orders over ${POLICIES.shipping.freeShippingThreshold} with fast delivery
+						</p>
 					</div>
 
 					{/* 24/7 Support */}

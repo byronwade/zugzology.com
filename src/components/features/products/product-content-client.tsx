@@ -161,9 +161,13 @@ export const ProductContentClient = ({ product }: ProductContentClientProps) => 
 		setSelectedImageIndex(index);
 	}, []);
 
-	if (!mounted) {
-		return null; // Return null instead of spinner to avoid layout shift
-	}
+	// No pre-mount bail-out. Returning null here kept the entire gallery, title,
+	// price and buy box out of the server HTML and out of first paint; they then
+	// appeared on hydration and pushed the ~4900px recommendations block below
+	// them down the page. That was the product page's intermittent ~0.6 CLS, and
+	// it also delayed LCP until after hydration. Every state initializer here is
+	// derived from props, and all window/document access is inside effects, so
+	// there is nothing hydration-sensitive to guard.
 
 	return (
 		<>
