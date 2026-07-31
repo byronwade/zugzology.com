@@ -56,7 +56,8 @@ export async function getShopifyUnavailableFallback(
 	props: ShopifyUnavailableProps = {}
 ): Promise<React.ReactElement | null> {
 	const status = await getShopifyConnectionStatus();
-	if (status.available) {
+	// Live or Mock.shop demo both count as "available" for browsing
+	if (status.available || status.mode === "demo") {
 		return null;
 	}
 	return <ShopifyUnavailable {...props} />;
