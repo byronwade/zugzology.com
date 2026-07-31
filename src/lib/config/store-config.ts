@@ -106,6 +106,25 @@ export type AffiliateLink = {
 import { BRAND, BUSINESS, CONTACT } from "./wadesdesign.config";
 
 /**
+ * Canonical origin of the storefront, for canonical links, og:url and
+ * metadataBase.
+ *
+ * Deliberately not `storeDomain`: that is the Shopify *API* host
+ * (`<shop>.myshopify.com`). Using it in a canonical tells crawlers the
+ * myshopify host is the authoritative copy of every page, which is the classic
+ * way to hand your rankings to a domain you do not market.
+ *
+ * Three different env vars were already in use for this across sitemap, feeds
+ * and page metadata, which is how canonical, og:url and sitemap ended up
+ * disagreeing about what this site is called. They all resolve through here now,
+ * in this order.
+ */
+export const getSiteOrigin = (): string => {
+	const configured = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
+	return configured ? configured.replace(/\/+$/, "") : `https://${BRAND.domain}`;
+};
+
+/**
  * Default configuration - uses environment variables and Shopify API data
  */
 export const getDefaultStoreConfig = (): Partial<StoreConfig> => ({

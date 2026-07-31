@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 		if (!product) {
 			return {
-				title: "Product Not Found | Zugzology",
+				title: "Product Not Found",
 				description:
 					"The requested product could not be found. Browse our collection of premium mushroom cultivation supplies.",
 				robots: { index: false, follow: true },
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 		return generateEnhancedProductMetadata(product);
 	} catch (_error) {
 		return {
-			title: "Premium Mushroom Supplies | Zugzology",
+			title: "Premium Mushroom Supplies",
 			description:
 				"Explore our collection of premium mushroom cultivation supplies. Expert support, free shipping on orders over $75.",
 			robots: { index: true, follow: true },

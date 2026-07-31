@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAllCollections, getProducts } from "@/lib/actions/shopify";
-import { getStoreConfigSafe } from "@/lib/config/store-config";
+import { getSiteOrigin, getStoreConfigSafe } from "@/lib/config/store-config";
 import type { ShopifyProduct } from "@/lib/types";
 
 export async function GET() {
 	try {
 		const config = getStoreConfigSafe();
-		const baseUrl = `https://${config.storeDomain}`;
+		const baseUrl = getSiteOrigin();
 
 		// Fetch all products
 		const products = await getProducts();

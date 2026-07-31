@@ -24,6 +24,11 @@ export const FilterSheet = memo(function FilterSheet({ activeCount, children, on
 		<Sheet>
 			<SheetTrigger asChild>
 				<Button
+					// The visible "Filters" text is hidden below the xs breakpoint, which
+					// left the button with nothing but an aria-hidden icon on phone-width
+					// viewports. The label has to be unconditional; the count goes in it
+					// too, since the badge is a bare number with no context read aloud.
+					aria-label={activeCount > 0 ? `Filters, ${activeCount} active` : "Filters"}
 					className="relative gap-2 border-border/40 font-medium text-xs shadow-sm transition-all hover:shadow"
 					size="sm"
 					variant="outline"
@@ -31,7 +36,10 @@ export const FilterSheet = memo(function FilterSheet({ activeCount, children, on
 					<Filter className="h-4 w-4" />
 					<span className="xs:inline hidden">Filters</span>
 					{activeCount > 0 && (
-						<span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 font-bold text-primary-foreground text-xs shadow-sm">
+						<span
+							aria-hidden="true"
+							className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 font-bold text-primary-foreground text-xs shadow-sm"
+						>
 							{activeCount}
 						</span>
 					)}

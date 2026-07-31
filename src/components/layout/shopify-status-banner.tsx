@@ -1,6 +1,26 @@
 import { AlertTriangle, FlaskConical } from "lucide-react";
 
-import { getShopifyConnectionStatus } from "@/lib/api/shopify/health";
+import { getShopifyConnectionStatus, isStatusBannerCertain } from "@/lib/api/shopify/health";
+
+/**
+ * Height reserved for the banner while its probe is in flight, and enforced on
+ * the banner itself so the two agree. Without it the banner streamed in above
+ * <main> and shifted every page below it by ~150px (CLS 0.18). Shared constant
+ * so the placeholder and the real thing can never drift apart.
+ */
+const BANNER_MIN_HEIGHT = "min-h-[9.5rem] sm:min-h-[6rem] md:min-h-[4.5rem]";
+
+/**
+ * Placeholder rendered as the Suspense fallback. Renders nothing at all when a
+ * banner is not certain, so the normal healthy case keeps its full viewport.
+ */
+export function ShopifyStatusBannerFallback(): React.ReactElement | null {
+	if (!isStatusBannerCertain()) {
+		return null;
+	}
+
+	return <div aria-hidden="true" className={`w-full border-b ${BANNER_MIN_HEIGHT}`} />;
+}
 
 /**
  * Site-wide notice when live Shopify is down and/or Mock.shop demo data is active.
@@ -16,7 +36,7 @@ export async function ShopifyStatusBanner(): Promise<React.ReactElement | null> 
 		return (
 			<output
 				aria-live="polite"
-				className="block w-full border-sky-500/40 border-b bg-sky-50 text-left text-sky-950 dark:bg-sky-950/50 dark:text-sky-50"
+				className={`block w-full border-sky-500/40 border-b bg-sky-50 text-left text-sky-950 dark:bg-sky-950/50 dark:text-sky-50 ${BANNER_MIN_HEIGHT}`}
 			>
 				<div className="container mx-auto flex items-start gap-3 px-4 py-3 text-sm sm:items-center">
 					<FlaskConical aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-sky-700 sm:mt-0 dark:text-sky-300" />
@@ -40,7 +60,7 @@ export async function ShopifyStatusBanner(): Promise<React.ReactElement | null> 
 	return (
 		<div
 			aria-live="polite"
-			className="border-amber-500/40 border-b bg-amber-50 text-amber-950 dark:bg-amber-950/50 dark:text-amber-50"
+			className={`border-amber-500/40 border-b bg-amber-50 text-amber-950 dark:bg-amber-950/50 dark:text-amber-50 ${BANNER_MIN_HEIGHT}`}
 			role="alert"
 		>
 			<div className="container mx-auto flex items-start gap-3 px-4 py-3 text-sm sm:items-center">

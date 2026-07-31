@@ -1,8 +1,8 @@
-import { Suspense } from "react";
-import { unstable_noStore as noStore } from "next/cache";
 import type { Metadata } from "next";
+import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
 import Script from "next/script";
+import { Suspense } from "react";
 import { BreadcrumbConfigs, UniversalBreadcrumb } from "@/components/layout";
 import { getEnhancedBreadcrumbSchema, getEnhancedOrderSchema } from "@/lib/seo/enhanced-jsonld";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: { params: { number: string } 
 
 export default function OrderPage({ params }: { params: { number: string } }) {
 	return (
-		<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading order…</div>}>
+		<Suspense fallback={<div className="p-6 text-muted-foreground text-sm">Loading order…</div>}>
 			<OrderPageContent params={params} />
 		</Suspense>
 	);

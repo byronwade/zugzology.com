@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
 	// Allow static shell + dynamic holes where needed
 	cacheComponents: false,
 
+	// Dynamic routes stream their <title>/<meta> into the body rather than the
+	// initial <head> flush — on /products the description landed ~36KB in. Next
+	// only falls back to blocking metadata for user agents matching this regex,
+	// and its default list leaves out Googlebot and every generic crawler on the
+	// assumption they execute JS. Widening it costs real users nothing (they are
+	// not bots) and means no crawler depends on running our JS to find the
+	// description. Keep the upstream defaults and add the rest.
+	htmlLimitedBots:
+		/Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Storebot-Google|Mediapartners-Google|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Pinterest|TelegramBot|Embedly|PetalBot|SemrushBot|AhrefsBot|GPTBot|ChatGPT-User|PerplexityBot|ClaudeBot|Bytespider/i,
+
 	experimental: {
 		inlineCss: false,
 		optimizePackageImports: [

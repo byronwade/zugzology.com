@@ -8,13 +8,26 @@ import type { ShopifyProduct } from "@/lib/types";
 import WishlistWithFilters from "./wishlist-with-filters";
 
 export default function WishlistContent() {
-	const { wishlist, removeFromWishlist } = useWishlist();
+	const { wishlist, removeFromWishlist, isInitialized } = useWishlist();
 	const [wishlistProducts, setWishlistProducts] = useState<ShopifyProduct[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
 	// Load wishlist products when wishlist changes
 	// Uses optimized batch fetching for better performance
 	useEffect(() => {
+		if (!isInitialized) {
+			return;
+		}
+
+		// Nothing saved: there is no request to make, and going through the
+		// loading branch would render a full skeleton grid only to collapse into
+		// the empty state a moment later.
+		if (wishlist.length === 0) {
+			setWishlistProducts([]);
+			setIsLoading(false);
+			return;
+		}
+
 		const loadWishlistProducts = async () => {
 			try {
 				// Batch fetch all products in a single request
@@ -28,7 +41,7 @@ export default function WishlistContent() {
 		};
 
 		loadWishlistProducts();
-	}, [wishlist]);
+	}, [wishlist, isInitialized]);
 
 	// Track wishlist analytics
 	useEffect(() => {
@@ -69,7 +82,10 @@ export default function WishlistContent() {
 					</div>
 				</div>
 				<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
-					{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+					{/* One placeholder per saved handle, capped so a huge wishlist does not
+					    render hundreds of skeletons. A fixed ten meant the grid always
+					    shrank or grew when the real cards arrived. */}
+					{Array.from({ length: Math.min(wishlist.length || 4, 20) }, (_, i) => i + 1).map((i) => (
 						<div className="space-y-2 sm:space-y-3" key={i}>
 							<div className="aspect-square animate-pulse rounded-lg bg-muted sm:rounded-xl" />
 							<div className="h-3 w-3/4 animate-pulse rounded bg-muted sm:h-4" />

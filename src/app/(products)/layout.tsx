@@ -17,9 +17,10 @@ export const metadata: Metadata = {
 		index: true,
 		follow: true,
 	},
-	alternates: {
-		canonical: "https://zugzology.com/products",
-	},
+	// No canonical here. This layout covers /cart, /search, /wishlist,
+	// /collections and every product page, and metadata is inherited — a
+	// hardcoded /products canonical told crawlers all of them were duplicates of
+	// the product index. Each page sets its own via generateMetadata's `url`.
 };
 
 export default function ProductsLayout({ children }: { children: React.ReactNode }) {

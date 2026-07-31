@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ShopifyBlogArticle, ShopifyCollection, ShopifyProduct } from "@/lib/types";
-import { getStoreConfigSafe } from "../config/store-config";
+import { getSiteOrigin, getStoreConfigSafe } from "../config/store-config";
 
 type SEOConfig = {
 	title?: string;
@@ -65,7 +65,7 @@ type SEOConfig = {
  */
 export function generateMetadata(config: SEOConfig): Metadata {
 	const storeConfig = getStoreConfigSafe();
-	const baseUrl = `https://${storeConfig.storeDomain}`;
+	const baseUrl = getSiteOrigin();
 
 	const title = config.title || storeConfig.seo.defaultTitle;
 	const description = config.description || storeConfig.seo.defaultDescription;

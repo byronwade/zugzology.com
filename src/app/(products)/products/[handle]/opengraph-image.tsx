@@ -76,14 +76,14 @@ export default async function ProductOpengraphImage({ params }: { params: { hand
 						// biome-ignore lint/performance/noImgElement: ImageResponse doesn't support Next.js Image component
 						<img
 							alt={product.title}
-							src={productImage}
-							width={1200}
 							height={630}
+							src={productImage}
 							style={{
 								width: "90%",
 								height: "90%",
 								objectFit: "contain",
 							}}
+							width={1200}
 						/>
 					) : (
 						<div

@@ -3,9 +3,9 @@ import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Footer, Header } from "@/components/layout";
-import { ShopifyStatusBanner } from "@/components/layout/shopify-status-banner";
+import { ShopifyStatusBanner, ShopifyStatusBannerFallback } from "@/components/layout/shopify-status-banner";
 import { generateHomeMetadata, generateStoreStructuredData, generateViewport } from "@/lib/config/dynamic-metadata";
-import { getStoreConfigSafe } from "@/lib/config/store-config";
+import { getSiteOrigin, getStoreConfigSafe } from "@/lib/config/store-config";
 import { fontSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
@@ -28,6 +28,7 @@ export const viewport: Viewport = generateViewport();
 export default function RootLayout({ children }: { children: React.ReactNode }): React.ReactElement {
 	const storeConfig = getStoreConfigSafe();
 	const structuredData = generateStoreStructuredData();
+	const siteOrigin = getSiteOrigin();
 
 	return (
 		<html lang="en" suppressHydrationWarning>
@@ -38,8 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
 							"@context": "https://schema.org",
 							"@type": "Organization",
 							name: storeConfig.storeName,
-							url: `https://${storeConfig.storeDomain}`,
-							logo: storeConfig.branding.logoUrl || `https://${storeConfig.storeDomain}/logo.png`,
+							url: siteOrigin,
+							logo: storeConfig.branding.logoUrl || `${siteOrigin}/logo.png`,
 							description: storeConfig.storeDescription,
 							sameAs: [],
 						}),
@@ -66,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
 						<Suspense fallback={<HeaderLoading />}>
 							<Header />
 						</Suspense>
-						<Suspense fallback={null}>
+						<Suspense fallback={<ShopifyStatusBannerFallback />}>
 							<ShopifyStatusBanner />
 						</Suspense>
 						<main className="flex-1" id="main-content" tabIndex={-1}>

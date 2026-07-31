@@ -101,7 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	}, [customUser, session, sessionHasCustomerToken]);
 
 	useEffect(() => {
-		if (!nextAuthLoading && !customAuthLoading) {
+		if (!(nextAuthLoading || customAuthLoading)) {
 			setIsReady(true);
 		}
 	}, [nextAuthLoading, customAuthLoading]);

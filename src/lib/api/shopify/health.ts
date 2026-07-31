@@ -47,6 +47,22 @@ async function probeEndpoint(endpoint: string, headers: Record<string, string> =
 }
 
 /**
+ * Whether a status banner is certain to render, decided from env alone.
+ *
+ * The banner sits above <main> and streams in behind a Suspense boundary, so a
+ * zero-height fallback meant every page it appeared on took a ~0.18 layout
+ * shift when the probe resolved. Both inputs here are synchronous env reads: if
+ * credentials are missing or mock mode is forced, getShopifyConnectionStatus
+ * cannot come back "live", so the space can be reserved in the first paint.
+ * When credentials are present the banner only appears during an actual
+ * outage — rare, and a shift is the lesser evil against always reserving space
+ * for a notice that normally does not exist.
+ */
+export function isStatusBannerCertain(): boolean {
+	return isMockShopForced() || !(SHOPIFY_STORE_DOMAIN && SHOPIFY_STOREFRONT_ACCESS_TOKEN);
+}
+
+/**
  * Probe live Shopify first, then Mock.shop demo catalog.
  * `mode: "demo"` means the site can still browse sample products.
  */

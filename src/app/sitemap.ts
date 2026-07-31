@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
 import { shopifyFetch } from "@/lib/api/shopify/client";
+import { getSiteOrigin } from "@/lib/config/store-config";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://zugzology.com";
+const baseUrl = getSiteOrigin();
 
 async function getAllShopifyData() {
 	const query = `#graphql
@@ -187,14 +188,16 @@ function _generateImageSitemapData(images: any[]) {
 	return validImages.length > 0 ? validImages : undefined;
 }
 
-/**
- * Generate sitemap index to organize multiple sitemaps
- * @see https://developers.google.com/search/docs/advanced/sitemaps/large-sitemaps
+/*
+ * There is deliberately no generateSitemaps() here.
+ *
+ * It used to return [{id:"main"},{id:"images"}], which moved the route to
+ * /sitemap/main.xml and /sitemap/images.xml and left /sitemap.xml — the URL
+ * robots.txt advertises, and the one crawlers try first — returning a 404. The
+ * two ids also produced byte-identical output, because sitemap() never read the
+ * id it was handed. Splitting is only worth it past the 50k-URL / 50MB limit,
+ * and the image sitemap already has its own route at /sitemap-images.xml.
  */
-export async function generateSitemaps() {
-	return [{ id: "main" }, { id: "images" }];
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 	const { shop, products, collections, articles, blogs, menuItems } = await getAllShopifyData();
 

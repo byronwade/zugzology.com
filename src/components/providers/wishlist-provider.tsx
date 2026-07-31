@@ -9,6 +9,13 @@ type WishlistContextType = {
 	addToWishlist: (handle: string) => void;
 	removeFromWishlist: (handle: string) => void;
 	isInWishlist: (handle: string) => boolean;
+	/**
+	 * False until the stored list has been read on the client. Consumers need
+	 * this to tell "no wishlist yet" from "wishlist is empty" — the wishlist page
+	 * used to render a ten-card skeleton for both and then collapse to an empty
+	 * state, which is a ~0.15 layout shift for anyone with an empty wishlist.
+	 */
+	isInitialized: boolean;
 };
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
@@ -133,11 +140,12 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 	const value = useMemo(
 		() => ({
 			wishlist,
+			isInitialized,
 			addToWishlist,
 			removeFromWishlist,
 			isInWishlist,
 		}),
-		[wishlist, addToWishlist, removeFromWishlist, isInWishlist]
+		[wishlist, isInitialized, addToWishlist, removeFromWishlist, isInWishlist]
 	);
 
 	// No gate on isInitialized here. This provider is the innermost wrapper around

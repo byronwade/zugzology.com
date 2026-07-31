@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAllBlogPosts } from "@/lib/api/shopify/actions";
-import { getStoreConfigSafe } from "@/lib/config/store-config";
+import { getSiteOrigin, getStoreConfigSafe } from "@/lib/config/store-config";
 
 export async function GET() {
 	try {
 		const config = getStoreConfigSafe();
-		const baseUrl = `https://${config.storeDomain}`;
+		const baseUrl = getSiteOrigin();
 
 		// Fetch all blog posts
 		const articles = await getAllBlogPosts();

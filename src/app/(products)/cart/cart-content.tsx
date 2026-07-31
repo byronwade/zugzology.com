@@ -374,11 +374,11 @@ export default function CartContent() {
 											<div className="mt-3 flex items-center justify-between sm:mt-4">
 												<div className="flex items-center rounded-lg border border-border">
 													<button
-														type="button"
 														aria-label="Decrease quantity"
 														className="flex h-8 w-8 items-center justify-center rounded-l-lg text-muted-foreground hover:bg-muted/50 hover:text-muted-foreground disabled:opacity-50 disabled:hover:bg-transparent sm:h-10 sm:w-10"
 														disabled={updating === node.id || node.quantity <= 1}
 														onClick={() => handleUpdateQuantity(node.id, node.quantity - 1)}
+														type="button"
 													>
 														<Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 													</button>
@@ -390,21 +390,21 @@ export default function CartContent() {
 														)}
 													</div>
 													<button
-														type="button"
 														aria-label="Increase quantity"
 														className="flex h-8 w-8 items-center justify-center rounded-r-lg text-muted-foreground hover:bg-muted/50 hover:text-muted-foreground disabled:opacity-50 disabled:hover:bg-transparent sm:h-10 sm:w-10"
 														disabled={updating === node.id}
 														onClick={() => handleUpdateQuantity(node.id, node.quantity + 1)}
+														type="button"
 													>
 														<Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 													</button>
 												</div>
 
 												<button
-													type="button"
 													className="flex items-center gap-1.5 font-medium text-red-600 text-xs hover:text-red-700 sm:gap-2 sm:text-sm"
 													disabled={updating === node.id}
 													onClick={() => handleRemoveItem(node.id, productData)}
+													type="button"
 												>
 													<Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
 													<span className="hidden sm:inline">Remove</span>

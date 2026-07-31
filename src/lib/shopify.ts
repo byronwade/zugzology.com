@@ -29,7 +29,7 @@ export async function shopifyFetch<T>({
 	const endpoint = `https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`;
 
 	const cacheMode = cache ?? "no-store";
-	const resolvedNext = cacheMode === "no-store" ? undefined : next ?? (tags.length ? { tags } : undefined);
+	const resolvedNext = cacheMode === "no-store" ? undefined : (next ?? (tags.length ? { tags } : undefined));
 
 	const response = await fetch(endpoint, {
 		method: "POST",

@@ -12,8 +12,13 @@ import {
 } from "@/lib/seo/enhanced-jsonld";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 
-export async function generateMetadata(): Promise<Metadata> {
-	const title = "All Products - Premium Mushroom Cultivation Supplies | Zugzology";
+// Deliberately synchronous. Every value here is a literal, and an async
+// generateMetadata makes Next stream the tags into the body for React to hoist
+// on hydration — on this page they landed ~450KB in, so the head that reached
+// Lighthouse (and any crawler that gets the streamed variant) had no
+// description at all. Returning synchronously puts them in the first flush.
+export function generateMetadata(): Metadata {
+	const title = "All Products - Premium Mushroom Cultivation Supplies";
 	const description =
 		"Discover our complete collection of premium mushroom growing supplies. ✓ 500+ Products ✓ Expert Support ✓ Free Shipping Over $75 ✓ 30-Day Returns. Shop growing kits, substrates, equipment & more.";
 

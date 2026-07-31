@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { shopifyFetch } from "@/lib/api/shopify/client";
-import { getStoreConfigSafe } from "@/lib/config/store-config";
+import { getSiteOrigin, getStoreConfigSafe } from "@/lib/config/store-config";
 
 type ImageData = {
 	url: string;
@@ -107,7 +107,7 @@ async function getAllImages() {
 export async function GET() {
 	try {
 		const config = getStoreConfigSafe();
-		const baseUrl = `https://${config.storeDomain}`;
+		const baseUrl = getSiteOrigin();
 
 		const { products, collections, articles } = await getAllImages();
 

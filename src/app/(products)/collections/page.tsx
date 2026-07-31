@@ -16,7 +16,7 @@ import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
  */
 export function generateMetadata(): Metadata {
 	return generateSEOMetadata({
-		title: "All Collections | Zugzology",
+		title: "All Collections",
 		description:
 			"Browse every Zugzology collection of premium mushroom cultivation supplies — grow kits, substrates, liquid cultures, equipment and more.",
 		url: "/collections",

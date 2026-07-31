@@ -7,7 +7,7 @@
 
 import type { Metadata, Viewport } from "next";
 import type { ShopifyBlogArticle, ShopifyCollection, ShopifyProduct } from "@/lib/types";
-import { getStoreConfigSafe } from "./store-config";
+import { getSiteOrigin, getStoreConfigSafe } from "./store-config";
 
 /**
  * Generate metadata for the homepage
@@ -54,7 +54,7 @@ export function generateHomeMetadata(): Metadata {
 		openGraph: {
 			title: config.seo.defaultTitle,
 			description: config.seo.defaultDescription,
-			url: `https://${config.storeDomain}`,
+			url: getSiteOrigin(),
 			siteName: config.storeName,
 			images: config.seo.ogImage
 				? [
@@ -125,7 +125,7 @@ export function generateProductMetadata(product: ShopifyProduct): Metadata {
 		openGraph: {
 			title,
 			description,
-			url: `https://${config.storeDomain}/products/${product.handle}`,
+			url: `${getSiteOrigin()}/products/${product.handle}`,
 			siteName: config.storeName,
 			images: product.images?.nodes?.length
 				? [
@@ -172,7 +172,7 @@ export function generateCollectionMetadata(collection: ShopifyCollection): Metad
 		openGraph: {
 			title,
 			description,
-			url: `https://${config.storeDomain}/collections/${collection.handle}`,
+			url: `${getSiteOrigin()}/collections/${collection.handle}`,
 			siteName: config.storeName,
 			images: collection.image
 				? [
@@ -220,7 +220,7 @@ export function generateBlogMetadata(post: ShopifyBlogArticle): Metadata {
 		openGraph: {
 			title,
 			description,
-			url: `https://${config.storeDomain}/blogs/${post.blog?.handle || "blog"}/${post.handle}`,
+			url: `${getSiteOrigin()}/blogs/${post.blog?.handle || "blog"}/${post.handle}`,
 			siteName: config.storeName,
 			images: post.image
 				? [
@@ -270,9 +270,7 @@ export function generateSearchMetadata(query?: string): Metadata {
 		openGraph: {
 			title,
 			description,
-			url: query
-				? `https://${config.storeDomain}/search?q=${encodeURIComponent(query)}`
-				: `https://${config.storeDomain}/search`,
+			url: query ? `${getSiteOrigin()}/search?q=${encodeURIComponent(query)}` : `${getSiteOrigin()}/search`,
 			siteName: config.storeName,
 			images: config.seo.ogImage
 				? [
@@ -326,7 +324,7 @@ export function generateStoreStructuredData() {
 		"@type": "Store",
 		name: config.storeName,
 		description: config.storeDescription,
-		url: `https://${config.storeDomain}`,
+		url: getSiteOrigin(),
 		logo: config.branding.logoUrl,
 		image: config.seo.ogImage,
 		currenciesAccepted: config.currency.code,
