@@ -3,20 +3,15 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Badges are labels, so they take the mono voice: uppercase, spaced, small.
- * Same family the slate uses, which keeps every label on the page in one register.
- */
 const badgeVariants = cva(
-	"inline-flex items-center rounded-sm border px-2 py-1 font-medium font-mono text-[0.625rem] uppercase leading-none tracking-[0.14em] transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+	"inline-flex items-center rounded-md border px-2.5 py-0.5 font-semibold text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
 	{
 		variants: {
 			variant: {
-				default: "border-transparent bg-primary text-primary-foreground",
-				flush: "border-transparent bg-flush text-flush-foreground",
-				secondary: "border-transparent bg-foreground/[0.07] text-foreground",
-				destructive: "border-transparent bg-destructive text-destructive-foreground",
-				outline: "border-border text-muted-foreground",
+				default: "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
+				secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+				destructive: "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
+				outline: "text-foreground",
 			},
 		},
 		defaultVariants: {

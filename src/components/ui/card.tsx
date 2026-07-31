@@ -9,8 +9,7 @@ const Card = ({
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.RefObject<HTMLDivElement | null> }) => (
 	<div
 		className={cn(
-			// In a dark room an object reads by catching more light, not by floating higher.
-			"rounded-lg border border-border bg-card text-card-foreground shadow-sm transition-colors duration-200 hover:border-foreground/20",
+			"rounded-xl border bg-card text-card-foreground shadow-md transition-shadow duration-200 hover:shadow-lg",
 			className
 		)}
 		ref={ref}

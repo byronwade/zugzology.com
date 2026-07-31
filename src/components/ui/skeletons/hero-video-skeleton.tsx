@@ -1,52 +1,68 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Mirrors the framing of HeroVideoCinematic so the swap-in is not a jump cut. */
 export function HeroVideoSkeleton() {
 	return (
-		<section className="relative flex h-[calc(100vh-var(--header-height))] w-full flex-col overflow-hidden bg-[hsl(205_45%_3%)]">
-			<div className="absolute inset-0 bg-[radial-gradient(75%_65%_at_35%_35%,hsl(202_35%_14%)_0%,hsl(205_45%_4%)_70%)]" />
+		<section className="relative h-[calc(100vh-var(--header-height))] w-full overflow-hidden bg-black">
+			{/* Gradient background placeholder */}
+			<div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
 
-			{/* Top letterbox bar */}
-			<div className="absolute inset-x-0 top-0 z-20 h-[clamp(12px,3vh,30px)] bg-[hsl(205_55%_2%)]" />
+			{/* Animated mycelium pattern overlay */}
+			<div className="absolute inset-0 opacity-30">
+				<div
+					className="absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_20%_30%,hsl(206_55_37/0.15)_0%,transparent_50%)]"
+					style={{ animationDuration: "8s" }}
+				/>
+				<div
+					className="absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_80%_70%,hsl(206_55_37/0.1)_0%,transparent_50%)]"
+					style={{ animationDuration: "10s", animationDelay: "2s" }}
+				/>
+			</div>
 
-			<div className="relative z-10 flex flex-1 items-center">
+			{/* Content skeleton */}
+			<div className="relative z-10 flex h-full items-center">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="max-w-3xl lg:max-w-4xl">
-						<div className="mb-6 flex items-center gap-3 sm:mb-8">
-							<span className="h-px w-8 bg-white/20 sm:w-12" />
-							<Skeleton className="h-2.5 w-40 rounded-sm bg-white/10" />
+						{/* Small badge */}
+						<div className="mb-4 sm:mb-6">
+							<Skeleton className="h-9 w-48 rounded-full" />
 						</div>
 
-						<div className="mb-6 space-y-3 sm:mb-8">
-							<Skeleton className="h-[clamp(2.5rem,10vw,7.5rem)] w-40 rounded-sm bg-white/10" />
-							<Skeleton className="h-[clamp(2.5rem,10vw,7.5rem)] w-[26rem] max-w-full rounded-sm bg-white/10" />
-							<Skeleton className="h-[clamp(2.5rem,10vw,7.5rem)] w-80 max-w-full rounded-sm bg-white/10" />
+						{/* Main headline */}
+						<div className="mb-4 space-y-2 sm:mb-6">
+							<Skeleton className="h-12 w-32 bg-white/10 sm:h-16 md:h-20 lg:h-24" />
+							<Skeleton className="h-12 w-64 bg-white/10 sm:h-16 md:h-20 lg:h-24" />
+							<Skeleton className="h-12 w-56 bg-white/10 sm:h-16 md:h-20 lg:h-24" />
 						</div>
 
-						<div className="mb-8 space-y-2 sm:mb-10">
-							<Skeleton className="h-5 w-full max-w-xl rounded-sm bg-white/10" />
-							<Skeleton className="h-5 w-2/3 max-w-xl rounded-sm bg-white/10" />
+						{/* Tagline */}
+						<div className="mb-6 space-y-2 sm:mb-8">
+							<Skeleton className="h-6 w-full max-w-2xl bg-white/10 sm:h-7 lg:h-8" />
+							<Skeleton className="h-6 w-3/4 max-w-2xl bg-white/10 sm:h-7 lg:h-8" />
 						</div>
 
-						<div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-							<Skeleton className="h-12 w-full rounded-sm bg-white/10 sm:h-14 sm:w-52" />
-							<Skeleton className="h-12 w-full rounded-sm bg-white/10 sm:h-14 sm:w-52" />
+						{/* CTA Buttons */}
+						<div className="mb-8 flex flex-col gap-3 sm:mb-12 sm:flex-row sm:gap-4">
+							<Skeleton className="h-12 w-full bg-white/10 sm:h-14 sm:w-48" />
+							<Skeleton className="h-12 w-full bg-white/10 sm:h-14 sm:w-48" />
+						</div>
+
+						{/* Social proof */}
+						<div className="flex flex-wrap items-center gap-4 sm:gap-6">
+							<Skeleton className="h-8 w-40 bg-white/10" />
+							<Skeleton className="h-4 w-px bg-white/20" />
+							<Skeleton className="h-8 w-32 bg-white/10" />
+							<Skeleton className="h-4 w-px bg-white/20" />
+							<Skeleton className="h-8 w-36 bg-white/10" />
 						</div>
 					</div>
 				</div>
 			</div>
 
-			{/* Bottom letterbox bar, carrying the slate */}
-			<div className="relative z-20 border-white/10 border-t bg-[hsl(205_55%_2%)]">
-				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="grid grid-cols-2 divide-x divide-white/10 sm:grid-cols-4">
-						{["a", "b", "c", "d"].map((slot) => (
-							<div className="px-4 py-4 first:pl-0 sm:py-5" key={slot}>
-								<Skeleton className="h-2.5 w-20 rounded-sm bg-white/10" />
-								<Skeleton className="mt-3 h-4 w-16 rounded-sm bg-white/10" />
-							</div>
-						))}
-					</div>
+			{/* Scroll indicator skeleton */}
+			<div className="absolute right-0 bottom-8 left-0 z-20 flex justify-center">
+				<div className="flex flex-col items-center gap-2">
+					<Skeleton className="h-3 w-12 bg-white/10" />
+					<Skeleton className="h-8 w-5 rounded-full bg-white/10" />
 				</div>
 			</div>
 		</section>

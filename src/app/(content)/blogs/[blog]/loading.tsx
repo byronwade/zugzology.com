@@ -95,7 +95,7 @@ export default function BlogLoading() {
 													<Skeleton className="h-4 w-full" />
 													<Skeleton className="h-4 w-2/3" />
 												</div>
-												<div className="mt-auto border-border border-t pt-2">
+												<div className="mt-auto border-neutral-200 border-t pt-2 dark:border-neutral-700">
 													<Skeleton className="h-4 w-48" />
 												</div>
 											</div>

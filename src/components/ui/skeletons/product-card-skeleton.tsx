@@ -11,8 +11,8 @@ export function ProductCardSkeleton({ view = "grid" }: ProductCardSkeletonProps)
 			className={cn(
 				"group relative h-full",
 				view === "grid"
-					? "flex flex-col overflow-hidden rounded-lg border border-border bg-card"
-					: "flex flex-row gap-4 border-border border-b py-4 last:border-b-0"
+					? "flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition-all duration-300 dark:border-neutral-900 dark:bg-black"
+					: "flex flex-row gap-4 border-foreground/10 border-b py-4 last:border-b-0"
 			)}
 		>
 			{/* Wishlist Button Skeleton */}

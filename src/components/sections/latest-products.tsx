@@ -1,5 +1,4 @@
 import { ProductCard } from "@/components/features/products/product-card";
-import { SectionHeading } from "@/components/sections/section-heading";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
 import type { ShopifyProduct } from "@/lib/types";
@@ -14,15 +13,17 @@ export function LatestProducts({ products }: LatestProductsProps) {
 	}
 
 	return (
-		<section className="lit w-full border-border border-y bg-muted/40">
-			<div className="container mx-auto px-4 py-16 sm:py-20">
-				<SectionHeading
-					ctaHref="/products"
-					ctaLabel="View all products"
-					eyebrow="Newest first"
-					subtitle="Check out our newest cultivation supplies and equipment"
-					title="Latest products"
-				/>
+		<section className="w-full bg-muted/50">
+			<div className="container mx-auto px-4 py-12">
+				<div className="mb-8 flex items-center justify-between">
+					<div>
+						<h2 className="font-bold text-2xl text-foreground tracking-tight sm:text-3xl">Latest Products</h2>
+						<p className="mt-2 text-muted-foreground">Check out our newest cultivation supplies and equipment</p>
+					</div>
+					<Button asChild className="hidden sm:flex" variant="outline">
+						<Link href="/products">View All Products</Link>
+					</Button>
+				</div>
 
 				{/* Mobile: List view */}
 				<div className="flex flex-col gap-0 sm:hidden">
@@ -51,8 +52,8 @@ export function LatestProducts({ products }: LatestProductsProps) {
 					))}
 				</div>
 
-				<Button asChild className="mt-10 w-full sm:hidden" variant="outline">
-					<Link href="/products">View all products</Link>
+				<Button asChild className="mt-8 w-full sm:hidden" variant="outline">
+					<Link href="/products">View All Products</Link>
 				</Button>
 			</div>
 		</section>

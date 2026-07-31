@@ -1,5 +1,4 @@
 import { ProductCard } from "@/components/features/products/product-card";
-import { SectionHeading } from "@/components/sections/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
@@ -15,15 +14,22 @@ export function SaleProducts({ products }: SaleProductsProps) {
 	}
 
 	return (
-		<section className="lit w-full border-border border-y bg-muted/40">
-			<div className="container mx-auto px-4 py-16 sm:py-20">
-				<SectionHeading
-					ctaHref="/collections/sale"
-					ctaLabel="View all deals"
-					eyebrow="Price reduced"
-					subtitle="Limited time offers on premium cultivation supplies"
-					title="On sale now"
-				/>
+		<section className="w-full bg-muted/50">
+			<div className="container mx-auto px-4 py-12">
+				<div className="mb-8 flex items-center justify-between">
+					<div>
+						<div className="flex items-center gap-3">
+							<h2 className="font-bold text-2xl text-foreground tracking-tight sm:text-3xl">On Sale Now</h2>
+							<Badge variant="destructive">Save up to 50%</Badge>
+						</div>
+						<p className="mt-2 text-muted-foreground dark:text-muted-foreground">
+							Limited time offers on premium cultivation supplies
+						</p>
+					</div>
+					<Button asChild className="hidden sm:flex" variant="outline">
+						<Link href="/collections/sale">View All Deals</Link>
+					</Button>
+				</div>
 
 				{/* Mobile: List view */}
 				<div className="flex flex-col gap-0 sm:hidden">
@@ -74,8 +80,8 @@ export function SaleProducts({ products }: SaleProductsProps) {
 										view="grid"
 									/>
 									{hasDiscount && (
-										<Badge className="absolute top-3 right-3 z-10 shadow-flush" variant="flush">
-											&minus;{discountPercentage}%
+										<Badge className="absolute top-4 right-4 z-10" variant="destructive">
+											Save {discountPercentage}%
 										</Badge>
 									)}
 								</div>
@@ -84,8 +90,8 @@ export function SaleProducts({ products }: SaleProductsProps) {
 					})}
 				</div>
 
-				<Button asChild className="mt-10 w-full sm:hidden" variant="outline">
-					<Link href="/collections/sale">View all deals</Link>
+				<Button asChild className="mt-8 w-full sm:hidden" variant="outline">
+					<Link href="/collections/sale">View All Deals</Link>
 				</Button>
 			</div>
 		</section>

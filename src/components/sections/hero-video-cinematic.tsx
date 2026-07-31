@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { CheckCircle, Play, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import type { ShopifyProduct } from "@/lib/types";
@@ -7,36 +7,23 @@ type HeroVideoCinematicProps = {
 	products?: ShopifyProduct[];
 };
 
-/**
- * The slate — a clapperboard's data row, doubling as the bottom letterbox bar.
- * The frame carries the information instead of decorating it.
- */
-const SLATE_ROWS = [
-	{ label: "Growers", value: "10,000+" },
-	{ label: "Rating", value: "4.9 / 5" },
-	{ label: "Success rate", value: "95%" },
-	{ label: "Shipping", value: "Free over $75" },
-] as const;
-
-/** Corner crop marks, drawn as two borders each. */
-const CROP_MARKS = [
-	{ key: "tl", position: "top-0 left-0", edges: "border-t-2 border-l-2" },
-	{ key: "tr", position: "top-0 right-0", edges: "border-t-2 border-r-2" },
-	{ key: "bl", position: "bottom-0 left-0", edges: "border-b-2 border-l-2" },
-	{ key: "br", position: "bottom-0 right-0", edges: "border-b-2 border-r-2" },
-] as const;
-
-// Server Component — the whole title sequence is CSS, so this ships no JS.
-export function HeroVideoCinematic(_props: HeroVideoCinematicProps) {
+// Server Component - no client JS needed
+// CSS animations replace Framer Motion for better performance
+export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 	return (
-		<section className="hero-section relative flex w-full flex-col overflow-hidden bg-[hsl(205_45%_3%)] md:h-[calc(100vh-var(--header-height))]">
-			{/* ---------------------------------------------------------- *
-			 * The plate
-			 * ---------------------------------------------------------- */}
-			<div className="absolute inset-0">
-				{/* Held frame while the video decodes */}
-				<div className="absolute inset-0 bg-[radial-gradient(75%_65%_at_35%_35%,hsl(202_35%_14%)_0%,hsl(205_45%_4%)_70%)]" />
+		<section className="hero-section relative w-full overflow-hidden bg-black py-16 sm:py-20 md:h-[calc(100vh-var(--header-height))] md:py-0">
+			{/* Video Background - using CSS for scale effect */}
+			<div className="video-container absolute inset-0">
+				{/* Animated gradient background - fallback while video loads */}
+				<div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
 
+				{/* Animated mycelium pattern overlay */}
+				<div className="absolute inset-0 opacity-30">
+					<div className="mycelium-glow-1 absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,hsl(206_55_37/0.15)_0%,transparent_50%)]" />
+					<div className="mycelium-glow-2 absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,hsl(206_55_37/0.1)_0%,transparent_50%)]" />
+				</div>
+
+				{/* Video Element - native browser autoplay */}
 				<video
 					autoPlay
 					className="video-hero absolute inset-0 h-full w-full object-cover"
@@ -50,99 +37,103 @@ export function HeroVideoCinematic(_props: HeroVideoCinematicProps) {
 					<source src="/videos/mushroom-hero.mp4" type="video/mp4" />
 				</video>
 
-				{/* The grade. One warm key from the top left, cool fill everywhere else. */}
-				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_12%_0%,hsl(var(--flush)/0.16)_0%,transparent_62%)] mix-blend-screen" />
-				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(65%_70%_at_100%_100%,hsl(var(--primary)/0.14)_0%,transparent_60%)] mix-blend-screen" />
+				{/* Vignette Overlay */}
+				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_70%,rgba(0,0,0,0.8)_100%)]" />
 
-				{/* Readability: the type side of the frame goes deep, the plate side stays open. */}
-				<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,hsl(205_50%_3%/0.88)_0%,hsl(205_50%_3%/0.55)_40%,hsl(205_50%_3%/0.1)_80%,transparent_100%)]" />
-				<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,hsl(205_50%_3%)_0%,hsl(205_50%_3%/0.5)_32%,transparent_68%)]" />
+				{/* Bottom Gradient - Fades to background color */}
+				<div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(5,12,30,0.92)] via-black/70 to-transparent dark:from-background dark:via-black/80" />
 
-				{/* Vignette — the lens, not a gradient for its own sake. */}
-				<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,transparent_35%,hsl(205_60%_2%/0.55)_100%)]" />
+				{/* Left Gradient for text readability */}
+				<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
+
+				{/* Top fade */}
+				<div className="pointer-events-none absolute top-0 right-0 left-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
 			</div>
 
-			{/* Top letterbox bar */}
-			<div
-				aria-hidden="true"
-				className="letterbox absolute inset-x-0 top-0 z-20 h-[clamp(12px,3vh,30px)] bg-[hsl(205_55%_2%)]"
-				style={{ "--letterbox-origin": "top" } as React.CSSProperties}
-			/>
-
-			{/* ---------------------------------------------------------- *
-			 * The framed content
-			 * ---------------------------------------------------------- */}
-			<div className="relative z-10 flex flex-1 items-center py-20 sm:py-28 md:py-0">
+			{/* Content - CSS animations instead of Framer Motion */}
+			<div className="hero-content relative z-10 flex items-start md:h-full md:items-center">
 				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
-					<div className="relative">
-						{/* Crop marks bracket the content, not the viewport. */}
-						<div
-							aria-hidden="true"
-							className="-inset-x-2 -inset-y-8 sm:-inset-x-8 sm:-inset-y-10 pointer-events-none absolute"
-						>
-							{CROP_MARKS.map((mark) => (
-								<span
-									className={`crop-mark absolute block h-5 w-5 border-white/45 sm:h-7 sm:w-7 ${mark.position} ${mark.edges}`}
-									key={mark.key}
-								/>
-							))}
+					<div className="max-w-3xl lg:max-w-4xl">
+						{/* Small badge */}
+						<div className="hero-badge mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-md sm:mb-6">
+							<Sparkles className="h-4 w-4 text-primary" />
+							<span className="text-sm text-white/90 uppercase tracking-wider">Premium Cultivation</span>
 						</div>
 
-						<div className="max-w-3xl lg:max-w-4xl">
-							{/* Eyebrow — a reel marker, set on the slate. */}
-							<div className="hero-badge mb-6 flex items-center gap-3 sm:mb-8">
-								<span className="h-px w-8 bg-[hsl(36_84%_60%)] sm:w-12" />
-								<span className="slate text-[hsl(36_84%_60%)]">Premium cultivation</span>
+						{/* Main Headline */}
+						<h1 className="hero-title mb-4 font-black text-5xl text-white leading-[1.1] tracking-tight sm:mb-6 sm:text-6xl md:text-7xl lg:text-8xl">
+							<span className="block">Grow</span>
+							<span className="block text-primary">Extraordinary</span>
+							<span className="block">Mushrooms</span>
+						</h1>
+
+						{/* Tagline */}
+						<p className="hero-tagline mb-6 max-w-2xl text-lg text-white/90 leading-relaxed sm:mb-8 sm:text-xl lg:text-2xl">
+							Premium cultivation supplies for serious growers. Join 10,000+ cultivators achieving 95% success rates.
+						</p>
+
+						{/* CTAs */}
+						<div className="hero-cta flex flex-col gap-3 sm:flex-row sm:gap-4">
+							{/* Primary CTA */}
+							<Button
+								asChild
+								className="group relative h-12 overflow-hidden rounded-md bg-primary px-8 font-semibold text-base text-white shadow-2xl transition-all hover:bg-primary/90 hover:shadow-primary/50 sm:h-14 sm:px-10 sm:text-lg"
+							>
+								<PrefetchLink className="flex items-center gap-2" href="/products">
+									<Play className="h-5 w-5 transition-transform group-hover:scale-110" />
+									Start Growing
+								</PrefetchLink>
+							</Button>
+
+							{/* Secondary CTA */}
+							<Button
+								asChild
+								className="h-12 rounded-md border-2 border-white/30 bg-white/10 px-8 font-semibold text-base text-white backdrop-blur-md transition-all hover:border-white/50 hover:bg-white/20 sm:h-14 sm:px-10 sm:text-lg"
+								variant="outline"
+							>
+								<PrefetchLink href="/collections/all">Explore Products</PrefetchLink>
+							</Button>
+						</div>
+
+						{/* Social Proof */}
+						<div className="hero-social mt-8 flex flex-wrap items-center gap-4 sm:mt-12 sm:gap-6">
+							<div className="flex items-center gap-2">
+								<div className="-space-x-2 flex">
+									{[...new Array(4)].map((_, i) => (
+										<div
+											className="h-8 w-8 rounded-full border-2 border-black bg-gradient-to-br from-primary/80 to-primary"
+											key={i}
+										/>
+									))}
+								</div>
+								<span className="text-sm text-white/70">10,000+ Growers</span>
 							</div>
 
-							{/* The headline widens as it rises. Widescreen, stated in motion. */}
-							<h1 className="hero-title mb-6 font-display font-semibold text-[clamp(2.5rem,7.2vw,6.25rem)] text-white leading-[0.88] tracking-[-0.03em] sm:mb-8">
-								<span className="block">Grow</span>
-								<span className="block text-[hsl(36_84%_60%)]">extraordinary</span>
-								<span className="block">mushrooms</span>
-							</h1>
+							<div className="h-4 w-px bg-white/20" />
 
-							<p className="hero-tagline mb-8 max-w-xl text-base text-white/70 leading-relaxed sm:mb-10 sm:text-lg">
-								Premium cultivation supplies for serious growers. Join 10,000+ cultivators achieving 95% success rates.
-							</p>
+							<div className="flex items-center gap-2">
+								<Star className="h-5 w-5 fill-primary text-primary" />
+								<span className="text-sm text-white/70">4.9/5 Rating</span>
+							</div>
 
-							<div className="hero-cta flex flex-col gap-3 sm:flex-row sm:gap-4">
-								<Button
-									asChild
-									className="group h-12 rounded-[var(--radius)] bg-primary px-8 font-medium text-base text-primary-foreground shadow-bloom transition-colors hover:bg-primary/90 sm:h-14 sm:px-10"
-								>
-									<PrefetchLink className="flex items-center gap-2.5" href="/products">
-										Start growing
-										<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-									</PrefetchLink>
-								</Button>
+							<div className="h-4 w-px bg-white/20" />
 
-								<Button
-									asChild
-									className="h-12 rounded-[var(--radius)] border border-white/30 bg-transparent px-8 font-medium text-base text-white backdrop-blur-sm transition-colors hover:border-white/60 hover:bg-white/10 hover:text-white sm:h-14 sm:px-10"
-									variant="outline"
-								>
-									<PrefetchLink href="/collections/all">Explore products</PrefetchLink>
-								</Button>
+							<div className="flex items-center gap-2">
+								<CheckCircle className="h-5 w-5 text-primary" />
+								<span className="text-sm text-white/70">95% Success Rate</span>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			{/* ---------------------------------------------------------- *
-			 * Bottom letterbox bar, carrying the slate data
-			 * ---------------------------------------------------------- */}
-			<div className="hero-social relative z-20 border-white/10 border-t bg-[hsl(205_55%_2%)]">
-				<div className="container mx-auto px-4 sm:px-6 lg:px-8">
-					<dl className="grid grid-cols-2 divide-x divide-white/10 sm:grid-cols-4">
-						{SLATE_ROWS.map((row) => (
-							<div className="px-4 py-4 first:pl-0 sm:py-5" key={row.label}>
-								<dt className="slate text-white/40">{row.label}</dt>
-								<dd className="mt-2 font-mono text-sm text-white tabular-nums sm:text-base">{row.value}</dd>
-							</div>
-						))}
-					</dl>
+			{/* Scroll Indicator - pure CSS */}
+			<div className="scroll-indicator absolute right-0 bottom-8 left-0 z-20 flex justify-center">
+				<div className="flex flex-col items-center gap-2">
+					<span className="text-white/50 text-xs uppercase tracking-widest">Scroll</span>
+					<div className="h-8 w-5 rounded-full border-2 border-white/30">
+						<div className="scroll-dot mx-auto mt-1.5 h-1.5 w-1.5 rounded-full bg-white/70" />
+					</div>
 				</div>
 			</div>
 		</section>

@@ -7,7 +7,8 @@ import { FeaturedCollections } from "@/components/sections/featured-collections"
 import { HeroVideoCinematic } from "@/components/sections/hero-video-cinematic";
 import { LatestProducts } from "@/components/sections/latest-products";
 import { SaleProducts } from "@/components/sections/sale-products";
-import { SectionHeading } from "@/components/sections/section-heading";
+import { Button } from "@/components/ui/button";
+import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { getSiteSettings } from "@/lib/api/shopify/actions";
 import { shopifyFetch } from "@/lib/api/shopify/client";
 import { PRODUCT_CARD_FRAGMENT } from "@/lib/api/shopify/fragments-optimized";
@@ -176,18 +177,14 @@ function HeroSkeleton() {
 function ProductGridSkeleton() {
 	return (
 		<section className="bg-background">
-			<div className="container mx-auto px-4 py-16 sm:py-20">
-				<div className="mb-10 sm:mb-12">
-					<div className="mb-4 h-2.5 w-40 animate-pulse rounded-sm bg-muted" />
-					<div className="h-10 w-72 animate-pulse rounded-sm bg-muted" />
-					<div className="mt-8 h-px w-full bg-border" />
-				</div>
+			<div className="container mx-auto px-4 py-8 sm:py-12">
+				<div className="mb-8 h-10 w-64 animate-pulse rounded bg-muted sm:mb-10" />
 				<div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 					{[...Array(5)].map((_, i) => (
 						<div className="space-y-4" key={i}>
 							<div className="aspect-square w-full animate-pulse rounded-lg bg-muted" />
-							<div className="h-4 w-3/4 animate-pulse rounded-sm bg-muted" />
-							<div className="h-6 w-1/2 animate-pulse rounded-sm bg-muted" />
+							<div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+							<div className="h-6 w-1/2 animate-pulse rounded bg-muted" />
 						</div>
 					))}
 				</div>
@@ -252,10 +249,9 @@ async function FeaturedSection() {
 		<ProductGridSection
 			ctaHref="/collections/all"
 			ctaLabel="Shop all products"
-			eyebrow="Selected by demand"
 			products={featuredProducts}
 			subtitle="Hand-selected items customers are loving right now"
-			title="Trending kits & supplies"
+			title="Trending Kits & Supplies"
 		/>
 	);
 }
@@ -276,10 +272,9 @@ async function BestSellersSection() {
 			<ProductGridSection
 				ctaHref="/collections/best-sellers"
 				ctaLabel="Browse best sellers"
-				eyebrow="Ranked by units sold"
 				products={bestSellingProducts}
 				subtitle="Top-rated essentials backed by real purchase data"
-				title="Customer favorites"
+				title="Customer Favorites"
 			/>
 			<BestSellersShowcase products={bestSellingProducts} />
 		</>
@@ -309,7 +304,6 @@ async function StructuredDataSection() {
 }
 
 type ProductGridSectionProps = {
-	eyebrow: string;
 	title: string;
 	subtitle?: string;
 	products: ShopifyProduct[];
@@ -317,15 +311,25 @@ type ProductGridSectionProps = {
 	ctaLabel?: string;
 };
 
-function ProductGridSection({ eyebrow, title, subtitle, products, ctaHref, ctaLabel }: ProductGridSectionProps) {
+function ProductGridSection({ title, subtitle, products, ctaHref, ctaLabel }: ProductGridSectionProps) {
 	if (!products?.length) {
 		return null;
 	}
 
 	return (
-		<section className="lit bg-background">
-			<div className="container mx-auto px-4 py-16 sm:py-20">
-				<SectionHeading ctaHref={ctaHref} ctaLabel={ctaLabel} eyebrow={eyebrow} subtitle={subtitle} title={title} />
+		<section className="bg-background">
+			<div className="container mx-auto px-4 py-8 sm:py-12">
+				<div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+					<div>
+						<h2 className="font-bold text-2xl text-foreground tracking-tight sm:text-3xl md:text-4xl">{title}</h2>
+						{subtitle && <p className="mt-2 max-w-2xl text-base text-muted-foreground sm:text-lg">{subtitle}</p>}
+					</div>
+					{ctaHref && ctaLabel && (
+						<Button asChild variant="outline">
+							<PrefetchLink href={ctaHref}>{ctaLabel}</PrefetchLink>
+						</Button>
+					)}
+				</div>
 
 				{/* Mobile: List view */}
 				<div className="flex flex-col gap-0 sm:hidden">

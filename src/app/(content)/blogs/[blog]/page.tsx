@@ -162,14 +162,14 @@ function BlogCard({ article, blogHandle }: BlogCardProps) {
 const _BlogLoading = () => (
 	<div className="min-h-screen w-full">
 		<div className="mx-auto max-w-[1800px] px-4 py-8">
-			<div className="mb-8 h-12 w-1/4 rounded bg-muted" />
+			<div className="mb-8 h-12 w-1/4 rounded bg-neutral-200 dark:bg-neutral-700" />
 			<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{[...new Array(8)].map((_, i) => (
 					// biome-ignore lint/suspicious/noArrayIndexKey: Loading skeleton - static placeholder
 					<div className="animate-pulse" key={i}>
-						<div className="mb-4 aspect-video rounded-lg bg-muted" />
-						<div className="mb-2 h-4 w-3/4 rounded bg-muted" />
-						<div className="h-4 w-1/2 rounded bg-muted" />
+						<div className="mb-4 aspect-video rounded-lg bg-neutral-200 dark:bg-neutral-700" />
+						<div className="mb-2 h-4 w-3/4 rounded bg-neutral-200 dark:bg-neutral-700" />
+						<div className="h-4 w-1/2 rounded bg-neutral-200 dark:bg-neutral-700" />
 					</div>
 				))}
 			</div>
@@ -356,7 +356,7 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
 
 			<div className="min-h-screen w-full bg-background">
 				<div className="container mx-auto px-4 py-12">
-					<Suspense fallback={<div className="mb-8 h-12 w-1/4 rounded bg-muted" />}>
+					<Suspense fallback={<div className="mb-8 h-12 w-1/4 rounded bg-neutral-200 dark:bg-neutral-700" />}>
 						<UniversalBreadcrumb
 							className="mb-4 hidden md:block"
 							items={BreadcrumbConfigs.blog(blog.title, blog.handle)}
