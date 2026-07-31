@@ -176,30 +176,45 @@ async function ProductsPageContent({ searchParams }: { searchParams?: Promise<{ 
 	}
 }
 
+/**
+ * Mirrors ProductGridWithFilters' own frame — same `py-12` container, same
+ * bordered header block, same filter bar, same grid.
+ *
+ * It did not before: no filter bar at all, `py-10`, and a differently shaped
+ * heading, so when the real content arrived everything below it jumped and
+ * /products carried a 0.041 layout shift. A fallback's job is to hold the exact
+ * space its content will take, so any change here has to track that component.
+ */
 function ProductsLoading() {
 	return (
-		<div className="container mx-auto px-4 py-10">
-			<div className="space-y-6">
-				<div className="mb-8">
-					<Skeleton className="mb-4 h-10 w-64" />
-					<Skeleton className="h-5 w-full max-w-2xl" />
+		<div className="container mx-auto px-4 py-12">
+			<div className="mb-8 w-full border-border/60 border-b p-4">
+				<div className="mb-2 flex items-center gap-3">
+					<Skeleton className="h-8 w-48 md:h-9" />
+					<Skeleton className="h-5 w-24 rounded-md" />
 				</div>
+				<Skeleton className="mt-1 h-6 w-full max-w-[500px]" />
+			</div>
 
-				{/* Mobile: List view */}
-				<div className="flex flex-col gap-0 sm:hidden">
-					{new Array(8).fill(0).map((_, i) => (
-						<ProductCardSkeleton key={i} view="list" />
-					))}
-				</div>
-
-				{/* Desktop: Grid view */}
-				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-					{new Array(8).fill(0).map((_, i) => (
-						<div className="group relative" key={i}>
-							<ProductCardSkeleton view="grid" />
+			<div className="bg-background">
+				<div className="container mx-auto px-3 py-3 sm:px-4 sm:py-4">
+					<div className="mb-3 flex items-center justify-between gap-4">
+						<div className="flex items-center gap-3">
+							<Skeleton className="h-8 w-8 rounded-lg" />
+							<Skeleton className="h-5 w-24 sm:h-6" />
 						</div>
-					))}
+						<div className="flex items-center gap-2">
+							<Skeleton className="h-8 w-20 rounded-md" />
+							<Skeleton className="h-8 w-24 rounded-md" />
+						</div>
+					</div>
 				</div>
+			</div>
+
+			<div className="grid grid-cols-1 gap-6 py-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+				{new Array(8).fill(0).map((_, i) => (
+					<ProductCardSkeleton key={i} view="responsive" />
+				))}
 			</div>
 		</div>
 	);

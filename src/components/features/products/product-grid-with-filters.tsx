@@ -6,9 +6,12 @@ import { ProductCard } from "@/components/features/products/product-card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PaginationControlsSSR } from "@/components/ui/pagination";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProductCardSkeleton } from "@/components/ui/skeletons/product-card-skeleton";
 import { useProductFiltering } from "@/hooks/use-product-filtering";
 import type { ShopifyProduct } from "@/lib/types";
+
+/** Server-side page size; the loading grid renders one skeleton per slot. */
+const PRODUCTS_PER_PAGE = 24;
 
 type ProductGridWithFiltersProps = {
 	products: ShopifyProduct[];
@@ -22,21 +25,20 @@ type ProductGridWithFiltersProps = {
 	showCollectionFilter?: boolean;
 };
 
-// Loading component for product grid
+/**
+ * Stands in for the real grid below, so it carries the same `py-8` wrapper, the
+ * same grid classes and the same card skeleton. It used to be a freehand card
+ * shape with no wrapper padding, which meant the grid moved 32px the moment it
+ * resolved.
+ */
 function ProductGridLoading() {
 	return (
-		<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-			{Array.from({ length: 12 }).map((_, i) => (
-				<div className="flex flex-col rounded-lg border border-foreground/10" key={i}>
-					<Skeleton className="aspect-square w-full rounded-t-lg" />
-					<div className="space-y-3 p-4">
-						<Skeleton className="h-4 w-1/2" />
-						<Skeleton className="h-5 w-3/4" />
-						<Skeleton className="h-4 w-1/3" />
-						<Skeleton className="mt-4 h-10 w-full" />
-					</div>
-				</div>
-			))}
+		<div className="py-8">
+			<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+				{Array.from({ length: PRODUCTS_PER_PAGE }).map((_, i) => (
+					<ProductCardSkeleton key={i} view="responsive" />
+				))}
+			</div>
 		</div>
 	);
 }
@@ -95,27 +97,18 @@ const ProductItem = memo(function ProductItem({
 		return null;
 	}
 
+	// One card, styled per breakpoint. This used to render the card twice and
+	// hide one with display:none, so every product on the page was parsed and
+	// hydrated a second time for nothing. The grid container is unchanged, so
+	// both layouts land exactly where they did.
 	return (
-		<div className="group relative">
-			<div className="sm:hidden">
-				<ProductCard
-					priority={isPriority}
-					product={product}
-					quantity={variantData.quantity}
-					variantId={variantData.id}
-					view="list"
-				/>
-			</div>
-			<div className="hidden sm:block">
-				<ProductCard
-					priority={isPriority}
-					product={product}
-					quantity={variantData.quantity}
-					variantId={variantData.id}
-					view="grid"
-				/>
-			</div>
-		</div>
+		<ProductCard
+			priority={isPriority}
+			product={product}
+			quantity={variantData.quantity}
+			variantId={variantData.id}
+			view="responsive"
+		/>
 	);
 });
 
@@ -155,7 +148,6 @@ export function ProductGridWithFilters({
 
 	// Calculate total pages based on total products count, not filtered results
 	// The filtering happens on the client side, but pagination is server-side
-	const PRODUCTS_PER_PAGE = 24;
 	const totalProductsCount = initialTotalProducts ?? initialProducts.length;
 	const totalPages = Math.ceil(totalProductsCount / PRODUCTS_PER_PAGE);
 

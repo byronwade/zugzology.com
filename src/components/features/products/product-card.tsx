@@ -6,10 +6,23 @@ import { cn, formatPrice, isIntentionallyFree } from "@/lib/utils";
 import { getOpticalIconClasses } from "@/lib/utils/optical-alignment";
 import { ProductCardActions } from "./product-card-actions";
 
+/**
+ * "responsive" renders one DOM that reads as the list card below the sm
+ * breakpoint and the grid card at sm and up.
+ *
+ * It exists because callers used to render the whole product set twice — once
+ * in a `sm:hidden` list and once in a `hidden sm:grid` grid — so every page
+ * shipped, parsed and hydrated a full copy of markup that `display: none` hid.
+ * The two views were never structurally different; `view` only ever swapped
+ * class strings, which is exactly what a breakpoint variant does. Prefer this
+ * over "grid"/"list" unless a surface genuinely shows one form at every width.
+ */
+export type ProductCardView = "grid" | "list" | "responsive";
+
 export type ProductCardProps = {
 	product: ShopifyProduct;
 	collectionHandle?: string;
-	view?: "grid" | "list";
+	view?: ProductCardView;
 	variantId?: string;
 	quantity?: number;
 	onAddToCart?: () => void;
@@ -102,6 +115,56 @@ const getRatingData = (product: ShopifyProduct) => {
 	};
 };
 
+/**
+ * Every place `view` changes the card, in one table.
+ *
+ * The "responsive" column is the "list" column below sm and the "grid" column
+ * at sm and up — read the three across a row to check that. Classes that only
+ * ever applied at a width where their own view was hidden are dropped: "list"
+ * carried sm:/md: sizes it could never show (its container was sm:hidden), and
+ * "grid" carried a base min-height it could never show.
+ */
+const CARD_CLASSES: Record<ProductCardView, Record<string, string>> = {
+	grid: {
+		root: "flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-shadow duration-200 hover:shadow-md",
+		imageLink: "w-full",
+		imageBox: "aspect-square w-full group-hover:scale-105",
+		info: "mt-3 flex-1 px-3 pb-3 sm:mt-4 sm:px-4 sm:pb-4",
+		title: "line-clamp-2 min-h-[2.5rem] text-sm sm:min-h-[3rem] sm:text-base",
+	},
+	list: {
+		root: "flex flex-row gap-3 border-b py-3 last:border-b-0 sm:gap-4 sm:py-4",
+		imageLink: "w-24 sm:w-28 md:w-32",
+		imageBox: "aspect-square h-24 w-24 rounded-lg sm:h-28 sm:w-28 md:h-32 md:w-32",
+		info: "min-w-0 flex-1 py-0.5 sm:py-1",
+		title: "line-clamp-2 text-sm sm:line-clamp-1 sm:text-base",
+	},
+	responsive: {
+		// No border-b here, unlike "list". Row separators are the list's business,
+		// not the card's: callers that want them put `divide-y sm:divide-y-0` on
+		// the container. Baking it into the card meant whether you saw a divider
+		// depended on whether the caller happened to wrap each card in a div —
+		// which silently turned every card into a :last-child.
+		root: "flex flex-row gap-3 py-3 sm:flex-col sm:gap-0 sm:overflow-hidden sm:rounded-xl sm:border sm:bg-card sm:py-0 sm:text-card-foreground sm:shadow-sm sm:transition-shadow sm:duration-200 sm:hover:shadow-md",
+		imageLink: "w-24 sm:w-full",
+		imageBox: "aspect-square h-24 w-24 rounded-lg sm:h-auto sm:w-full sm:rounded-none sm:group-hover:scale-105",
+		info: "min-w-0 flex-1 py-0.5 sm:mt-4 sm:px-4 sm:py-0 sm:pb-4",
+		title: "line-clamp-2 text-sm sm:min-h-[3rem] sm:text-base",
+	},
+};
+
+/**
+ * `sizes` for the product image. The responsive card is a 96px thumbnail below
+ * sm and a grid cell above it, so it must say both — before this it inherited
+ * the grid's "100vw" and every phone downloaded a full-width image to paint it
+ * 96px wide.
+ */
+const IMAGE_SIZES: Record<ProductCardView, string> = {
+	grid: "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw",
+	list: "96px",
+	responsive: "(max-width: 640px) 96px, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw",
+};
+
 const calculateDiscountPercentage = (compareAtPrice: string, price: string) => {
 	if (!(compareAtPrice && price)) return 0;
 	return Math.round(
@@ -162,32 +225,18 @@ export function ProductCard({
 	}
 	const prefetchImages = productImages.slice(0, 3);
 
+	const styles = CARD_CLASSES[view];
+
 	return (
-		<div
-			className={cn(
-				"group relative h-full",
-				view === "grid"
-					? "flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-shadow duration-200 hover:shadow-md"
-					: "flex flex-row gap-3 border-b py-3 last:border-b-0 sm:gap-4 sm:py-4"
-			)}
-			data-product-id={product.id}
-			data-view={view}
-		>
+		<div className={cn("group relative h-full", styles.root)} data-product-id={product.id} data-view={view}>
 			{/* Product Image - Server Rendered */}
 			<PrefetchLink
-				className={cn("block shrink-0", view === "grid" ? "w-full" : "w-24 sm:w-28 md:w-32")}
+				className={cn("block shrink-0", styles.imageLink)}
 				href={productUrl}
 				prefetchImages={prefetchImages}
 				prefetchPriority={priority ? "high" : "low"}
 			>
-				<div
-					className={cn(
-						"relative overflow-hidden bg-muted transition-all duration-300",
-						view === "grid"
-							? "aspect-square w-full group-hover:scale-105"
-							: "aspect-square h-24 w-24 rounded-lg sm:h-28 sm:w-28 md:h-32 md:w-32"
-					)}
-				>
+				<div className={cn("relative overflow-hidden bg-muted transition-all duration-300", styles.imageBox)}>
 					{firstImage?.url ? (
 						<Image
 							alt={firstImage.altText || product.title}
@@ -195,11 +244,7 @@ export function ProductCard({
 							fill
 							loading={priority ? "eager" : "lazy"}
 							priority={priority}
-							sizes={
-								view === "grid"
-									? "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-									: "96px"
-							}
+							sizes={IMAGE_SIZES[view]}
 							src={firstImage.url}
 						/>
 					) : (
@@ -233,12 +278,7 @@ export function ProductCard({
 			</PrefetchLink>
 
 			{/* Product Info - Server Rendered */}
-			<div
-				className={cn(
-					"flex flex-col",
-					view === "grid" ? "mt-3 flex-1 px-3 pb-3 sm:mt-4 sm:px-4 sm:pb-4" : "min-w-0 flex-1 py-0.5 sm:py-1"
-				)}
-			>
+			<div className={cn("flex flex-col", styles.info)}>
 				<PrefetchLink
 					className="flex-1"
 					href={productUrl}
@@ -260,9 +300,7 @@ export function ProductCard({
 					<h2
 						className={cn(
 							"mb-2 font-semibold text-foreground transition-colors group-hover:text-primary sm:mb-3",
-							view === "grid"
-								? "line-clamp-2 min-h-[2.5rem] text-sm sm:min-h-[3rem] sm:text-base"
-								: "line-clamp-2 text-sm sm:line-clamp-1 sm:text-base"
+							styles.title
 						)}
 					>
 						{product.title}

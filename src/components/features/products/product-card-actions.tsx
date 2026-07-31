@@ -8,6 +8,14 @@ import { useCart } from "@/components/providers/cart-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getOpticalIconClasses } from "@/lib/utils/optical-alignment";
+import type { ProductCardView } from "./product-card";
+
+/** Wishlist button offset per card view; see CARD_CLASSES in product-card.tsx. */
+const WISHLIST_POSITION: Record<ProductCardView, string> = {
+	grid: "top-1.5 right-1.5 sm:top-2 sm:right-2",
+	list: "top-0 right-0",
+	responsive: "top-0 right-0 sm:top-2 sm:right-2",
+};
 
 type ProductCardActionsProps = {
 	productId: string;
@@ -17,7 +25,7 @@ type ProductCardActionsProps = {
 	isBackorder: boolean;
 	hasValidPrice: boolean;
 	isFreeProduct: boolean;
-	view?: "grid" | "list";
+	view?: ProductCardView;
 	onAddToCart?: () => void;
 	onRemoveFromWishlist?: (handle: string) => void;
 	onAddToWishlist?: (handle: string) => void;
@@ -107,7 +115,7 @@ export function ProductCardActions({
 			<Button
 				aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
 				aria-pressed={isWishlisted}
-				className={cn("absolute z-[1]", view === "grid" ? "top-1.5 right-1.5 sm:top-2 sm:right-2" : "top-0 right-0")}
+				className={cn("absolute z-[1]", WISHLIST_POSITION[view])}
 				data-product-id={productId}
 				data-wishlist-add
 				onClick={handleWishlistToggle}

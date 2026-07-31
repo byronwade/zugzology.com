@@ -10,8 +10,16 @@ import { fontSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
 
+/**
+ * Must be exactly as tall as the real header, which is why it reads the same
+ * variable the header itself is built from rather than a literal.
+ *
+ * It was `h-16` (64px) against a real header of 101px — a 37px drop of the
+ * status banner and the whole of <main> the moment the header streamed in,
+ * which was the entire remaining layout shift on /products.
+ */
 function HeaderLoading(): React.ReactElement {
-	return <div className="h-16 w-full animate-pulse bg-background" />;
+	return <div className="h-[var(--header-height)] w-full animate-pulse bg-background" />;
 }
 
 function FooterLoading(): React.ReactElement {

@@ -445,15 +445,25 @@ const ProductFiltersInner = memo(function ProductFiltersInner({
 
 // Wrapper with Suspense
 export const ProductFilters = memo(function ProductFilters(props: ProductFiltersProps) {
+	// The fallback mirrors ProductFiltersInner's frame exactly — same wrapper,
+	// same container padding, same mb-3 row, same 8x8 icon tile. It used to be a
+	// freehand bar with a bottom border and py-4 that the real component does not
+	// have, so the filter bar changed height the moment it resolved and pushed the
+	// whole product grid down.
 	return (
 		<Suspense
 			fallback={
-				<div className="border-border/60 border-b bg-background py-4">
-					<div className="container mx-auto flex items-center justify-between px-4">
-						<div className="h-5 w-32 animate-pulse rounded bg-muted" />
-						<div className="flex gap-2">
-							<div className="h-9 w-24 animate-pulse rounded bg-muted" />
-							<div className="h-9 w-24 animate-pulse rounded bg-muted" />
+				<div className={cn("bg-background", props.className)}>
+					<div className="container mx-auto px-3 py-3 sm:px-4 sm:py-4">
+						<div className="mb-3 flex items-center justify-between gap-4">
+							<div className="flex items-center gap-3">
+								<div className="h-8 w-8 animate-pulse rounded-lg bg-primary/10" />
+								<div className="h-5 w-24 animate-pulse rounded bg-muted sm:h-6" />
+							</div>
+							<div className="flex items-center gap-2">
+								<div className="h-8 w-20 animate-pulse rounded-md bg-muted" />
+								<div className="h-8 w-24 animate-pulse rounded-md bg-muted" />
+							</div>
 						</div>
 					</div>
 				</div>

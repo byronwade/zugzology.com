@@ -31,28 +31,10 @@ export function SaleProducts({ products }: SaleProductsProps) {
 					</Button>
 				</div>
 
-				{/* Mobile: List view */}
-				<div className="flex flex-col gap-0 sm:hidden">
-					{products.map((product) => {
-						const variant = product.variants.nodes[0];
-						if (!variant) {
-							return null;
-						}
-
-						return (
-							<ProductCard
-								key={product.id}
-								product={product}
-								quantity={variant.quantityAvailable}
-								variantId={variant.id}
-								view="list"
-							/>
-						);
-					})}
-				</div>
-
-				{/* Desktop: Grid view */}
-				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+				{/* List below sm, grid at sm and up — one render, see ProductCardView.
+				    The save badge is grid-only, as it was before; hiding one badge below
+				    sm is far cheaper than rendering the whole card set twice. */}
+				<div className="flex flex-col gap-0 divide-y sm:grid sm:grid-cols-2 sm:gap-6 sm:divide-y-0 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 					{products.map((product) => {
 						const variant = product.variants.nodes[0];
 						if (!variant) {
@@ -71,20 +53,18 @@ export function SaleProducts({ products }: SaleProductsProps) {
 							: 0;
 
 						return (
-							<div className="group relative" key={product.id}>
-								<div className="relative">
-									<ProductCard
-										product={product}
-										quantity={variant.quantityAvailable}
-										variantId={variant.id}
-										view="grid"
-									/>
-									{hasDiscount && (
-										<Badge className="absolute top-4 right-4 z-10" variant="destructive">
-											Save {discountPercentage}%
-										</Badge>
-									)}
-								</div>
+							<div className="relative" key={product.id}>
+								<ProductCard
+									product={product}
+									quantity={variant.quantityAvailable}
+									variantId={variant.id}
+									view="responsive"
+								/>
+								{hasDiscount && (
+									<Badge className="absolute top-4 right-4 z-10 hidden sm:inline-flex" variant="destructive">
+										Save {discountPercentage}%
+									</Badge>
+								)}
 							</div>
 						);
 					})}

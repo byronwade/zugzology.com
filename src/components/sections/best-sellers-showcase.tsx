@@ -40,47 +40,31 @@ export function BestSellersShowcase({ products }: BestSellersShowcaseProps) {
 					</p>
 				</div>
 
-				<div className="relative">
-					{/* Mobile: List view */}
-					<div className="flex flex-col gap-0 sm:hidden">
-						{products.slice(0, 5).map((product, index) => (
-							<div className="relative" key={product.id}>
-								<Badge className="absolute top-2 left-4 z-20 bg-primary font-semibold text-primary-foreground text-xs">
-									#{index + 1}
+				{/* List below sm, grid at sm and up — one render, see ProductCardView.
+				    The rank badge is the one thing that genuinely differs between the two:
+				    a bare "#1" top-left on the list row, "#1 Best Seller" top-right on the
+				    grid card. Both are emitted and one is hidden per breakpoint, which
+				    costs a span instead of a second copy of every card. */}
+				<div className="relative flex flex-col gap-0 sm:grid sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+					{products.slice(0, 5).map((product, index) => (
+						<div className="relative" key={product.id}>
+							<Badge className="absolute top-2 left-4 z-20 bg-primary font-semibold text-primary-foreground text-xs sm:hidden">
+								#{index + 1}
+							</Badge>
+							<div className="absolute top-3 right-3 z-20 hidden sm:block">
+								<Badge className="bg-primary font-semibold text-primary-foreground shadow-md">
+									#{index + 1} Best Seller
 								</Badge>
-								<ProductCard
-									product={product}
-									quantity={product.variants.nodes[0]?.quantityAvailable}
-									variantId={product.variants.nodes[0]?.id}
-									view="list"
-								/>
 							</div>
-						))}
-					</div>
 
-					{/* Desktop: Grid view */}
-					<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-						{products.slice(0, 5).map((product, index) => (
-							<div className="group relative" key={product.id}>
-								<div className="relative">
-									{/* Best Seller Badge - Top Right */}
-									<div className="absolute top-3 right-3 z-20">
-										<Badge className="bg-primary font-semibold text-primary-foreground shadow-md">
-											#{index + 1} Best Seller
-										</Badge>
-									</div>
-
-									{/* Product Card */}
-									<ProductCard
-										product={product}
-										quantity={product.variants.nodes[0]?.quantityAvailable}
-										variantId={product.variants.nodes[0]?.id}
-										view="grid"
-									/>
-								</div>
-							</div>
-						))}
-					</div>
+							<ProductCard
+								product={product}
+								quantity={product.variants.nodes[0]?.quantityAvailable}
+								variantId={product.variants.nodes[0]?.id}
+								view="responsive"
+							/>
+						</div>
+					))}
 				</div>
 
 				<div className="mt-12 text-center">

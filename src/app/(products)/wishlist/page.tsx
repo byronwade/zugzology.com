@@ -139,19 +139,10 @@ export default function WishlistPage() {
 									<Skeleton className="h-9 w-48 sm:h-10" />
 								</div>
 
-								{/* Mobile: List view */}
-								<div className="flex flex-col gap-0 sm:hidden">
+								{/* List below sm, grid at sm and up — one render, see ProductCardView. */}
+								<div className="flex flex-col gap-0 divide-y sm:grid sm:grid-cols-2 sm:gap-6 sm:divide-y-0 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 									{Array.from({ length: 5 }).map((_, i) => (
-										<ProductCardSkeleton key={i} view="list" />
-									))}
-								</div>
-
-								{/* Desktop: Grid view */}
-								<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-									{Array.from({ length: 5 }).map((_, i) => (
-										<div className="group relative" key={i}>
-											<ProductCardSkeleton view="grid" />
-										</div>
+										<ProductCardSkeleton key={i} view="responsive" />
 									))}
 								</div>
 							</div>

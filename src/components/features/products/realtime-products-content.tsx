@@ -161,25 +161,15 @@ export const SimpleProductsContent = React.memo(function SimpleProductsContent({
 						return null;
 					}
 
+					// One card, styled per breakpoint — see ProductCardView.
 					return (
-						<div className="group relative" key={product.id}>
-							<div className="sm:hidden">
-								<ProductCard
-									product={product}
-									quantity={firstVariant.quantityAvailable}
-									variantId={firstVariant.id}
-									view="list"
-								/>
-							</div>
-							<div className="hidden sm:block">
-								<ProductCard
-									product={product}
-									quantity={firstVariant.quantityAvailable}
-									variantId={firstVariant.id}
-									view="grid"
-								/>
-							</div>
-						</div>
+						<ProductCard
+							key={product.id}
+							product={product}
+							quantity={firstVariant.quantityAvailable}
+							variantId={firstVariant.id}
+							view="responsive"
+						/>
 					);
 				})}
 			</div>

@@ -4,7 +4,7 @@ import { Heart, Loader2, ShoppingCart, Trash2, X } from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ProductFilters } from "@/components/features/filters";
-import { ProductCard } from "@/components/features/products/product-card";
+import { ProductCard, type ProductCardView } from "@/components/features/products/product-card";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
 import { useProductFiltering } from "@/hooks/use-product-filtering";
@@ -25,7 +25,7 @@ const WishlistProductItem = memo(function WishlistProductItem({
 	onRemoveFromWishlist,
 }: {
 	product: ShopifyProduct;
-	view: "grid" | "list";
+	view: ProductCardView;
 	onRemoveFromWishlist: (handle: string) => void;
 }) {
 	// Memoize variant data extraction
@@ -471,32 +471,17 @@ export default function WishlistWithFilters({
 							</p>
 						</div>
 					) : (
-						<>
-							{/* Mobile: List view */}
-							<div className="flex flex-col gap-0 sm:hidden">
-								{displayProducts.map((product) => (
-									<WishlistProductItem
-										key={`${product.id}-mobile`}
-										onRemoveFromWishlist={handleRemoveFromWishlist}
-										product={product}
-										view="list"
-									/>
-								))}
-							</div>
-
-							{/* Desktop: Grid view */}
-							<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-								{displayProducts.map((product) => (
-									<div className="group relative" key={product.id}>
-										<WishlistProductItem
-											onRemoveFromWishlist={handleRemoveFromWishlist}
-											product={product}
-											view="grid"
-										/>
-									</div>
-								))}
-							</div>
-						</>
+						/* List below sm, grid at sm and up — one render, see ProductCardView. */
+						<div className="flex flex-col gap-0 divide-y sm:grid sm:grid-cols-2 sm:gap-6 sm:divide-y-0 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+							{displayProducts.map((product) => (
+								<WishlistProductItem
+									key={product.id}
+									onRemoveFromWishlist={handleRemoveFromWishlist}
+									product={product}
+									view="responsive"
+								/>
+							))}
+						</div>
 					)}
 				</div>
 			</section>

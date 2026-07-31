@@ -26,29 +26,16 @@ export function LatestProducts({ products }: LatestProductsProps) {
 				</div>
 
 				{/* Mobile: List view */}
-				<div className="flex flex-col gap-0 sm:hidden">
+				{/* List below sm, grid at sm and up — one render, see ProductCardView. */}
+				<div className="flex flex-col gap-0 divide-y sm:grid sm:grid-cols-2 sm:gap-6 sm:divide-y-0 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 					{products.map((product) => (
 						<ProductCard
 							key={product.id}
 							product={product}
 							quantity={product.variants.nodes[0]?.quantityAvailable}
 							variantId={product.variants.nodes[0]?.id}
-							view="list"
+							view="responsive"
 						/>
-					))}
-				</div>
-
-				{/* Desktop: Grid view */}
-				<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-					{products.map((product) => (
-						<div className="group relative" key={product.id}>
-							<ProductCard
-								product={product}
-								quantity={product.variants.nodes[0]?.quantityAvailable}
-								variantId={product.variants.nodes[0]?.id}
-								view="grid"
-							/>
-						</div>
 					))}
 				</div>
 
