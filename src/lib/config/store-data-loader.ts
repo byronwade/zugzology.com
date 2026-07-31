@@ -63,8 +63,11 @@ const SHOP_QUERY = `
  */
 export const loadStoreConfiguration = cache(async (): Promise<StoreConfig> => {
 	try {
-		const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
-		const storefrontToken = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+		const storeDomain =
+			process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || process.env.SHOPIFY_STORE_DOMAIN;
+		const storefrontToken =
+			process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+			process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 
 		if (!(storeDomain && storefrontToken)) {
 			const defaultConfig = getDefaultStoreConfig() as StoreConfig;
@@ -72,7 +75,7 @@ export const loadStoreConfiguration = cache(async (): Promise<StoreConfig> => {
 			return defaultConfig;
 		}
 
-		// Get basic shop information
+		// Cached Storefront fetch — never block layout on cold Shopify
 		const shopData = await fetch(`https://${storeDomain}/api/2024-01/graphql.json`, {
 			method: "POST",
 			headers: {
@@ -80,6 +83,8 @@ export const loadStoreConfiguration = cache(async (): Promise<StoreConfig> => {
 				"X-Shopify-Storefront-Access-Token": storefrontToken,
 			},
 			body: JSON.stringify({ query: SHOP_QUERY }),
+			next: { revalidate: 3600, tags: ["store-config"] },
+			signal: AbortSignal.timeout(2000),
 		});
 
 		if (!shopData.ok) {

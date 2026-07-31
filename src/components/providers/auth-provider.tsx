@@ -100,17 +100,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		return customUser as User | null;
 	}, [customUser, session, sessionHasCustomerToken]);
 
-	// Set up ready state after initial check
 	useEffect(() => {
-		const timer = setTimeout(() => {
+		if (!nextAuthLoading && !customAuthLoading) {
 			setIsReady(true);
-		}, 500); // Short delay to ensure auth state is stable
-
-		return () => clearTimeout(timer);
-	}, []);
-
-	// Log auth state changes
-	useEffect(() => {}, []);
+		}
+	}, [nextAuthLoading, customAuthLoading]);
 
 	// Provide the auth context to the rest of the app
 	return (

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { unstable_noStore as noStore } from "next/cache";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import Script from "next/script";
@@ -22,9 +21,7 @@ import { formatPrice } from "@/lib/utils";
 // Constants for pagination
 const POSTS_PER_PAGE = 12;
 
-// Get blog data
 function getBlogData(handle: string) {
-	noStore();
 	return getBlogByHandle(handle);
 }
 

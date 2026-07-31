@@ -18,8 +18,8 @@ const HEALTH_QUERY = `
 `;
 
 /**
- * Lightweight Shopify connectivity probe (cached per request + short ISR).
- * Used for site-wide degraded-mode banner and to avoid false 404s during outages.
+ * Lightweight Shopify connectivity probe.
+ * Long cache + short timeout so it never dominates TTFB.
  */
 export const getShopifyConnectionStatus = cache(async (): Promise<ShopifyConnectionStatus> => {
 	if (!(SHOPIFY_STORE_DOMAIN && SHOPIFY_STOREFRONT_ACCESS_TOKEN)) {
@@ -35,10 +35,10 @@ export const getShopifyConnectionStatus = cache(async (): Promise<ShopifyConnect
 			},
 			body: JSON.stringify({ query: HEALTH_QUERY }),
 			next: {
-				revalidate: 60,
+				revalidate: 300,
 				tags: ["shopify-health"],
 			},
-			signal: AbortSignal.timeout(8000),
+			signal: AbortSignal.timeout(1500),
 		});
 
 		if (!response.ok) {

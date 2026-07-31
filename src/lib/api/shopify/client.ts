@@ -1,37 +1,22 @@
 import { SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_ACCESS_TOKEN } from "@/lib/constants";
 import type { ShopifyFetchParams } from "./types";
 
-// Edge runtime for faster global response
-export const runtime = "edge";
+const DEFAULT_TIMEOUT_MS = 2500;
+const MAX_RETRIES = 1;
 
 /**
- * Shopify GraphQL fetch function optimized for Edge runtime
- *
- * Performance optimized:
- * - Runs on Edge (globally distributed, faster cold starts)
- * - No artificial throttling
- * - Shopify Storefront API allows 200 requests/minute
- * - Homepage makes ~4-6 requests - well within limits
+ * Shopify Storefront GraphQL fetch — tuned for sub-50ms warm-cache TTFB.
+ * Failures fail fast (short timeout, single retry) so pages can degrade instead of hanging.
  */
-export async function shopifyFetch<T>({
-	query,
-	variables,
-	tags,
-	cache = "force-cache",
-	next,
-}: ShopifyFetchParams<T>): Promise<{ data: T }> {
-	// Check if Shopify credentials are configured
+export async function shopifyFetch<T>({ query, variables, tags, next }: ShopifyFetchParams<T>): Promise<{ data: T }> {
 	if (!(SHOPIFY_STORE_DOMAIN && SHOPIFY_STOREFRONT_ACCESS_TOKEN)) {
-		// Soft-fail so pages can render degraded UI instead of crashing
 		return { data: {} as T };
 	}
 
-	const maxRetries = 3;
 	let lastError: Error | null = null;
 
-	for (let attempt = 1; attempt <= maxRetries; attempt++) {
+	for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
 		try {
-			// Direct fetch - no artificial delays
 			const response = await fetch(`https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`, {
 				method: "POST",
 				headers: {
@@ -42,13 +27,12 @@ export async function shopifyFetch<T>({
 					query,
 					variables,
 				}),
-				// Don't specify cache when using revalidate - Next.js will handle it
 				next: {
 					...next,
 					tags: [...(next?.tags || []), ...(tags || [])],
-					revalidate: next?.revalidate ?? 300, // 5 minutes default
+					revalidate: next?.revalidate ?? 300,
 				},
-				signal: AbortSignal.timeout(30_000), // 30 second timeout
+				signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
 			});
 
 			if (!response.ok) {
@@ -65,22 +49,19 @@ export async function shopifyFetch<T>({
 		} catch (error) {
 			lastError = error instanceof Error ? error : new Error(String(error));
 
-			// Check if it's a retryable error
 			const isRetryable =
 				lastError.message.includes("ECONNRESET") ||
 				lastError.message.includes("ETIMEDOUT") ||
 				lastError.message.includes("SocketError") ||
 				lastError.message.includes("fetch failed") ||
-				lastError.message.includes("HTTP 429") || // Rate limit
-				lastError.message.includes("HTTP 5"); // Server errors
+				lastError.message.includes("HTTP 429") ||
+				lastError.message.includes("HTTP 5");
 
-			if (!isRetryable || attempt === maxRetries) {
+			if (!isRetryable || attempt > MAX_RETRIES) {
 				throw lastError;
 			}
 
-			// Exponential backoff
-			const delay = Math.min(1000 * 2 ** (attempt - 1), 5000);
-			await new Promise((resolve) => setTimeout(resolve, delay));
+			await new Promise((resolve) => setTimeout(resolve, 150));
 		}
 	}
 

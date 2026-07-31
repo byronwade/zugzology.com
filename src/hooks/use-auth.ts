@@ -224,18 +224,8 @@ export function useAuth(options: UseAuthOptions = {}) {
 	}, [router, csrfToken, options]);
 
 	useEffect(() => {
-		// Check authentication status on mount
-		checkAuth();
-
-		// Set up periodic silent auth check (every 5 minutes)
-		const interval = setInterval(
-			() => {
-				checkAuth(true);
-			},
-			5 * 60 * 1000
-		);
-
-		return () => clearInterval(interval);
+		// Single silent check on mount — no polling (NextAuth owns session refresh)
+		void checkAuth(true);
 	}, [checkAuth]);
 
 	return {
