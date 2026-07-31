@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
 		/Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google|Storebot-Google|Mediapartners-Google|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Pinterest|TelegramBot|Embedly|PetalBot|SemrushBot|AhrefsBot|GPTBot|ChatGPT-User|PerplexityBot|ClaudeBot|Bytespider/i,
 
 	experimental: {
+		// Measured, not assumed: inlining takes the document from 566KB to 850KB
+		// and costs more than the 330ms of render-blocking CSS it removes —
+		// mobile performance 78-83 with the external sheet, 69-70 inlined.
 		inlineCss: false,
 		optimizePackageImports: [
 			"lucide-react",
