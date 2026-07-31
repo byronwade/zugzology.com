@@ -8,6 +8,7 @@ import { BlogShareToolbarHorizontal } from "@/components/features/blog/blog-shar
 import { FrequentlyBoughtTogether } from "@/components/features/products/sections/frequently-bought-together";
 import { BreadcrumbConfigs, UniversalBreadcrumb } from "@/components/layout";
 import { Link } from "@/components/ui/link";
+import { getShopifyUnavailableFallback } from "@/components/ui/shopify-unavailable";
 import { getLimitedProducts, getProductsByTags } from "@/lib/actions/shopify/index";
 import { getAllBlogPosts, getArticleByHandles, getBlogByHandle } from "@/lib/api/shopify/actions";
 import {
@@ -219,7 +220,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 	// Get all blog categories - Removed
 
 	if (!(blog && article)) {
-		notFound();
+		return (
+			(await getShopifyUnavailableFallback({
+				description:
+					"We can't load this article because Shopify is unreachable right now. You can still navigate the rest of the site.",
+				title: "Article unavailable right now",
+			})) ?? notFound()
+		);
 	}
 
 	// Get related posts - optimize with a smaller fetch

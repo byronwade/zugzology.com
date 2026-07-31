@@ -22,7 +22,7 @@ export async function shopifyFetch<T>({
 }: ShopifyFetchParams<T>): Promise<{ data: T }> {
 	// Check if Shopify credentials are configured
 	if (!(SHOPIFY_STORE_DOMAIN && SHOPIFY_STOREFRONT_ACCESS_TOKEN)) {
-		// Return empty data structure to prevent crashes
+		// Soft-fail so pages can render degraded UI instead of crashing
 		return { data: {} as T };
 	}
 

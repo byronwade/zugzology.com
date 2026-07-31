@@ -4,6 +4,7 @@ import Script from "next/script";
 import { ProductServerWrapper } from "@/components/features/products/product-server-wrapper";
 import { SEOProductWrapper } from "@/components/features/products/seo-product-wrapper";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { getShopifyUnavailableFallback, ShopifyUnavailable } from "@/components/ui/shopify-unavailable";
 import { getProductPageData } from "@/lib/api/shopify/actions";
 import { FAQ_TEMPLATES } from "@/lib/config/wadesdesign.config";
 import {
@@ -49,18 +50,12 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 	}
 }
 
-// Error fallback component
-function ProductError() {
+function ProductError(): React.ReactElement {
 	return (
-		<div className="flex min-h-[50vh] w-full items-center justify-center">
-			<div className="text-center">
-				<h2 className="mb-2 font-semibold text-xl">Something went wrong</h2>
-				<p className="text-muted-foreground">Unable to load product information</p>
-				<a className="mt-4 inline-block text-primary hover:underline" href="/">
-					Return to Home
-				</a>
-			</div>
-		</div>
+		<ShopifyUnavailable
+			description="Unable to load product information right now. You can keep browsing other pages while we reconnect."
+			title="Something went wrong"
+		/>
 	);
 }
 
@@ -71,7 +66,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
 		const { product, relatedProducts } = await getProductPageData(handle);
 
 		if (!product) {
-			notFound();
+			return (
+				(await getShopifyUnavailableFallback({
+					description:
+						"We can't load product details because Shopify is unreachable right now. You can keep browsing the site and try again shortly.",
+					title: "Product unavailable right now",
+				})) ?? notFound()
+			);
 		}
 
 		// Generate breadcrumb items

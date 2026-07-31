@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { BreadcrumbConfigs, UniversalBreadcrumb } from "@/components/layout";
 import { Link } from "@/components/ui/link";
 import { PaginationControlsSSR } from "@/components/ui/pagination";
+import { getShopifyUnavailableFallback } from "@/components/ui/shopify-unavailable";
 import { getLimitedProducts } from "@/lib/actions/shopify/index";
 import { getAllBlogPosts, getBlogByHandle, getPaginatedBlogPostsByHandle } from "@/lib/api/shopify/actions";
 import {
@@ -213,8 +214,13 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
 	const { posts, blog, pagination } = await getPaginatedBlogPostsByHandle(nextParams.blog, currentPage, POSTS_PER_PAGE);
 
 	if (!blog) {
-		// If we couldn't find it as a blog category or article, show 404
-		return notFound();
+		return (
+			(await getShopifyUnavailableFallback({
+				description:
+					"We can't load blog content because Shopify is unreachable right now. You can still navigate the rest of the site.",
+				title: "Blog unavailable right now",
+			})) ?? notFound()
+		);
 	}
 
 	// If no posts found and we're not on the first page, redirect to first page

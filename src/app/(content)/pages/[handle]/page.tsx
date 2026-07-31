@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageRenderer } from "@/components/features/pages/page-renderer";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { getShopifyUnavailableFallback, ShopifyUnavailable } from "@/components/ui/shopify-unavailable";
 import { getPageByHandle } from "@/lib/api/shopify/page-actions";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 
@@ -72,17 +73,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /**
  * Error fallback component
  */
-function PageError() {
+function PageError(): React.ReactElement {
 	return (
-		<div className="flex min-h-[50vh] w-full items-center justify-center">
-			<div className="text-center">
-				<h2 className="mb-2 font-semibold text-xl">Something went wrong</h2>
-				<p className="text-muted-foreground">Unable to load page content</p>
-				<a className="mt-4 inline-block text-primary hover:underline" href="/">
-					Return to Home
-				</a>
-			</div>
-		</div>
+		<ShopifyUnavailable
+			description="Unable to load this page content right now. You can keep browsing other pages while we reconnect."
+			title="Something went wrong"
+		/>
 	);
 }
 
@@ -96,7 +92,13 @@ export default async function DynamicPage({ params }: PageProps) {
 		const { page, sections, layout, theme } = await getPageByHandle(handle);
 
 		if (!page) {
-			notFound();
+			return (
+				(await getShopifyUnavailableFallback({
+					description:
+						"We can't load this page because Shopify is unreachable right now. You can still navigate the rest of the site.",
+					title: "Page unavailable right now",
+				})) ?? notFound()
+			);
 		}
 
 		// Generate structured data for the page
