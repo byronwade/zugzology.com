@@ -174,7 +174,10 @@
 		--secondary-foreground: 0.205 0 0;
 
 		--muted: 0.97 0 0;
-		--muted-foreground: 0.556 0 0;
+		/* 0.540 rather than shadcn's 0.556: at 0.556 this text clears AA on
+		 * --background (4.73) but not on --muted itself (4.34), and muted text
+		 * on a muted surface is a common pairing. 0.540 gives 5.06 / 4.64. */
+		--muted-foreground: 0.54 0 0;
 
 		--accent: 0.97 0 0;
 		--accent-foreground: 0.205 0 0;

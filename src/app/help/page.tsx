@@ -242,7 +242,10 @@ function HelpContent() {
 										</div>
 										<Input className="bg-muted/50" placeholder="Your Email" type="email" />
 										<Input className="bg-muted/50" placeholder="Order Number (if applicable)" />
-										<select className="w-full rounded-md border border-input bg-muted/50 p-2 focus:ring-1 focus:ring-primary">
+										<select
+											aria-label="Support topic"
+											className="w-full rounded-md border border-input bg-muted/50 p-2 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+										>
 											<option>Select a topic</option>
 											<option>Order Status</option>
 											<option>Returns & Exchanges</option>

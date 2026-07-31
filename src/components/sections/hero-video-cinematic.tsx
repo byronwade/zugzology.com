@@ -80,7 +80,7 @@ export function HeroVideoCinematic() {
 							{/* Primary CTA */}
 							<Button
 								asChild
-								className="group relative h-12 overflow-hidden rounded-md bg-primary px-8 font-semibold text-base text-white shadow-2xl transition-all hover:bg-primary/90 hover:shadow-primary/50 sm:h-14 sm:px-10 sm:text-lg"
+								className="group relative h-12 overflow-hidden rounded-md bg-primary px-8 font-semibold text-base text-primary-foreground shadow-2xl transition-all hover:bg-primary/90 hover:shadow-primary/50 sm:h-14 sm:px-10 sm:text-lg"
 							>
 								<PrefetchLink className="flex items-center gap-2" href="/products">
 									<Play className="h-5 w-5 transition-transform group-hover:scale-110" />

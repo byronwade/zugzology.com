@@ -113,7 +113,7 @@ export function BlogShareToolbar({ title, url, description }: BlogShareToolbarPr
 			<div className="fixed right-6 bottom-6 z-50 md:hidden">
 				<Button
 					aria-label="Share Options"
-					className="h-12 w-12 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90"
+					className="h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
 					onClick={() => setShowMobileShare(!showMobileShare)}
 					size="icon"
 					variant="default"

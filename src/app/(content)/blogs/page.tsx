@@ -398,7 +398,8 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 									<div className="flex items-center gap-2">
 										<span className="text-muted-foreground text-sm dark:text-muted-foreground">Filter by:</span>
 										<select
-											className="rounded-md border border-border bg-white px-3 py-1.5 text-sm dark:border-border dark:bg-card"
+											aria-label="Filter by category"
+											className="rounded-md border border-border bg-card px-3 py-1.5 text-sm"
 											disabled
 										>
 											<option>All Categories</option>
@@ -407,7 +408,8 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 									<div className="flex items-center gap-2">
 										<span className="text-muted-foreground text-sm dark:text-muted-foreground">Sort by:</span>
 										<select
-											className="rounded-md border border-border bg-white px-3 py-1.5 text-sm dark:border-border dark:bg-card"
+											aria-label="Sort articles"
+											className="rounded-md border border-border bg-card px-3 py-1.5 text-sm"
 											disabled
 										>
 											<option>Latest</option>

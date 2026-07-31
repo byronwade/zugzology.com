@@ -257,12 +257,14 @@ export async function Footer() {
 							return (
 								<li key={`social-${social.href}`}>
 									<a
-										className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
+										className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 text-muted-foreground outline-none transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-primary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 										href={social.href}
 										rel="noopener noreferrer"
 										target="_blank"
 									>
-										<Icon className="h-4 w-4" />
+										<Icon aria-hidden="true" className="h-4 w-4" />
+										{/* Icon-only link: the name is what a screen reader announces */}
+										<span className="sr-only">{social.title} (opens in a new tab)</span>
 									</a>
 								</li>
 							);

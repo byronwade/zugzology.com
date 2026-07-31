@@ -149,7 +149,7 @@ export function WhyChooseBentoV2({
 						</div>
 						<div className="mb-2 flex items-center gap-2">
 							<h3 className="font-bold text-foreground text-xl">30-Day</h3>
-							<span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 font-medium text-rose-600 text-xs dark:text-rose-400">
+							<span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 font-medium text-rose-700 text-xs dark:text-rose-300">
 								Guarantee
 							</span>
 						</div>

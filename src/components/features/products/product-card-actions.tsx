@@ -103,16 +103,20 @@ export function ProductCardActions({
 
 	return (
 		<>
-			{/* Wishlist Button */}
+			{/* Wishlist Button — icon only, so it carries its own accessible name */}
 			<Button
+				aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+				aria-pressed={isWishlisted}
 				className={cn("absolute z-[1]", view === "grid" ? "top-1.5 right-1.5 sm:top-2 sm:right-2" : "top-0 right-0")}
 				data-product-id={productId}
 				data-wishlist-add
 				onClick={handleWishlistToggle}
 				size="icon"
+				type="button"
 				variant="ghost"
 			>
 				<Heart
+					aria-hidden="true"
 					className={cn(
 						"h-4 w-4 transition-colors duration-200 sm:h-5 sm:w-5",
 						isWishlisted

@@ -404,7 +404,7 @@ export default async function BlogCategoryPage({ params, searchParams }: BlogCat
 														/>
 														<div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/0" />
 														<div className="absolute bottom-0 p-4 text-white">
-															<span className="mb-2 inline-flex items-center rounded-full bg-primary/80 px-2.5 py-0.5 font-medium text-white text-xs">
+															<span className="mb-2 inline-flex items-center rounded-full bg-primary/80 px-2.5 py-0.5 font-medium text-primary-foreground text-xs">
 																Featured
 															</span>
 														</div>
