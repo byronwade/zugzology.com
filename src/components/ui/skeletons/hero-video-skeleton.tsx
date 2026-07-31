@@ -4,7 +4,7 @@ export function HeroVideoSkeleton() {
 	return (
 		<section className="relative h-[calc(100vh-var(--header-height))] w-full overflow-hidden bg-black">
 			{/* Gradient background placeholder */}
-			<div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
+			<div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-900 to-black" />
 
 			{/* Animated mycelium pattern overlay */}
 			<div className="absolute inset-0 opacity-30">

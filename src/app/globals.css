@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-	font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer utilities {
 	.text-balance {
 		text-wrap: balance;
@@ -191,61 +187,66 @@ body {
 @layer base {
 	:root {
 		--safe-area-inset-top: env(safe-area-inset-top, 0px);
-		/* Zugzology Mushroom Theme - Light Mode */
-		--primary: 206 55 37;
-		/* Psilocybin Blue - professional, trustworthy */
-		--primary-foreground: 0 0 100;
 
-		--secondary: 206 20 85;
-		/* Light blue-gray - professional and clean */
-		--secondary-foreground: 8 10 16;
+		/* ==============================================================
+		 * shadcn/ui token set — neutral base, OKLCH.
+		 *
+		 * Values track the ui.shadcn.com "neutral" theme exactly, except
+		 * --primary / --ring, which stay Psilocybin Blue so the brand
+		 * survives the move. OKLCH keeps lightness perceptually even, so
+		 * a tint at L=0.97 reads the same weight whatever the hue.
+		 * ============================================================== */
 
-		--accent: 48 20 90;
-		/* Neutral muted color - no brown/golden tones */
-		--accent-foreground: 8 10 16;
-		--background: 48 26 96;
-		/* Mycelium White - natural, clean base */
-		--foreground: 8 10 16;
-		/* Dark Heather Grey - grounded, sophisticated text */
+		--radius: 0.625rem;
 
-		--card: 0 0 100;
-		/* Pure white cards for contrast */
-		--card-foreground: 8 10 16;
-		/* Dark Heather Grey text on white cards */
+		--background: 1 0 0;
+		--foreground: 0.145 0 0;
 
-		--popover: 0 0 100;
-		--popover-foreground: 8 10 16;
-		/* Dark Heather Grey for readability */
-		--muted: 48 20 90;
-		/* Muted Mycelium - subtle backgrounds */
-		--muted-foreground: 8 8 35;
-		/* Medium heather grey for secondary text */
+		--card: 1 0 0;
+		--card-foreground: 0.145 0 0;
 
-		--destructive: 0 84.2 60.2;
-		--destructive-foreground: 0 0 98;
+		--popover: 1 0 0;
+		--popover-foreground: 0.145 0 0;
 
-		--border: 48 20 85;
-		/* Mycelium border - subtle definition */
-		--input: 48 20 85;
-		--ring: 206 55 37;
-		--radius: 0.5rem;
-		/* Chart colors - Professional blue palette */
-		--chart-1: 206 55 37;
-		--chart-2: 206 60 55;
-		--chart-3: 206 45 60;
-		--chart-4: 206 35 45;
-		--chart-5: 206 40 28;
+		/* Psilocybin Blue, converted from #2A6C99 */
+		--primary: 0.51 0.097 242;
+		--primary-foreground: 0.985 0 0;
 
-		/* Sidebar colors */
-		--sidebar-background: 0 0 100;
-		--sidebar-foreground: 8 10 16;
-		/* Dark Heather Grey for sidebar text */
-		--sidebar-primary: 206 55 37;
-		--sidebar-primary-foreground: 0 0 100;
-		--sidebar-accent: 206 20 85;
-		--sidebar-accent-foreground: 8 10 16;
-		--sidebar-border: 48 20 85;
-		--sidebar-ring: 206 55 37;
+		--secondary: 0.97 0 0;
+		--secondary-foreground: 0.205 0 0;
+
+		--muted: 0.97 0 0;
+		--muted-foreground: 0.556 0 0;
+
+		--accent: 0.97 0 0;
+		--accent-foreground: 0.205 0 0;
+
+		--destructive: 0.577 0.245 27.325;
+		--destructive-foreground: 0.985 0 0;
+
+		--success: 0.52 0.118 156;
+		--success-foreground: 0.985 0 0;
+
+		--border: 0.922 0 0;
+		--input: 0.922 0 0;
+		--ring: 0.51 0.097 242;
+
+		--chart-1: 0.51 0.097 242;
+		--chart-2: 0.6 0.118 185;
+		--chart-3: 0.398 0.07 227;
+		--chart-4: 0.828 0.189 84.429;
+		--chart-5: 0.769 0.188 70.08;
+
+		--sidebar: 0.985 0 0;
+		--sidebar-background: 0.985 0 0;
+		--sidebar-foreground: 0.145 0 0;
+		--sidebar-primary: 0.51 0.097 242;
+		--sidebar-primary-foreground: 0.985 0 0;
+		--sidebar-accent: 0.97 0 0;
+		--sidebar-accent-foreground: 0.205 0 0;
+		--sidebar-border: 0.922 0 0;
+		--sidebar-ring: 0.51 0.097 242;
+
 		--header-top-height: 60px;
 		--header-nav-height: 40px;
 		--header-height: calc(
@@ -258,57 +259,61 @@ body {
 	}
 	.dark {
 		--safe-area-inset-top: env(safe-area-inset-top, 0px);
-		--primary: 206 55 37;
-		/* Psilocybin Blue - same brand color in both modes */
-		--primary-foreground: 0 0 100;
 
-		--secondary: 206 15 25;
-		/* Dark blue-gray - professional and clean */
-		--secondary-foreground: 48 26 91;
+		/* Dark mode follows shadcn's elevation model: --card and --popover sit
+		 * *lighter* than --background, so depth comes from surface lightness
+		 * rather than from shadows, which are invisible on a dark ground. */
 
-		--accent: 8 8 18;
-		/* Neutral dark muted - no brown/golden tones */
-		--accent-foreground: 48 26 91;
-		--background: 8 8 10;
-		/* Deep Heather Grey - cultivation chamber aesthetic */
-		--foreground: 48 26 91;
-		/* Mycelium White for readability */
+		--background: 0.145 0 0;
+		--foreground: 0.985 0 0;
 
-		--card: 8 8 13;
-		/* Slightly lighter dark heather grey */
-		--card-foreground: 48 26 91;
+		--card: 0.205 0 0;
+		--card-foreground: 0.985 0 0;
 
-		--popover: 8 8 13;
-		--popover-foreground: 48 26 91;
+		--popover: 0.269 0 0;
+		--popover-foreground: 0.985 0 0;
 
-		--muted: 8 8 18;
-		/* Dark muted heather grey */
-		--muted-foreground: 48 15 65;
+		/* On a dark ground no single blue clears AA both as text on
+		 * --background and under a white label, so the label goes dark
+		 * instead — the same trade shadcn's dark themes make.
+		 * 6.96:1 as text, 6.30:1 under the label. */
+		--primary: 0.68 0.115 242;
+		--primary-foreground: 0.205 0 0;
 
-		--destructive: 0 62.8 30.6;
-		--destructive-foreground: 0 0 98;
+		--secondary: 0.269 0 0;
+		--secondary-foreground: 0.985 0 0;
 
-		--border: 8 8 20;
-		/* Dark heather grey border */
-		--input: 8 8 20;
-		--ring: 206 55 37;
+		--muted: 0.269 0 0;
+		--muted-foreground: 0.708 0 0;
 
-		/* Chart colors - Professional blue palette for dark mode */
-		--chart-1: 206 55 37;
-		--chart-2: 206 55 45;
-		--chart-3: 206 50 60;
-		--chart-4: 206 45 50;
-		--chart-5: 206 55 45;
+		--accent: 0.371 0 0;
+		--accent-foreground: 0.985 0 0;
 
-		/* Sidebar colors */
-		--sidebar-background: 8 8 10;
-		--sidebar-foreground: 48 26 91;
-		--sidebar-primary: 206 55 37;
-		--sidebar-primary-foreground: 0 0 100;
-		--sidebar-accent: 206 15 25;
-		--sidebar-accent-foreground: 48 26 91;
-		--sidebar-border: 8 8 20;
-		--sidebar-ring: 206 55 37;
+		--destructive: 0.704 0.191 22.216;
+		--destructive-foreground: 0.145 0 0;
+
+		--success: 0.7 0.145 157;
+		--success-foreground: 0.145 0 0;
+
+		--border: 0.269 0 0;
+		--input: 0.32 0 0;
+		--ring: 0.68 0.115 242;
+
+		--chart-1: 0.68 0.115 242;
+		--chart-2: 0.696 0.17 162.48;
+		--chart-3: 0.769 0.188 70.08;
+		--chart-4: 0.627 0.265 303.9;
+		--chart-5: 0.645 0.246 16.439;
+
+		--sidebar: 0.205 0 0;
+		--sidebar-background: 0.205 0 0;
+		--sidebar-foreground: 0.985 0 0;
+		--sidebar-primary: 0.68 0.115 242;
+		--sidebar-primary-foreground: 0.205 0 0;
+		--sidebar-accent: 0.269 0 0;
+		--sidebar-accent-foreground: 0.985 0 0;
+		--sidebar-border: 0.269 0 0;
+		--sidebar-ring: 0.68 0.115 242;
 	}
 	/* Prevent layout shift when scrollbar appears/disappears */
 	html {
@@ -336,10 +341,20 @@ body {
 	}
 
 	body {
-		@apply bg-background text-foreground;
+		@apply bg-background font-sans text-foreground;
 		font-feature-settings:
 			"rlig" 1,
 			"calt" 1;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	/* shadcn sets headings tight; Geist carries the tracking well at display sizes. */
+	h1,
+	h2,
+	h3,
+	h4 {
+		@apply tracking-tight;
 	}
 
 	/* Respect user's motion preferences for accessibility */
@@ -354,7 +369,6 @@ body {
 		}
 
 		/* Disable specific animations */
-		.animate-shimmer,
 		.animate-float,
 		.animate-tilt-3d,
 		.animate-glow-pulse,
@@ -514,7 +528,7 @@ h6[id] {
 	left: -1.5rem;
 	opacity: 0.5;
 	font-weight: normal;
-	color: hsl(var(--primary));
+	color: oklch(var(--primary));
 }
 
 /* Optimize TOC for mobile */
@@ -616,9 +630,9 @@ html.scrolling {
 	--reading-max-width: 65ch;
 	--reading-line-height: 1.7;
 	--reading-font-size: 1.1rem;
-	--reading-background: hsl(48 26 96);
-	--reading-text: hsl(8 10 18);
-	--reading-border: hsl(48 20 85);
+	--reading-background: oklch(var(--background));
+	--reading-text: oklch(var(--foreground));
+	--reading-border: oklch(var(--border));
 }
 
 .reading-mode body {
@@ -679,14 +693,14 @@ html.scrolling {
 	margin: 1.5em 0;
 	padding-left: 1em;
 	font-style: italic;
-	color: hsl(40 10% 40%);
+	color: oklch(var(--muted-foreground));
 }
 
 /* Dark mode reading styles */
 .dark .reading-mode {
-	--reading-background: hsl(8 8 10);
-	--reading-text: hsl(48 26 91);
-	--reading-border: hsl(8 8 18);
+	--reading-background: oklch(var(--background));
+	--reading-text: oklch(var(--foreground));
+	--reading-border: oklch(var(--border));
 }
 
 /* Responsive adjustments */
@@ -705,18 +719,18 @@ html.scrolling {
 /* Reading mode overlay styles */
 .reading-overlay {
 	--reading-font: "Georgia", serif;
-	--reading-background: hsl(0 0% 100%);
-	--reading-text: hsl(0 0% 10%);
-	--reading-secondary: hsl(0 0% 40%);
+	--reading-background: oklch(var(--card));
+	--reading-text: oklch(var(--foreground));
+	--reading-secondary: oklch(var(--muted-foreground));
 	--reading-line-height: 1.8;
 	--reading-paragraph-spacing: 1.5em;
 	scrollbar-gutter: stable;
 }
 
 .dark .reading-overlay {
-	--reading-background: hsl(8 8 10);
-	--reading-text: hsl(48 26 91);
-	--reading-secondary: hsl(48 15 70);
+	--reading-background: oklch(var(--background));
+	--reading-text: oklch(var(--foreground));
+	--reading-secondary: oklch(var(--muted-foreground));
 }
 
 .reading-overlay article {
@@ -758,7 +772,7 @@ html.scrolling {
 }
 
 .reading-overlay article pre {
-	background: hsl(48 20 95);
+	background: oklch(var(--muted));
 	padding: 1em;
 	border-radius: 0.5rem;
 	overflow-x: auto;
@@ -766,7 +780,7 @@ html.scrolling {
 }
 
 .dark .reading-overlay article pre {
-	background: hsl(8 8 15);
+	background: oklch(var(--muted));
 }
 
 .reading-overlay article code {
@@ -775,14 +789,14 @@ html.scrolling {
 }
 
 .reading-overlay article a {
-	color: hsl(206 55 37);
+	color: oklch(var(--primary));
 	text-decoration: underline;
 	text-decoration-thickness: 1px;
 	text-underline-offset: 2px;
 }
 
 .dark .reading-overlay article a {
-	color: hsl(206 55 37);
+	color: oklch(var(--primary));
 }
 
 /* Smooth transition for reading mode */

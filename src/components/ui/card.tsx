@@ -8,10 +8,7 @@ const Card = ({
 	...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.RefObject<HTMLDivElement | null> }) => (
 	<div
-		className={cn(
-			"rounded-xl border bg-card text-card-foreground shadow-md transition-shadow duration-200 hover:shadow-lg",
-			className
-		)}
+		className={cn("flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm", className)}
 		ref={ref}
 		{...props}
 	/>

@@ -1,4 +1,4 @@
-import { Award, Star, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { ProductCard } from "@/components/features/products/product-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,7 @@ export function BestSellersShowcase({ products }: BestSellersShowcaseProps) {
 					<div className="hidden gap-6 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 						{products.slice(0, 5).map((product, index) => (
 							<div className="group relative" key={product.id}>
-								<div className="hover:-translate-y-1 relative overflow-hidden rounded-lg bg-muted shadow-lg transition-all duration-300 hover:shadow-xl">
+								<div className="relative">
 									{/* Best Seller Badge - Top Right */}
 									<div className="absolute top-3 right-3 z-20">
 										<Badge className="bg-primary font-semibold text-primary-foreground shadow-md">
@@ -77,20 +77,6 @@ export function BestSellersShowcase({ products }: BestSellersShowcaseProps) {
 										variantId={product.variants.nodes[0]?.id}
 										view="grid"
 									/>
-
-									{/* Rating Section - Below Product Card */}
-									<div className="flex items-center justify-between gap-2 rounded-b-lg bg-muted px-3 py-2">
-										<div className="flex items-center gap-1">
-											{[...new Array(5)].map((_, i) => (
-												<Star className="h-4 w-4 fill-yellow-400 text-yellow-400" key={i} />
-											))}
-											<span className="ml-1 text-muted-foreground text-xs">(4.8)</span>
-										</div>
-										<Badge className="border-primary/20 bg-primary/10 text-primary" variant="outline">
-											<Award className="mr-1 h-3.5 w-3.5" />
-											<span className="text-xs">Top Rated</span>
-										</Badge>
-									</div>
 								</div>
 							</div>
 						))}

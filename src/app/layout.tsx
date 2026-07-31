@@ -6,7 +6,7 @@ import { Footer, Header } from "@/components/layout";
 import { ShopifyStatusBanner } from "@/components/layout/shopify-status-banner";
 import { generateHomeMetadata, generateStoreStructuredData, generateViewport } from "@/lib/config/dynamic-metadata";
 import { getStoreConfigSafe } from "@/lib/config/store-config";
-import { fontSans } from "@/lib/fonts";
+import { fontMono, fontSans } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
 
@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
 				<link crossOrigin="anonymous" href="https://cdn.shopify.com" rel="preconnect" />
 				<link crossOrigin="anonymous" href="https://bevgyjm5apuichhj.public.blob.vercel-storage.com" rel="preconnect" />
 			</head>
-			<body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
+			<body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable, fontMono.variable)}>
 				<Providers>
 					<div className="relative flex min-h-screen flex-col">
 						<Suspense fallback={<HeaderLoading />}>
