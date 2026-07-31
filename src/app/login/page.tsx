@@ -8,6 +8,8 @@ import { getSiteSettings } from "@/lib/actions/shopify";
 import { getEnhancedBreadcrumbSchema, getSearchActionSchema } from "@/lib/seo/enhanced-jsonld";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo/seo-utils";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = generateSEOMetadata({
 	title: "Sign In - Customer Login",
 	description:

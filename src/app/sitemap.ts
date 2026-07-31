@@ -112,28 +112,42 @@ async function getAllShopifyData() {
 		}
 	`;
 
-	const { data } = await shopifyFetch<any>({
-		query,
-		cache: "force-cache",
-		next: {
-			tags: ["sitemap"],
-			revalidate: 3600, // Revalidate every hour
-		},
-	});
+	try {
+		const { data } = await shopifyFetch<any>({
+			query,
+			cache: "force-cache",
+			next: {
+				tags: ["sitemap"],
+				revalidate: 3600, // Revalidate every hour
+			},
+		});
 
-	return {
-		shop: data.shop,
-		products: data.products.edges.map((edge: any) => edge.node),
-		collections: data.collections.edges.map((edge: any) => edge.node),
-		blogs: data.blogs.edges.map((edge: any) => edge.node),
-		articles: data.blogs.edges.flatMap((edge: any) =>
-			edge.node.articles.edges.map((articleEdge: any) => ({
-				...articleEdge.node,
-				blog: { handle: edge.node.handle, title: edge.node.title },
-			}))
-		),
-		menuItems: data.menu?.items || [],
-	};
+		const blogEdges = data?.blogs?.edges ?? [];
+
+		return {
+			shop: data?.shop ?? null,
+			products: (data?.products?.edges ?? []).map((edge: any) => edge.node),
+			collections: (data?.collections?.edges ?? []).map((edge: any) => edge.node),
+			blogs: blogEdges.map((edge: any) => edge.node),
+			articles: blogEdges.flatMap((edge: any) =>
+				(edge.node?.articles?.edges ?? []).map((articleEdge: any) => ({
+					...articleEdge.node,
+					blog: { handle: edge.node.handle, title: edge.node.title },
+				}))
+			),
+			menuItems: data?.menu?.items || [],
+		};
+	} catch {
+		// Shopify outage / missing credentials: keep sitemap buildable with static routes only
+		return {
+			shop: null,
+			products: [],
+			collections: [],
+			blogs: [],
+			articles: [],
+			menuItems: [],
+		};
+	}
 }
 
 // Helper function to generate alternate language URLs if needed

@@ -47,8 +47,13 @@ export async function getSession(): Promise<Session> {
 			},
 			expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
 		};
-	} catch (_error) {
-		throw new SessionError("Failed to get session");
+	} catch {
+		// During static prerender / build, cookies() can be unavailable.
+		// Treat as logged out so pages like /login can still build.
+		return {
+			user: null,
+			expires: null,
+		};
 	}
 }
 
