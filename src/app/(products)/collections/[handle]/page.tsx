@@ -6,6 +6,7 @@ import { cache, Suspense } from "react";
 import { ProductGridWithFilters } from "@/components/features/products/product-grid-with-filters";
 import { BreadcrumbConfigs, UniversalBreadcrumb } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { getShopifyUnavailableFallback, ShopifyUnavailable } from "@/components/ui/shopify-unavailable";
 import { getCollection, getPaginatedProducts } from "@/lib/api/shopify/actions";
 import type { ShopifyCollectionWithPagination } from "@/lib/api/shopify/types";
 import { FAQ_TEMPLATES } from "@/lib/config/wadesdesign.config";
@@ -234,7 +235,13 @@ export default async function CollectionPage({ params, searchParams }: Collectio
 		const collection = await getCachedCollection(awaitedParams.handle, sort, page);
 
 		if (!collection) {
-			return notFound();
+			return (
+				(await getShopifyUnavailableFallback({
+					description:
+						"We can't load this collection because Shopify is unreachable right now. Header and footer navigation still work — please try again shortly.",
+					title: "Collection unavailable right now",
+				})) ?? notFound()
+			);
 		}
 
 		// Generate enhanced structured data
@@ -378,7 +385,10 @@ export default async function CollectionPage({ params, searchParams }: Collectio
 		);
 	} catch (_error) {
 		return (
-			<div className="container py-10">Sorry, there was an error loading this collection. Please try again later.</div>
+			<ShopifyUnavailable
+				description="Sorry, there was an error loading this collection. You can keep browsing the site and try again later."
+				title="Collection unavailable right now"
+			/>
 		);
 	}
 }

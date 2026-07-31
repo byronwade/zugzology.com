@@ -64,9 +64,10 @@ type HomePageData = {
 };
 
 // Optimized homepage product fetching - minimal GraphQL payload
-async function fetchOptimizedProducts(sortKey: string, first: number) {
-	const { data } = await shopifyFetch<{ products: { nodes: ShopifyProduct[] } }>({
-		query: `
+async function fetchOptimizedProducts(sortKey: string, first: number): Promise<ShopifyProduct[]> {
+	try {
+		const { data } = await shopifyFetch<{ products: { nodes: ShopifyProduct[] } }>({
+			query: `
 			query getOptimizedProducts($sortKey: ProductSortKeys!, $first: Int!) {
 				products(first: $first, sortKey: $sortKey, reverse: true) {
 					nodes {
@@ -76,12 +77,16 @@ async function fetchOptimizedProducts(sortKey: string, first: number) {
 			}
 			${PRODUCT_CARD_FRAGMENT}
 		`,
-		variables: { sortKey, first },
-		tags: [`products-${sortKey}`],
-		next: { revalidate: 300 },
-	});
+			variables: { sortKey, first },
+			tags: [`products-${sortKey}`],
+			next: { revalidate: 300 },
+		});
 
-	return data?.products?.nodes || [];
+		return data?.products?.nodes || [];
+	} catch {
+		// Shopify outage: keep homepage navigable (banner shown from layout)
+		return [];
+	}
 }
 
 async function fetchHomePageData(): Promise<HomePageData> {
