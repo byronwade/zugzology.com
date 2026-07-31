@@ -1,16 +1,35 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, FlaskConical } from "lucide-react";
 
 import { getShopifyConnectionStatus } from "@/lib/api/shopify/health";
 
 /**
- * Site-wide notice when Shopify Storefront API is unreachable.
- * Keeps header/footer navigable while commerce data may be unavailable.
+ * Site-wide notice when live Shopify is down and/or Mock.shop demo data is active.
  */
 export async function ShopifyStatusBanner(): Promise<React.ReactElement | null> {
 	const status = await getShopifyConnectionStatus();
 
-	if (status.available) {
+	if (status.mode === "live") {
 		return null;
+	}
+
+	if (status.mode === "demo") {
+		return (
+			<output
+				aria-live="polite"
+				className="block w-full border-sky-500/40 border-b bg-sky-50 text-left text-sky-950 dark:bg-sky-950/50 dark:text-sky-50"
+			>
+				<div className="container mx-auto flex items-start gap-3 px-4 py-3 text-sm sm:items-center">
+					<FlaskConical aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-sky-700 sm:mt-0 dark:text-sky-300" />
+					<div className="min-w-0 space-y-0.5">
+						<p className="font-medium tracking-tight">Demo catalog active</p>
+						<p className="text-sky-900/85 dark:text-sky-100/85">
+							The live store isn&apos;t connected right now, so you&apos;re browsing sample products from Mock.shop.
+							Navigation, product pages, and cart still work with demo data.
+						</p>
+					</div>
+				</div>
+			</output>
+		);
 	}
 
 	const detail =
