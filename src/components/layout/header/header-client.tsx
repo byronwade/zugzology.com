@@ -380,10 +380,11 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [router, openCart, isDropdownOpen, setIsDropdownOpen, searchHandlers]);
 
-	// Return null only for initial mount
-	if (!mounted) {
-		return null;
-	}
+	// No pre-mount bail-out. Returning null here meant the header was absent from
+	// the first paint and then appeared on hydration, pushing the banner and all
+	// of <main> down by --header-height (101px) — the page's entire CLS.
+	// The only hydration-sensitive parts are the cart and wishlist counts, and
+	// those are already gated on `mounted` individually via cartState/wishlistState.
 
 	return (
 		<>
