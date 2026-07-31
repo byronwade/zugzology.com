@@ -15,7 +15,7 @@ export function SaleProducts({ products }: SaleProductsProps) {
 
 	return (
 		<section className="w-full bg-muted/50">
-			<div className="container mx-auto px-4 py-12">
+			<div className="container mx-auto px-4 py-12 sm:py-16">
 				<div className="mb-8 flex items-center justify-between">
 					<div>
 						<div className="flex items-center gap-3">

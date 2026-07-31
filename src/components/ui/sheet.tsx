@@ -66,7 +66,7 @@ const SheetContent = ({
 	<SheetPortal>
 		<SheetOverlay />
 		<SheetPrimitive.Content className={cn(sheetVariants({ side }), className)} ref={ref} {...props}>
-			<SheetPrimitive.Close className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+			<SheetPrimitive.Close className="absolute top-4 right-4 rounded-sm opacity-70 outline-none ring-offset-background transition-opacity hover:opacity-100 focus:border-ring focus:ring-[3px] focus:ring-ring/50 disabled:pointer-events-none data-[state=open]:bg-secondary">
 				<X className="h-4 w-4" />
 				<span className="sr-only">Close</span>
 			</SheetPrimitive.Close>

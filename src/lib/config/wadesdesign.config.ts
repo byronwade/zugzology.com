@@ -405,7 +405,7 @@ export const SEO = {
 	og: {
 		type: "website",
 		siteName: "Zugzology",
-		image: "/og-image.jpg",
+		image: "/opengraph-image",
 		imageWidth: 1200,
 		imageHeight: 630,
 	},
@@ -786,7 +786,7 @@ export const ASSETS = {
 		mycelium1: "/mycelium.png",
 		mycelium2: "/mycelium1.png",
 		mycelium3: "/mycelium2.png",
-		mycelium4: "/mycelium3.png",
+		mycelium4: "/mycelium-3.png",
 		mycelium5: "/mycelium4.png",
 		mycelium6: "/mycelium5.png",
 		mycelium7: "/mycelium6.png",
@@ -820,8 +820,8 @@ export const ASSETS = {
 
 	// OG/Social images
 	social: {
-		ogImageDefault: "/og-image.jpg",
-		twitterImageDefault: "/twitter-image.jpg",
+		ogImageDefault: "/opengraph-image",
+		twitterImageDefault: "/opengraph-image",
 	},
 } as const;
 

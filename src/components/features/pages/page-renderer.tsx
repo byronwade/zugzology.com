@@ -27,7 +27,7 @@ export function PageRenderer({ page, sections, layout, theme }: PageRendererProp
 		pageLayout === "split" && "mx-auto max-w-7xl px-4",
 		// Theme variants
 		pageTheme === "default" && "bg-background text-foreground",
-		pageTheme === "dark" && "bg-slate-900 text-white",
+		pageTheme === "dark" && "dark bg-background text-foreground",
 		pageTheme === "accent" && "bg-primary/5"
 	);
 

@@ -387,12 +387,12 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 
 	return (
 		<>
-			<header className="safe-area-top sticky top-0 z-50 flex flex-col bg-background">
+			<header className="safe-area-top sticky top-0 z-50 flex flex-col border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 				{/* Dynamic Promo Banner - Hidden */}
 				{/* <DynamicPromoBanner onDismiss={() => setShowPromo(false)} showPromo={showPromo} /> */}
 
 				{/* Top Bar - Shopify Admin Style */}
-				<div className="flex h-[var(--header-top-height)] flex-shrink-0 items-center border-border border-b bg-background">
+				<div className="flex h-[var(--header-top-height)] flex-shrink-0 items-center border-b">
 					<div className="container mx-auto flex w-full items-center justify-between px-4">
 						{/* Logo Section */}
 						<div className="flex items-center">
@@ -406,7 +406,7 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 									autoCapitalize="off"
 									autoComplete="off"
 									autoCorrect="off"
-									className="flex h-9 w-full rounded-md border border bg-muted px-3 py-2 pr-4 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:font-medium file:text-sm placeholder:text-muted-foreground focus:bg-background focus:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+									className="pr-4 pl-10"
 									inputMode="search"
 									onChange={searchHandlers.change}
 									onFocus={searchHandlers.focus}
@@ -615,24 +615,13 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 									</DropdownMenu>
 								) : (
 									<div className="hidden items-center gap-2 sm:flex">
-										<Button
-											className="group inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-full border border bg-background px-3 font-medium text-xs shadow-sm transition-all duration-200 hover:scale-105 hover:border-primary hover:bg-primary/10 hover:text-primary hover:shadow-md hover:shadow-primary/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-											onClick={() => router.push("/login")}
-											size="sm"
-											variant="outline"
-										>
-											<LogIn className="h-4 w-4 transition-transform duration-200 group-hover:rotate-12" />
+										<Button onClick={() => router.push("/login")} size="sm" variant="outline">
+											<LogIn />
 											{CONTENT.navigation.actions.signIn}
 										</Button>
-										<Button
-											className="group relative inline-flex h-9 items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-full bg-primary px-3 font-medium text-primary-foreground text-xs shadow transition-all duration-200 hover:scale-105 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-											onClick={() => router.push("/register")}
-											size="sm"
-											variant="default"
-										>
-											<div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:animate-shimmer group-hover:opacity-100" />
-											<UserPlus className="relative z-10 h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-											<span className="relative z-10">{CONTENT.navigation.actions.signUp}</span>
+										<Button onClick={() => router.push("/register")} size="sm">
+											<UserPlus />
+											<span>{CONTENT.navigation.actions.signUp}</span>
 										</Button>
 									</div>
 								)}
@@ -642,7 +631,7 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 				</div>
 
 				{/* Navigation - Shopify Admin Style */}
-				<nav className="h-[var(--header-nav-height)] flex-shrink-0 border-border border-b bg-background">
+				<nav className="h-[var(--header-nav-height)] flex-shrink-0">
 					<div className="container mx-auto h-full px-4">
 						<div className="flex h-full items-center">
 							<MenuSheetFixed items={initialMenuItems} />
@@ -655,7 +644,10 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 											return (
 												<DropdownMenu key={item.id}>
 													<DropdownMenuTrigger asChild>
-														<button className="shrink-0 py-1 font-medium text-muted-foreground text-sm transition-colors hover:text-primary">
+														<button
+															className="shrink-0 rounded-sm py-1 font-medium text-muted-foreground text-sm outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+															type="button"
+														>
 															{item.title}
 														</button>
 													</DropdownMenuTrigger>
@@ -677,7 +669,7 @@ export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 										// No submenu items, render as regular link
 										return (
 											<Link
-												className="shrink-0 py-1 font-medium text-muted-foreground text-sm transition-colors hover:text-primary"
+												className="shrink-0 rounded-sm py-1 font-medium text-muted-foreground text-sm outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
 												href={item.url}
 												key={item.id}
 												prefetch={true}

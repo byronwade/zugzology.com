@@ -14,7 +14,6 @@ import type {
 } from "@/lib/types";
 import { cn, debugLog } from "@/lib/utils";
 
-
 type ModelViewerAttributes = {
 	src: string;
 	poster?: string;
@@ -518,7 +517,7 @@ export function ProductGallery({
 											"relative aspect-square overflow-hidden rounded border transition-all",
 											selectedMediaIndex === index
 												? "border-primary ring-1 ring-primary"
-												: "border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600"
+												: "border-border hover:border-foreground/30"
 										)}
 										key={item.id}
 										onClick={() => {

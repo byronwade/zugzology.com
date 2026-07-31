@@ -238,7 +238,7 @@ export function ProductFAQs({ product, productType, additionalQuestions = [] }: 
 					Our expert team is here to help you with any questions or concerns
 				</p>
 				<a
-					className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground text-sm transition-all hover:bg-primary/90 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+					className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-6 font-medium text-primary-foreground text-sm shadow-xs outline-none transition-all hover:bg-primary/90 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 					href="/help"
 				>
 					Contact Our Expert Team

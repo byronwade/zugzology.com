@@ -49,7 +49,7 @@ const StarRating = ({ rating, count }: { rating: number; count: number }) => {
 			<div className="flex items-center">
 				{[...new Array(fullStars)].map((_, i) => (
 					<Star
-						className={cn("h-4 w-4 fill-yellow-400 text-yellow-400", getOpticalIconClasses("Star", "inline"))}
+						className={cn("h-4 w-4 fill-amber-400 text-amber-400", getOpticalIconClasses("Star", "inline"))}
 						key={`full-${i}`}
 					/>
 				))}
@@ -57,15 +57,20 @@ const StarRating = ({ rating, count }: { rating: number; count: number }) => {
 					<div className="relative h-4 w-4">
 						<Star
 							className={cn(
-								"clip-path-[inset(0_50%_0_0)] absolute h-4 w-4 fill-yellow-400 text-yellow-400",
+								"clip-path-[inset(0_50%_0_0)] absolute h-4 w-4 fill-amber-400 text-amber-400",
 								getOpticalIconClasses("Star", "inline")
 							)}
 						/>
-						<Star className={cn("absolute h-4 w-4 text-yellow-400", getOpticalIconClasses("Star", "inline"))} />
+						<Star
+							className={cn("absolute h-4 w-4 text-muted-foreground/30", getOpticalIconClasses("Star", "inline"))}
+						/>
 					</div>
 				)}
 				{[...new Array(emptyStars)].map((_, i) => (
-					<Star className={cn("h-4 w-4 text-yellow-400", getOpticalIconClasses("Star", "inline"))} key={`empty-${i}`} />
+					<Star
+						className={cn("h-4 w-4 text-muted-foreground/30", getOpticalIconClasses("Star", "inline"))}
+						key={`empty-${i}`}
+					/>
 				))}
 			</div>
 			<span className="text-muted-foreground text-sm">({count})</span>
@@ -162,8 +167,8 @@ export function ProductCard({
 			className={cn(
 				"group relative h-full",
 				view === "grid"
-					? "flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white transition-all duration-300 sm:rounded-xl dark:border-neutral-900 dark:bg-black"
-					: "flex flex-row gap-3 border-foreground/10 border-b py-3 last:border-b-0 sm:gap-4 sm:py-4"
+					? "flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-shadow duration-200 hover:shadow-md"
+					: "flex flex-row gap-3 border-b py-3 last:border-b-0 sm:gap-4 sm:py-4"
 			)}
 			data-product-id={product.id}
 			data-view={view}
@@ -199,7 +204,9 @@ export function ProductCard({
 						/>
 					) : (
 						<div className="absolute inset-0 flex items-center justify-center">
-							<Package className={cn("h-8 w-8 text-neutral-400", getOpticalIconClasses("Package", "standalone"))} />
+							<Package
+								className={cn("h-8 w-8 text-muted-foreground", getOpticalIconClasses("Package", "standalone"))}
+							/>
 						</div>
 					)}
 
@@ -279,7 +286,7 @@ export function ProductCard({
 								<span className="text-muted-foreground text-sm line-through">
 									{formatPrice(Number.parseFloat(compareAtPrice || "0"))}
 								</span>
-								<span className="font-medium text-red-600 text-xs dark:text-red-400">Save {discountPercentage}%</span>
+								<span className="font-medium text-destructive text-xs">Save {discountPercentage}%</span>
 							</div>
 						)}
 						<div className="flex items-baseline gap-2">
@@ -312,7 +319,7 @@ export function ProductCard({
 					<div className="flex items-center gap-1">
 						{isAvailable ? (
 							<>
-								<div className="h-1.5 w-1.5 rounded-full bg-green-500 sm:h-2 sm:w-2" />
+								<div className="h-1.5 w-1.5 rounded-full bg-success sm:h-2 sm:w-2" />
 								<span className="text-[10px] text-muted-foreground sm:text-xs">
 									{isBackorder ? "Available for Pre-Order" : "In Stock"}
 								</span>

@@ -345,24 +345,15 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 								: formatPrice(Number.parseFloat(selectedVariant?.price?.amount || "0"))}
 						</div>
 						{selectedVariant.quantityAvailable === 0 && selectedVariant.availableForSale === false ? (
-							<Badge
-								className="h-5 border-orange-600/20 bg-orange-500/10 px-2 py-0 text-orange-600 hover:bg-orange-500/10 dark:text-orange-400"
-								variant="secondary"
-							>
+							<Badge className="h-5 px-2 py-0" variant="secondary">
 								Backorder
 							</Badge>
 						) : selectedVariant.quantityAvailable <= 3 && selectedVariant.quantityAvailable > 0 ? (
-							<Badge
-								className="h-5 border-red-600/20 bg-red-500/10 px-2 py-0 text-red-600 hover:bg-red-500/10 dark:text-red-400"
-								variant="secondary"
-							>
+							<Badge className="h-5 px-2 py-0" variant="destructive">
 								Low Stock
 							</Badge>
 						) : (
-							<Badge
-								className="h-5 border-green-600/20 bg-green-500/10 px-2 py-0 text-green-600 hover:bg-green-500/10 dark:text-green-400"
-								variant="secondary"
-							>
+							<Badge className="h-5 px-2 py-0" variant="success">
 								In Stock
 							</Badge>
 						)}
@@ -442,24 +433,15 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 							<div className="flex flex-wrap items-center gap-2">
 								<h3 className="font-medium text-base">Stock Status</h3>
 								{selectedVariant.quantityAvailable === 0 && selectedVariant.availableForSale === false ? (
-									<Badge
-										className="h-5 border-orange-600/20 bg-orange-500/10 px-2 py-0 text-orange-600 hover:bg-orange-500/10 dark:text-orange-400"
-										variant="secondary"
-									>
+									<Badge className="h-5 px-2 py-0" variant="secondary">
 										Backorder
 									</Badge>
 								) : selectedVariant.quantityAvailable <= 3 && selectedVariant.quantityAvailable > 0 ? (
-									<Badge
-										className="h-5 border-red-600/20 bg-red-500/10 px-2 py-0 text-red-600 hover:bg-red-500/10 dark:text-red-400"
-										variant="secondary"
-									>
+									<Badge className="h-5 px-2 py-0" variant="destructive">
 										Low Stock
 									</Badge>
 								) : (
-									<Badge
-										className="h-5 border-green-600/20 bg-green-500/10 px-2 py-0 text-green-600 hover:bg-green-500/10 dark:text-green-400"
-										variant="secondary"
-									>
+									<Badge className="h-5 px-2 py-0" variant="success">
 										In Stock
 									</Badge>
 								)}
@@ -632,10 +614,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 							<AccordionContent className="pt-0 pb-2.5">
 								<div className="ml-9.5 space-y-1.5">
 									<div className="flex flex-wrap items-center gap-1.5">
-										<Badge
-											className="h-5 border-green-600/20 bg-green-50 text-green-700 text-xs dark:bg-green-950/30 dark:text-green-400"
-											variant="outline"
-										>
+										<Badge className="h-5" variant="success">
 											Free Shipping
 										</Badge>
 										<Badge className="h-5 text-xs" variant="secondary">
@@ -748,10 +727,7 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 												</div>
 												<div className="flex flex-1 items-center gap-2">
 													<span className="text-sm">Volume Discounts</span>
-													<Badge
-														className="h-5 border-green-600/20 bg-green-50 text-green-700 text-xs dark:bg-green-950/30 dark:text-green-400"
-														variant="outline"
-													>
+													<Badge className="h-5" variant="success">
 														Save up to 40%
 													</Badge>
 												</div>
@@ -762,23 +738,23 @@ export function ProductActions({ selectedVariant, quantity, onQuantityChange, pr
 												<ul className="space-y-1.5">
 													<li className="flex items-center justify-between text-xs">
 														<span className="text-muted-foreground">2-4 Bags</span>
-														<span className="font-medium text-green-600">15% OFF</span>
+														<span className="font-medium text-success">15% OFF</span>
 													</li>
 													<li className="flex items-center justify-between text-xs">
 														<span className="text-muted-foreground">5-9 Bags</span>
-														<span className="font-medium text-green-600">25% OFF</span>
+														<span className="font-medium text-success">25% OFF</span>
 													</li>
 													<li className="flex items-center justify-between text-xs">
 														<span className="text-muted-foreground">10-19 Bags</span>
-														<span className="font-medium text-green-600">30% OFF</span>
+														<span className="font-medium text-success">30% OFF</span>
 													</li>
 													<li className="flex items-center justify-between text-xs">
 														<span className="text-muted-foreground">20-49 Bags</span>
-														<span className="font-medium text-green-600">35% OFF</span>
+														<span className="font-medium text-success">35% OFF</span>
 													</li>
 													<li className="flex items-center justify-between text-xs">
 														<span className="text-muted-foreground">50+ Bags</span>
-														<span className="font-medium text-green-600">40% OFF</span>
+														<span className="font-medium text-success">40% OFF</span>
 													</li>
 												</ul>
 												<p className="text-muted-foreground text-xs">Discounts automatically applied at checkout</p>

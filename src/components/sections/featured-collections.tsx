@@ -19,7 +19,7 @@ export async function FeaturedCollections() {
 
 	return (
 		<section className="w-full bg-background">
-			<div className="container mx-auto px-4 py-8 sm:py-12 lg:py-16">
+			<div className="container mx-auto px-4 py-12 sm:py-16 lg:py-20">
 				{/* Section Header */}
 				<div className="mb-8 text-center sm:mb-12">
 					<h2 className="font-bold text-2xl text-foreground tracking-tight sm:text-3xl lg:text-4xl">

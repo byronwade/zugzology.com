@@ -25,7 +25,7 @@ export function HeroSection({ settings, layout, theme }: HeroSectionProps) {
 		heroLayout === "full-width" && "min-h-[calc(80vh-var(--header-height))]",
 		heroLayout === "split" && "min-h-[calc(60vh-var(--header-height))]",
 		heroLayout === "minimal" && "py-20",
-		theme === "dark" && "bg-slate-900 text-white",
+		theme === "dark" && "dark bg-background text-foreground",
 		theme === "default" && "bg-background"
 	);
 

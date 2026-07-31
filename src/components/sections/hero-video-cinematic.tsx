@@ -15,7 +15,7 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 			{/* Video Background - using CSS for scale effect */}
 			<div className="video-container absolute inset-0">
 				{/* Animated gradient background - fallback while video loads */}
-				<div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
+				<div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-900 to-black" />
 
 				{/* Animated mycelium pattern overlay */}
 				<div className="absolute inset-0 opacity-30">
@@ -33,7 +33,6 @@ export function HeroVideoCinematic({ products = [] }: HeroVideoCinematicProps) {
 					poster="/banner3.webp"
 					preload="none"
 				>
-					<source src="/videos/mushroom-hero.webm" type="video/webm" />
 					<source src="/videos/mushroom-hero.mp4" type="video/mp4" />
 				</video>
 

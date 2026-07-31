@@ -14,7 +14,7 @@ export function LatestProducts({ products }: LatestProductsProps) {
 
 	return (
 		<section className="w-full bg-muted/50">
-			<div className="container mx-auto px-4 py-12">
+			<div className="container mx-auto px-4 py-12 sm:py-16">
 				<div className="mb-8 flex items-center justify-between">
 					<div>
 						<h2 className="font-bold text-2xl text-foreground tracking-tight sm:text-3xl">Latest Products</h2>
