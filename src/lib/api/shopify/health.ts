@@ -1,13 +1,11 @@
 import { cache } from "react";
 
 import { SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_ACCESS_TOKEN } from "@/lib/constants";
+import { isMockShopForced, MOCK_SHOP_ENDPOINT, type StorefrontStatus } from "./demo-mode";
 
-export type ShopifyConnectionReason = "missing_credentials" | "connection_failed";
+export type ShopifyConnectionReason = "missing_credentials" | "connection_failed" | "using_demo";
 
-export type ShopifyConnectionStatus = {
-	available: boolean;
-	reason?: ShopifyConnectionReason;
-};
+export type ShopifyConnectionStatus = StorefrontStatus;
 
 const HEALTH_QUERY = `
 	query ShopifyHealth {
@@ -17,21 +15,13 @@ const HEALTH_QUERY = `
 	}
 `;
 
-/**
- * Lightweight Shopify connectivity probe.
- * Long cache + short timeout so it never dominates TTFB.
- */
-export const getShopifyConnectionStatus = cache(async (): Promise<ShopifyConnectionStatus> => {
-	if (!(SHOPIFY_STORE_DOMAIN && SHOPIFY_STOREFRONT_ACCESS_TOKEN)) {
-		return { available: false, reason: "missing_credentials" };
-	}
-
+async function probeEndpoint(endpoint: string, headers: Record<string, string> = {}): Promise<boolean> {
 	try {
-		const response = await fetch(`https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`, {
+		const response = await fetch(endpoint, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				"X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+				...headers,
 			},
 			body: JSON.stringify({ query: HEALTH_QUERY }),
 			next: {
@@ -42,7 +32,7 @@ export const getShopifyConnectionStatus = cache(async (): Promise<ShopifyConnect
 		});
 
 		if (!response.ok) {
-			return { available: false, reason: "connection_failed" };
+			return false;
 		}
 
 		const json = (await response.json()) as {
@@ -50,12 +40,41 @@ export const getShopifyConnectionStatus = cache(async (): Promise<ShopifyConnect
 			errors?: Array<{ message: string }>;
 		};
 
-		if (json.errors?.length || !json.data?.shop?.name) {
-			return { available: false, reason: "connection_failed" };
-		}
-
-		return { available: true };
+		return Boolean(!json.errors?.length && json.data?.shop?.name);
 	} catch {
-		return { available: false, reason: "connection_failed" };
+		return false;
 	}
+}
+
+/**
+ * Probe live Shopify first, then Mock.shop demo catalog.
+ * `mode: "demo"` means the site can still browse sample products.
+ */
+export const getShopifyConnectionStatus = cache(async (): Promise<ShopifyConnectionStatus> => {
+	const forceMock = isMockShopForced();
+	const hasCredentials = Boolean(SHOPIFY_STORE_DOMAIN && SHOPIFY_STOREFRONT_ACCESS_TOKEN);
+
+	if (hasCredentials && !forceMock) {
+		const liveOk = await probeEndpoint(`https://${SHOPIFY_STORE_DOMAIN}/api/2024-01/graphql.json`, {
+			"X-Shopify-Storefront-Access-Token": SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+		});
+		if (liveOk) {
+			return { available: true, mode: "live" };
+		}
+	}
+
+	const demoOk = await probeEndpoint(MOCK_SHOP_ENDPOINT);
+	if (demoOk) {
+		return {
+			available: true,
+			mode: "demo",
+			reason: hasCredentials ? "using_demo" : "missing_credentials",
+		};
+	}
+
+	return {
+		available: false,
+		mode: "down",
+		reason: hasCredentials ? "connection_failed" : "missing_credentials",
+	};
 });
