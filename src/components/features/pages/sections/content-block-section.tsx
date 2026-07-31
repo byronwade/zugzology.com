@@ -26,7 +26,7 @@ export function ContentBlockSection({ settings, layout, theme }: ContentBlockSec
 		<section
 			className={cn(
 				"py-16 md:py-24",
-				theme === "dark" && "bg-slate-900 text-white",
+				theme === "dark" && "bg-[hsl(205_32%_5%)] text-[hsl(40_20%_92%)]",
 				backgroundColor && `bg-[${backgroundColor}]`
 			)}
 		>

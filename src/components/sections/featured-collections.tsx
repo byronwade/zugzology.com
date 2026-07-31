@@ -1,6 +1,7 @@
 import { ArrowRight, Package } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { SectionHeading } from "@/components/sections/section-heading";
 import { getAllCollections } from "@/lib/api/shopify/actions";
 import { ASSETS } from "@/lib/config/wadesdesign.config";
 
@@ -18,17 +19,14 @@ export async function FeaturedCollections() {
 	}
 
 	return (
-		<section className="w-full bg-background">
-			<div className="container mx-auto px-4 py-8 sm:py-12 lg:py-16">
-				{/* Section Header */}
-				<div className="mb-8 text-center sm:mb-12">
-					<h2 className="font-bold text-2xl text-foreground tracking-tight sm:text-3xl lg:text-4xl">
-						Shop by Category
-					</h2>
-					<p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground sm:mt-4 sm:text-lg">
-						Explore our curated collections of premium cultivation supplies
-					</p>
-				</div>
+		<section className="lit w-full bg-background">
+			<div className="container mx-auto px-4 py-16 sm:py-20 lg:py-24">
+				<SectionHeading
+					align="center"
+					eyebrow="By category"
+					subtitle="Explore our curated collections of premium cultivation supplies"
+					title="Shop by category"
+				/>
 
 				{/* Collections Grid */}
 				<div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
@@ -41,44 +39,43 @@ export async function FeaturedCollections() {
 
 						return (
 							<Link
-								className="group relative overflow-hidden rounded-lg border border-border bg-card transition-all duration-300 hover:border-primary/40 hover:shadow-lg sm:rounded-xl"
+								className="group relative overflow-hidden rounded-lg border border-border bg-card transition-colors duration-300 hover:border-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 								href={`/collections/${collection.handle}`}
 								key={collection.handle}
 							>
-								{/* Collection Image */}
-								<div className="relative aspect-square w-full overflow-hidden bg-muted sm:aspect-[4/3]">
+								{/* Collection plate */}
+								<div className="relative aspect-square w-full overflow-hidden border-border border-b bg-muted sm:aspect-[4/3]">
 									<Image
 										alt={collection.title}
-										className="object-cover transition-transform duration-500 group-hover:scale-110"
+										className="object-cover brightness-[0.9] transition-[transform,filter] duration-700 ease-out group-hover:scale-[1.06] group-hover:brightness-100"
 										fill
 										sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw"
 										src={collection.image?.url || ASSETS.placeholders.collection}
 									/>
-									{/* Subtle Gradient Overlay */}
-									<div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-80" />
+									{/* Grade the plate so the count stays legible against any image */}
+									<div className="absolute inset-0 bg-[linear-gradient(to_bottom,hsl(205_55%_3%/0.45)_0%,transparent_45%,hsl(205_55%_3%/0.35)_100%)]" />
 
-									{/* Product Count Badge */}
+									{/* Item count — a fact, so it runs on the slate */}
 									<div className="absolute top-2 right-2 z-10 sm:top-3 sm:right-3">
-										<div className="flex items-center gap-1 rounded-full border border-white/20 bg-white/90 px-2 py-1 backdrop-blur-sm sm:gap-1.5 sm:px-3 sm:py-1.5 dark:bg-black/90">
-											<Package className="h-3 w-3 text-foreground sm:h-3.5 sm:w-3.5" />
-											<span className="font-semibold text-[10px] text-foreground sm:text-xs">{productCount}</span>
+										<div className="flex items-center gap-1.5 rounded-sm border border-white/15 bg-[hsl(205_55%_3%/0.75)] px-2 py-1 backdrop-blur-sm">
+											<Package className="h-3 w-3 text-white/70" />
+											<span className="slate text-white">{productCount}</span>
 										</div>
 									</div>
 								</div>
 
 								{/* Collection Info */}
-								<div className="p-3 sm:p-5">
-									<h3 className="mb-1.5 font-semibold text-foreground text-sm transition-colors group-hover:text-primary sm:mb-2 sm:text-lg">
+								<div className="p-4 sm:p-5">
+									<h3 className="display-mid mb-2 font-display font-semibold text-base text-foreground tracking-[-0.02em] transition-colors group-hover:text-primary sm:text-xl">
 										{collection.title}
 									</h3>
-									<p className="mb-2 line-clamp-2 text-muted-foreground text-xs leading-relaxed sm:mb-4 sm:text-sm">
+									<p className="mb-4 line-clamp-2 text-muted-foreground text-xs leading-relaxed sm:text-sm">
 										{collection.description || `Discover our ${collection.title.toLowerCase()} collection`}
 									</p>
 
-									{/* Shop Now Link */}
-									<div className="flex items-center gap-1.5 font-medium text-primary text-xs transition-all group-hover:gap-3 sm:gap-2 sm:text-sm">
-										<span>Shop Now</span>
-										<ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1 sm:h-4 sm:w-4" />
+									<div className="flex items-center gap-2 text-primary transition-all group-hover:gap-3">
+										<span className="slate">Shop now</span>
+										<ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
 									</div>
 								</div>
 							</Link>

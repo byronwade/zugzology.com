@@ -392,7 +392,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 					<article className="relative w-full bg-background" itemScope itemType="https://schema.org/BlogPosting">
 						{/* Breadcrumb - moved inside article */}
 						<div className="mx-auto mb-6 max-w-4xl">
-							<Suspense fallback={<div className="mb-8 h-12 w-1/4 rounded bg-neutral-200 dark:bg-neutral-700" />}>
+							<Suspense fallback={<div className="mb-8 h-12 w-1/4 rounded bg-muted" />}>
 								<UniversalBreadcrumb
 									className="mb-4 hidden md:block"
 									items={BreadcrumbConfigs.blogArticle(blog.title, blog.handle, article.title)}
@@ -411,14 +411,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 						<header className="mx-auto w-full max-w-4xl px-4 pt-12 pb-8 sm:px-6">
 							<div className="space-y-6">
 								<div className="flex items-center gap-4">
-									<div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
-										<span className="font-medium text-lg text-neutral-600 dark:text-neutral-400">
-											{article.author.name.charAt(0)}
-										</span>
+									<div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+										<span className="font-medium text-lg text-muted-foreground">{article.author.name.charAt(0)}</span>
 									</div>
 									<div className="flex flex-col">
-										<span className="font-medium text-neutral-900 dark:text-neutral-100">{article.author.name}</span>
-										<div className="flex items-center gap-2 text-neutral-600 text-sm dark:text-neutral-400">
+										<span className="font-medium text-foreground">{article.author.name}</span>
+										<div className="flex items-center gap-2 text-muted-foreground text-sm dark:text-muted-foreground">
 											<time dateTime={article.publishedAt}>
 												{new Date(article.publishedAt).toLocaleDateString("en-US", {
 													month: "long",
@@ -432,12 +430,12 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 									</div>
 								</div>
 
-								<h1 className="font-bold text-4xl text-neutral-900 tracking-tight md:text-5xl lg:text-6xl dark:text-neutral-100">
+								<h1 className="font-bold text-4xl text-foreground tracking-tight md:text-5xl lg:text-6xl dark:text-foreground">
 									{article.title}
 								</h1>
 
 								{article.excerpt && (
-									<p className="max-w-4xl text-neutral-600 text-xl leading-relaxed md:text-2xl dark:text-neutral-400">
+									<p className="max-w-4xl text-muted-foreground text-xl leading-relaxed md:text-2xl dark:text-muted-foreground">
 										{article.excerpt}
 									</p>
 								)}
@@ -455,7 +453,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 											/>
 										</div>
 										{article.image.altText && (
-											<p className="mt-3 text-center text-neutral-600 text-sm dark:text-neutral-400">
+											<p className="mt-3 text-center text-muted-foreground text-sm dark:text-muted-foreground">
 												{article.image.altText}
 											</p>
 										)}
@@ -466,14 +464,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 						{/* Featured Products Banner - Show if we have tag-matched products */}
 						{complementaryProducts.length > 0 && (
-							<div className="my-12 w-full rounded-2xl bg-neutral-50 dark:bg-neutral-900">
+							<div className="my-12 w-full rounded-2xl bg-muted">
 								<div className="container mx-auto px-4 py-12">
 									<div className="mx-auto max-w-[1800px]">
 										<div className="mb-10 flex flex-col items-center text-center">
-											<h2 className="mb-3 font-bold text-2xl text-neutral-900 md:text-3xl dark:text-neutral-100">
+											<h2 className="mb-3 font-bold text-2xl text-foreground md:text-3xl dark:text-foreground">
 												Featured Zugzology Products
 											</h2>
-											<p className="max-w-2xl text-lg text-neutral-600 dark:text-neutral-400">
+											<p className="max-w-2xl text-lg text-muted-foreground">
 												Quality supplies for your mushroom cultivation journey
 											</p>
 										</div>
@@ -496,10 +494,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 														</div>
 													)}
 													<div className="p-4">
-														<h3 className="font-medium text-neutral-900 transition-colors group-hover:text-primary dark:text-neutral-100">
+														<h3 className="font-medium text-foreground transition-colors group-hover:text-primary dark:text-foreground">
 															{product.title}
 														</h3>
-														<p className="mt-1 text-neutral-600 dark:text-neutral-400">
+														<p className="mt-1 text-muted-foreground">
 															From {formatPrice(product.priceRange.minVariantPrice.amount)}
 														</p>
 													</div>
@@ -514,7 +512,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 						{/* Article Content */}
 						<div className="container mx-auto px-4 py-12">
 							<div className="mx-auto max-w-4xl">
-								<div className="prose dark:prose-invert prose-lg md:prose-xl max-w-none prose-a:font-medium prose-a:text-primary prose-headings:text-neutral-900 prose-p:text-neutral-700 prose-headings:dark:text-neutral-100 prose-p:dark:text-neutral-300">
+								<div className="prose dark:prose-invert prose-lg md:prose-xl max-w-none prose-a:font-medium prose-headings:font-display prose-a:text-primary prose-headings:text-foreground prose-p:text-foreground/85 prose-headings:tracking-[-0.02em]">
 									<div
 										// biome-ignore lint/security/noDangerouslySetInnerHtml: Content from Shopify CMS is trusted
 										dangerouslySetInnerHTML={{
@@ -534,14 +532,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 						{/* Mid-Article Product Recommendation */}
 						{featuredProducts.length > 0 && (
-							<div className="my-16 w-full rounded-2xl bg-neutral-50 dark:bg-neutral-900">
+							<div className="my-16 w-full rounded-2xl bg-muted">
 								<div className="container mx-auto px-4 py-12">
 									<div className="mx-auto max-w-[1800px]">
 										<div className="mb-10 text-center">
-											<h2 className="mb-3 font-bold text-2xl text-neutral-900 md:text-3xl dark:text-neutral-100">
+											<h2 className="mb-3 font-bold text-2xl text-foreground md:text-3xl dark:text-foreground">
 												Shop Our Best Sellers
 											</h2>
-											<p className="mx-auto max-w-2xl text-lg text-neutral-600 dark:text-neutral-400">
+											<p className="mx-auto max-w-2xl text-lg text-muted-foreground">
 												Discover our most popular mushroom growing supplies
 											</p>
 										</div>
@@ -564,10 +562,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 														</div>
 													)}
 													<div className="p-4">
-														<h3 className="font-medium text-neutral-900 transition-colors group-hover:text-primary dark:text-neutral-100">
+														<h3 className="font-medium text-foreground transition-colors group-hover:text-primary dark:text-foreground">
 															{product.title}
 														</h3>
-														<p className="mt-1 text-neutral-600 dark:text-neutral-400">
+														<p className="mt-1 text-muted-foreground">
 															From {formatPrice(product.priceRange.minVariantPrice.amount)}
 														</p>
 													</div>
@@ -576,7 +574,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 										</div>
 										<div className="mt-10 text-center">
 											<Link
-												className="inline-flex items-center rounded-full bg-neutral-900 px-6 py-3 font-medium text-sm text-white transition-colors hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
+												className="inline-flex items-center rounded-md bg-primary px-6 py-3 font-medium text-primary-foreground text-sm shadow-sm transition-colors hover:bg-primary/88"
 												href="/products"
 											>
 												View All Products
@@ -588,21 +586,21 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 						)}
 
 						{/* Article Footer */}
-						<footer className="w-full border-neutral-200 border-t dark:border-neutral-800">
+						<footer className="w-full border-border border-t dark:border-border">
 							<div className="container mx-auto px-4 py-12">
 								<div className="max-w-4xl">
 									<div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
 										<div className="flex items-center gap-5">
-											<div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
-												<span className="font-medium text-3xl text-neutral-600 dark:text-neutral-400">
+											<div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted">
+												<span className="font-medium text-3xl text-muted-foreground">
 													{article.author.name.charAt(0)}
 												</span>
 											</div>
 											<div className="flex flex-col">
-												<span className="font-medium text-neutral-900 text-xl dark:text-neutral-100">
+												<span className="font-medium text-foreground text-xl dark:text-foreground">
 													Written by {article.author.name}
 												</span>
-												<time className="text-neutral-600 dark:text-neutral-400" dateTime={article.publishedAt}>
+												<time className="text-muted-foreground" dateTime={article.publishedAt}>
 													Published on{" "}
 													{new Date(article.publishedAt).toLocaleDateString("en-US", {
 														month: "long",
@@ -615,7 +613,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 										<div className="flex items-center gap-3">
 											<Link
-												className="inline-flex items-center rounded-full bg-neutral-100 px-5 py-2.5 font-medium text-neutral-600 text-sm transition-colors hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700"
+												className="inline-flex items-center rounded-md border border-border bg-transparent px-5 py-2.5 font-medium text-foreground text-sm transition-colors hover:border-foreground/35 hover:bg-foreground/[0.05]"
 												href={`/blogs/${article.blog?.handle || nextParams.blog}`}
 											>
 												More from {article.blog?.title || "Blog"}
@@ -628,12 +626,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 						{/* Related Articles */}
 						{relatedPosts.length > 0 && (
-							<section className="w-full rounded-2xl bg-neutral-50 dark:bg-neutral-900">
+							<section className="w-full rounded-2xl bg-muted">
 								<div className="container mx-auto px-4 py-12">
 									<div className="mx-auto max-w-[1800px]">
-										<h2 className="mb-10 font-bold text-3xl text-neutral-900 dark:text-neutral-100">
-											More Articles You Might Enjoy
-										</h2>
+										<h2 className="mb-10 font-bold text-3xl text-foreground">More Articles You Might Enjoy</h2>
 										<div className={`grid gap-8 ${getRelatedPostsGridClasses(relatedPosts.length)}`}>
 											{relatedPosts.map((relatedArticle) => (
 												<Link
@@ -654,15 +650,15 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 															</div>
 														)}
 														<div className="flex flex-grow flex-col p-5">
-															<h3 className="mb-2 font-bold text-neutral-900 text-xl transition-colors group-hover:text-primary dark:text-neutral-100">
+															<h3 className="mb-2 font-bold text-foreground text-xl transition-colors group-hover:text-primary dark:text-foreground">
 																{relatedArticle.title}
 															</h3>
 															{relatedArticle.excerpt && (
-																<p className="mb-4 line-clamp-2 flex-grow text-neutral-600 dark:text-neutral-400">
+																<p className="mb-4 line-clamp-2 flex-grow text-muted-foreground">
 																	{relatedArticle.excerpt}
 																</p>
 															)}
-															<div className="flex items-center gap-2 border-neutral-200 border-t pt-2 text-neutral-500 text-sm dark:border-neutral-700 dark:text-neutral-500">
+															<div className="flex items-center gap-2 border-border border-t pt-2 text-muted-foreground text-sm">
 																<span>{relatedArticle.author.name}</span>
 																<span>·</span>
 																<time dateTime={relatedArticle.publishedAt}>
@@ -683,18 +679,16 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 						)}
 
 						{/* Final CTA Section */}
-						<div className="my-16 w-full rounded-2xl bg-gradient-to-b from-neutral-50 to-white dark:from-neutral-900 dark:to-black">
+						<div className="my-16 w-full rounded-2xl bg-gradient-to-b from-muted to-background">
 							<div className="container mx-auto px-4 py-12">
 								<div className="mx-auto max-w-[1800px] text-center">
-									<h2 className="mb-6 font-bold text-4xl text-neutral-900 dark:text-neutral-100">
-										Ready to Start Growing?
-									</h2>
-									<p className="mx-auto mb-10 max-w-2xl text-neutral-600 text-xl dark:text-neutral-400">
+									<h2 className="mb-6 font-bold text-4xl text-foreground">Ready to Start Growing?</h2>
+									<p className="mx-auto mb-10 max-w-2xl text-muted-foreground text-xl dark:text-muted-foreground">
 										Get everything you need to begin your mushroom cultivation journey
 									</p>
 									<div className="flex flex-col justify-center gap-4 sm:flex-row">
 										<Link
-											className="inline-flex items-center rounded-full bg-neutral-900 px-8 py-4 font-medium text-base text-white transition-colors hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
+											className="inline-flex items-center rounded-md bg-primary px-8 py-4 font-medium text-base text-primary-foreground shadow-sm transition-colors hover:bg-primary/88"
 											href="/products"
 										>
 											Shop All Products

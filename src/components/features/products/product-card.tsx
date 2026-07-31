@@ -46,29 +46,32 @@ const StarRating = ({ rating, count }: { rating: number; count: number }) => {
 
 	return (
 		<div className="flex items-center gap-1.5">
-			<div className="flex items-center">
+			<div className="flex items-center gap-px">
 				{[...new Array(fullStars)].map((_, i) => (
 					<Star
-						className={cn("h-4 w-4 fill-yellow-400 text-yellow-400", getOpticalIconClasses("Star", "inline"))}
+						className={cn("h-3.5 w-3.5 fill-flush text-flush", getOpticalIconClasses("Star", "inline"))}
 						key={`full-${i}`}
 					/>
 				))}
 				{hasHalfStar && (
-					<div className="relative h-4 w-4">
+					<div className="relative h-3.5 w-3.5">
 						<Star
 							className={cn(
-								"clip-path-[inset(0_50%_0_0)] absolute h-4 w-4 fill-yellow-400 text-yellow-400",
+								"clip-path-[inset(0_50%_0_0)] absolute h-3.5 w-3.5 fill-flush text-flush",
 								getOpticalIconClasses("Star", "inline")
 							)}
 						/>
-						<Star className={cn("absolute h-4 w-4 text-yellow-400", getOpticalIconClasses("Star", "inline"))} />
+						<Star className={cn("absolute h-3.5 w-3.5 text-flush/40", getOpticalIconClasses("Star", "inline"))} />
 					</div>
 				)}
 				{[...new Array(emptyStars)].map((_, i) => (
-					<Star className={cn("h-4 w-4 text-yellow-400", getOpticalIconClasses("Star", "inline"))} key={`empty-${i}`} />
+					<Star
+						className={cn("h-3.5 w-3.5 text-flush/30", getOpticalIconClasses("Star", "inline"))}
+						key={`empty-${i}`}
+					/>
 				))}
 			</div>
-			<span className="text-muted-foreground text-sm">({count})</span>
+			<span className="font-mono text-muted-foreground text-xs tabular-nums">({count})</span>
 		</div>
 	);
 };
@@ -162,8 +165,8 @@ export function ProductCard({
 			className={cn(
 				"group relative h-full",
 				view === "grid"
-					? "flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white transition-all duration-300 sm:rounded-xl dark:border-neutral-900 dark:bg-black"
-					: "flex flex-row gap-3 border-foreground/10 border-b py-3 last:border-b-0 sm:gap-4 sm:py-4"
+					? "flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-colors duration-300 hover:border-foreground/25"
+					: "flex flex-row gap-3 border-border border-b py-3 last:border-b-0 sm:gap-4 sm:py-4"
 			)}
 			data-product-id={product.id}
 			data-view={view}
@@ -177,16 +180,17 @@ export function ProductCard({
 			>
 				<div
 					className={cn(
-						"relative overflow-hidden bg-muted transition-all duration-300",
+						"relative overflow-hidden bg-muted",
 						view === "grid"
-							? "aspect-square w-full group-hover:scale-105"
-							: "aspect-square h-24 w-24 rounded-lg sm:h-28 sm:w-28 md:h-32 md:w-32"
+							? "aspect-square w-full border-border border-b"
+							: "aspect-square h-24 w-24 rounded-md border border-border sm:h-28 sm:w-28 md:h-32 md:w-32"
 					)}
 				>
 					{firstImage?.url ? (
 						<Image
 							alt={firstImage.altText || product.title}
-							className="object-cover transition-transform duration-300 hover:scale-105"
+							// The plate catches a little more light and pushes in on hover.
+							className="object-cover brightness-[0.97] transition-[transform,filter] duration-500 ease-out group-hover:scale-[1.04] group-hover:brightness-100"
 							fill
 							loading={priority ? "eager" : "lazy"}
 							priority={priority}
@@ -199,7 +203,9 @@ export function ProductCard({
 						/>
 					) : (
 						<div className="absolute inset-0 flex items-center justify-center">
-							<Package className={cn("h-8 w-8 text-neutral-400", getOpticalIconClasses("Package", "standalone"))} />
+							<Package
+								className={cn("h-8 w-8 text-muted-foreground/50", getOpticalIconClasses("Package", "standalone"))}
+							/>
 						</div>
 					)}
 
@@ -238,8 +244,8 @@ export function ProductCard({
 					prefetchImages={prefetchImages}
 					prefetchPriority={priority ? "high" : "low"}
 				>
-					{/* Vendor */}
-					<p className="mb-0.5 text-[10px] text-muted-foreground sm:mb-1 sm:text-xs">{product.vendor || "Zugzology"}</p>
+					{/* Vendor — set on the slate, same register as every other label */}
+					<p className="slate mb-2 text-muted-foreground/70">{product.vendor || "Zugzology"}</p>
 
 					{/* AI confidence - only in development */}
 					{process.env.NODE_ENV === "development" && aiData && aiData.aiConfidence && aiData.aiConfidence !== "low" && (
@@ -250,11 +256,12 @@ export function ProductCard({
 					)}
 
 					{/* Title */}
+					{/* Product names stay in the body face — the display face is for section headings. */}
 					<h2
 						className={cn(
-							"mb-2 font-semibold text-foreground transition-colors group-hover:text-primary sm:mb-3",
+							"mb-2 font-medium font-sans text-foreground leading-snug tracking-[-0.01em] transition-colors [font-variation-settings:normal] group-hover:text-primary sm:mb-3",
 							view === "grid"
-								? "line-clamp-2 min-h-[2.5rem] text-sm sm:min-h-[3rem] sm:text-base"
+								? "line-clamp-2 min-h-[2.5rem] text-sm sm:min-h-[2.75rem] sm:text-[0.9375rem]"
 								: "line-clamp-2 text-sm sm:line-clamp-1 sm:text-base"
 						)}
 					>
@@ -272,34 +279,34 @@ export function ProductCard({
 						</div>
 					)}
 
-					{/* Price Section */}
-					<div className="mt-auto">
+					{/* Price — mono and tabular so figures line up down a column of cards */}
+					<div className="mt-auto pt-3">
 						{hasDiscount && (
-							<div className="mb-1 flex items-center gap-2">
-								<span className="text-muted-foreground text-sm line-through">
+							<div className="mb-1.5 flex items-center gap-2">
+								<span className="font-mono text-muted-foreground text-xs tabular-nums line-through">
 									{formatPrice(Number.parseFloat(compareAtPrice || "0"))}
 								</span>
-								<span className="font-medium text-red-600 text-xs dark:text-red-400">Save {discountPercentage}%</span>
+								<span className="slate text-flush">Save {discountPercentage}%</span>
 							</div>
 						)}
 						<div className="flex items-baseline gap-2">
 							{hasValidPrice ? (
 								<span
 									aria-label={`Price: ${formatPrice(Number.parseFloat(price))}`}
-									className="font-bold text-foreground text-xl"
+									className="font-medium font-mono text-[1.375rem] text-foreground tabular-nums leading-none"
 								>
 									{isFreeProduct ? (
 										"Free"
 									) : (
 										<>
-											<span className="text-sm">$</span>
+											<span className="mr-0.5 text-muted-foreground text-sm">$</span>
 											<span>{Math.floor(Number.parseFloat(price))}</span>
 											<span className="text-sm">{(Number.parseFloat(price) % 1).toFixed(2).substring(1)}</span>
 										</>
 									)}
 								</span>
 							) : (
-								<span className="font-bold text-foreground text-xl">
+								<span className="font-medium font-mono text-foreground text-lg">
 									{isBackorder ? "Price TBD (Backorder)" : "Price TBD"}
 								</span>
 							)}
@@ -307,38 +314,34 @@ export function ProductCard({
 					</div>
 				</PrefetchLink>
 
-				{/* Stock and Shipping Info */}
-				<div className="mt-2 space-y-0.5 sm:mt-3 sm:space-y-1">
-					<div className="flex items-center gap-1">
+				{/* Stock and shipping — a status readout, so it runs on the slate */}
+				<div className="mt-3 space-y-1.5 border-border/60 border-t pt-3">
+					<div className="flex items-center gap-2">
 						{isAvailable ? (
 							<>
-								<div className="h-1.5 w-1.5 rounded-full bg-green-500 sm:h-2 sm:w-2" />
-								<span className="text-[10px] text-muted-foreground sm:text-xs">
-									{isBackorder ? "Available for Pre-Order" : "In Stock"}
-								</span>
+								<span className="h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_6px_hsl(var(--success)/0.6)]" />
+								<span className="slate text-muted-foreground">{isBackorder ? "Pre-order" : "In stock"}</span>
 							</>
 						) : (
 							<>
-								<div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30 sm:h-2 sm:w-2" />
-								<span className="text-[10px] text-muted-foreground sm:text-xs">Out of Stock</span>
+								<span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
+								<span className="slate text-muted-foreground/60">Out of stock</span>
 							</>
 						)}
 					</div>
 
-					<p className="flex items-center gap-1 text-[10px] text-muted-foreground sm:gap-1.5 sm:text-xs">
-						<Truck className={cn("h-2.5 w-2.5 sm:h-3 sm:w-3", getOpticalIconClasses("Truck", "inline"))} />
-						{isBackorder ? `Ships ${formatDeliveryDate()}` : "Free Shipping"}
+					<p className="flex items-center gap-1.5 text-muted-foreground text-xs">
+						<Truck className={cn("h-3 w-3", getOpticalIconClasses("Truck", "inline"))} />
+						{isBackorder ? `Ships ${formatDeliveryDate()}` : "Free shipping"}
 					</p>
 				</div>
 
-				{/* Recent Purchases Badge */}
+				{/* Recent purchases */}
 				{recentPurchases > 0 && (
-					<div className="mt-2 sm:mt-3">
-						<div className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 sm:gap-1.5 sm:px-3 sm:py-1.5 dark:bg-primary/20">
-							<Users
-								className={cn("h-3 w-3 text-primary sm:h-3.5 sm:w-3.5", getOpticalIconClasses("Users", "inline"))}
-							/>
-							<span className="font-medium text-[10px] text-primary sm:text-xs">{purchaseText}</span>
+					<div className="mt-3">
+						<div className="inline-flex items-center gap-1.5 rounded-sm border border-flush/25 bg-flush/10 px-2 py-1">
+							<Users className={cn("h-3 w-3 text-flush", getOpticalIconClasses("Users", "inline"))} />
+							<span className="slate text-flush">{purchaseText}</span>
 						</div>
 					</div>
 				)}

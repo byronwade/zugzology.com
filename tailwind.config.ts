@@ -18,30 +18,26 @@ const config: Config = {
 			"3xl": "1920px",
 		},
 		extend: {
+			fontFamily: {
+				display: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
+				sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+				mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+			},
 			boxShadow: {
-				// Layered, color-matched shadows with Psilocybin Blue tint
-				sm: "0 1px 2px 0 hsl(206 40 45 / 0.05)",
-				DEFAULT: `
-					0 1px 3px 0 hsl(206 40 45 / 0.08),
-					0 1px 2px -1px hsl(206 40 45 / 0.08)
-				`,
-				md: `
-					0 2px 4px -1px hsl(206 40 45 / 0.06),
-					0 4px 6px -1px hsl(206 40 45 / 0.08),
-					0 1px 2px -1px hsl(206 40 45 / 0.06)
-				`,
-				lg: `
-					0 4px 6px -2px hsl(206 40 45 / 0.05),
-					0 10px 15px -3px hsl(206 40 45 / 0.08),
-					0 2px 4px -2px hsl(206 40 45 / 0.05)
-				`,
-				xl: `
-					0 8px 10px -3px hsl(206 40 45 / 0.05),
-					0 20px 25px -5px hsl(206 40 45 / 0.08),
-					0 4px 6px -4px hsl(206 40 45 / 0.05)
-				`,
-				"2xl": "0 25px 50px -12px hsl(206 40 45 / 0.15)",
-				inner: "inset 0 2px 4px 0 hsl(206 40 45 / 0.05)",
+				/**
+				 * Objects in a dark room read by their lit top edge, not by the shadow they cast.
+				 * Every level pairs an ambient drop with a 1px specular highlight along the top.
+				 */
+				sm: "0 1px 2px 0 hsl(var(--cast) / 0.28), inset 0 1px 0 0 hsl(var(--key) / 0.04)",
+				DEFAULT: "0 2px 6px -1px hsl(var(--cast) / 0.32), inset 0 1px 0 0 hsl(var(--key) / 0.05)",
+				md: "0 4px 14px -2px hsl(var(--cast) / 0.36), inset 0 1px 0 0 hsl(var(--key) / 0.06)",
+				lg: "0 10px 30px -6px hsl(var(--cast) / 0.42), inset 0 1px 0 0 hsl(var(--key) / 0.07)",
+				xl: "0 20px 50px -12px hsl(var(--cast) / 0.5), inset 0 1px 0 0 hsl(var(--key) / 0.08)",
+				"2xl": "0 34px 80px -20px hsl(var(--cast) / 0.6), inset 0 1px 0 0 hsl(var(--key) / 0.09)",
+				inner: "inset 0 2px 6px 0 hsl(var(--cast) / 0.3)",
+				/** The key light itself — a colored bloom for the one element that should glow. */
+				bloom: "0 0 0 1px hsl(var(--primary) / 0.35), 0 12px 40px -8px hsl(var(--primary) / 0.45)",
+				flush: "0 0 0 1px hsl(var(--flush) / 0.35), 0 12px 40px -8px hsl(var(--flush) / 0.4)",
 			},
 			colors: {
 				background: "hsl(var(--background))",
@@ -70,6 +66,19 @@ const config: Config = {
 					DEFAULT: "hsl(var(--accent))",
 					foreground: "hsl(var(--accent-foreground))",
 				},
+				/**
+				 * The warm half of the split-tone. Named for a "flush" — a round of fruiting.
+				 * Deliberately not `--accent`: that token drives Radix hover surfaces and must stay neutral.
+				 */
+				flush: {
+					DEFAULT: "hsl(var(--flush))",
+					foreground: "hsl(var(--flush-foreground))",
+				},
+				/** Positive status: in stock, shipping included, discount applied. */
+				success: {
+					DEFAULT: "hsl(var(--success))",
+					foreground: "hsl(var(--success-foreground))",
+				},
 				destructive: {
 					DEFAULT: "hsl(var(--destructive))",
 					foreground: "hsl(var(--destructive-foreground))",
@@ -95,10 +104,20 @@ const config: Config = {
 					ring: "hsl(var(--sidebar-ring))",
 				},
 			},
+			/**
+			 * A photographic print corner, not a pill. Retuned globally so every
+			 * existing `rounded-lg` / `rounded-xl` inherits the sharper frame.
+			 * `rounded-full` is untouched — avatars and status dots still need it.
+			 */
 			borderRadius: {
+				none: "0",
+				sm: "1px",
+				DEFAULT: "2px",
+				md: "3px",
 				lg: "var(--radius)",
-				md: "calc(var(--radius) - 2px)",
-				sm: "calc(var(--radius) - 4px)",
+				xl: "6px",
+				"2xl": "10px",
+				"3xl": "14px",
 			},
 			// Optical alignment spacing utilities
 			spacing: {
@@ -130,73 +149,62 @@ const config: Config = {
 						height: "0",
 					},
 				},
-				shimmer: {
-					"0%": {
-						backgroundPosition: "-200% center",
+				/* Title sequence — the hero plays once on load, in order. */
+				"letterbox-open": {
+					from: {
+						transform: "scaleY(3)",
 					},
-					"100%": {
-						backgroundPosition: "200% center",
-					},
-				},
-				float: {
-					"0%, 100%": {
-						transform: "translateY(0px)",
-					},
-					"50%": {
-						transform: "translateY(-10px)",
+					to: {
+						transform: "scaleY(1)",
 					},
 				},
-				"tilt-3d": {
-					"0%, 100%": {
-						transform: "perspective(1000px) rotateX(0deg) rotateY(0deg)",
-					},
-					"25%": {
-						transform: "perspective(1000px) rotateX(2deg) rotateY(-2deg)",
-					},
-					"75%": {
-						transform: "perspective(1000px) rotateX(-2deg) rotateY(2deg)",
-					},
-				},
-				"glow-pulse": {
-					"0%, 100%": {
-						opacity: "0.8",
-						boxShadow: "0 0 20px rgba(59, 130, 246, 0.5)",
-					},
-					"50%": {
-						opacity: "1",
-						boxShadow: "0 0 30px rgba(59, 130, 246, 0.8)",
-					},
-				},
-				"slide-up-fade": {
-					"0%": {
+				"frame-draw": {
+					from: {
 						opacity: "0",
-						transform: "translateY(20px)",
+						transform: "scale(1.4)",
 					},
-					"100%": {
+					to: {
+						opacity: "1",
+						transform: "scale(1)",
+					},
+				},
+				/* The headline widens as it rises — the widescreen thesis, stated in motion. */
+				"title-widen": {
+					from: {
+						opacity: "0",
+						transform: "translateY(0.35em)",
+						fontVariationSettings: '"wdth" 88',
+					},
+					to: {
+						opacity: "1",
+						transform: "translateY(0)",
+						fontVariationSettings: '"wdth" 118',
+					},
+				},
+				"rise-in": {
+					from: {
+						opacity: "0",
+						transform: "translateY(1rem)",
+					},
+					to: {
 						opacity: "1",
 						transform: "translateY(0)",
 					},
 				},
-				"scale-in": {
-					"0%": {
-						opacity: "0",
-						transform: "scale(0.9)",
-					},
-					"100%": {
-						opacity: "1",
+				/* Slow dolly push on the hero plate. */
+				"push-in": {
+					from: {
 						transform: "scale(1)",
+					},
+					to: {
+						transform: "scale(1.08)",
 					},
 				},
 			},
 			animation: {
 				"accordion-down": "accordion-down 0.2s ease-out",
 				"accordion-up": "accordion-up 0.2s ease-out",
-				shimmer: "shimmer 3s linear infinite",
-				float: "float 3s ease-in-out infinite",
-				"tilt-3d": "tilt-3d 4s ease-in-out infinite",
-				"glow-pulse": "glow-pulse 2s ease-in-out infinite",
-				"slide-up-fade": "slide-up-fade 0.5s ease-out",
-				"scale-in": "scale-in 0.3s ease-out",
+				"rise-in": "rise-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
 			},
 		},
 	},

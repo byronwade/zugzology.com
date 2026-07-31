@@ -72,10 +72,12 @@ function BlogCard({ post, blogHandle }: BlogCardProps) {
 								src={post.image.url}
 							/>
 						) : (
-							<div className="absolute inset-0 flex items-center justify-center bg-neutral-100 p-4 text-center dark:bg-neutral-800">
+							<div className="absolute inset-0 flex items-center justify-center bg-muted p-4 text-center dark:bg-muted">
 								<div className="space-y-2">
-									<p className="font-medium text-neutral-500 text-sm dark:text-neutral-400">🍄 A Mushroom Pic</p>
-									<p className="text-neutral-400 text-xs dark:text-neutral-500">Still Growing...</p>
+									<p className="font-medium text-muted-foreground text-sm dark:text-muted-foreground">
+										🍄 A Mushroom Pic
+									</p>
+									<p className="text-muted-foreground text-xs">Still Growing...</p>
 								</div>
 							</div>
 						)}
@@ -87,11 +89,13 @@ function BlogCard({ post, blogHandle }: BlogCardProps) {
 					</div>
 				</div>
 				<div className="flex flex-grow flex-col space-y-3 p-5">
-					<h3 className="line-clamp-2 font-semibold text-neutral-900 text-xl transition-colors group-hover:text-primary dark:text-neutral-100">
+					<h3 className="line-clamp-2 font-semibold text-foreground text-xl transition-colors group-hover:text-primary dark:text-foreground">
 						{post.title}
 					</h3>
-					<p className="line-clamp-3 flex-grow text-neutral-600 text-sm dark:text-neutral-400">{post.excerpt}</p>
-					<div className="flex items-center gap-2 border-neutral-100 border-t pt-2 text-neutral-500 text-sm dark:border-neutral-800 dark:text-neutral-400">
+					<p className="line-clamp-3 flex-grow text-muted-foreground text-sm dark:text-muted-foreground">
+						{post.excerpt}
+					</p>
+					<div className="flex items-center gap-2 border-border border-t pt-2 text-muted-foreground text-sm dark:border-border dark:text-muted-foreground">
 						<span>{post.author.name}</span>
 						<span>•</span>
 						<time dateTime={post.publishedAt}>
@@ -275,12 +279,12 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 				<UniversalBreadcrumb items={breadcrumbs} />
 
 				{/* Blog Categories Section */}
-				<section className="mb-8 w-full rounded-2xl bg-neutral-50 dark:bg-neutral-900">
+				<section className="mb-8 w-full rounded-2xl bg-muted">
 					<div className="container mx-auto px-4 py-12">
 						<div className="mb-6 flex flex-col items-center justify-between md:flex-row">
 							<div>
-								<h2 className="font-bold text-2xl text-neutral-900 dark:text-neutral-100">Browse by Category</h2>
-								<p className="mt-1 text-neutral-600 dark:text-neutral-400">
+								<h2 className="font-bold text-2xl text-foreground">Browse by Category</h2>
+								<p className="mt-1 text-muted-foreground">
 									Explore our specialized blog categories to find exactly what you&apos;re looking for
 								</p>
 							</div>
@@ -289,15 +293,15 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 						<div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 							{blogs.map((blogCategory) => (
 								<Link
-									className="group flex items-center rounded-lg border border-neutral-200 bg-white p-3 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+									className="group flex items-center rounded-lg border border-border bg-card p-3 transition-colors hover:border-foreground/25 hover:bg-muted"
 									href={`/blogs/${blogCategory.handle}`}
 									key={blogCategory.id}
 								>
 									<div className="flex-1">
-										<h3 className="font-medium text-neutral-900 text-sm transition-colors group-hover:text-primary dark:text-neutral-100">
+										<h3 className="font-medium text-foreground text-sm transition-colors group-hover:text-primary dark:text-foreground">
 											{blogCategory.title}
 										</h3>
-										<p className="mt-1 text-neutral-500 text-xs dark:text-neutral-400">
+										<p className="mt-1 text-muted-foreground text-xs dark:text-muted-foreground">
 											{blogCategory.articles.edges?.length || 0}{" "}
 											{blogCategory.articles.edges?.length === 1 ? "article" : "articles"}
 										</p>
@@ -312,14 +316,12 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 				<section className="py-12">
 					{/* Featured Posts Section - Only show if there are featured posts */}
 					{featuredPosts.length > 0 && (
-						<section className="w-full bg-gradient-to-b from-neutral-50 to-white dark:from-neutral-950 dark:to-black">
+						<section className="w-full bg-gradient-to-b from-muted to-background">
 							<div className="container mx-auto px-4 py-12">
 								<div className="mb-10 flex items-center justify-between">
 									<div>
-										<h2 className="font-bold text-3xl text-neutral-900 dark:text-neutral-100">Featured Articles</h2>
-										<p className="mt-2 text-lg text-neutral-600 dark:text-neutral-400">
-											Hand-picked articles worth reading
-										</p>
+										<h2 className="font-bold text-3xl text-foreground">Featured Articles</h2>
+										<p className="mt-2 text-lg text-muted-foreground">Hand-picked articles worth reading</p>
 									</div>
 								</div>
 								<div className="grid gap-8 md:grid-cols-2">
@@ -341,12 +343,12 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 															src={post.image.url}
 														/>
 													) : (
-														<div className="absolute inset-0 flex items-center justify-center bg-neutral-100 p-4 text-center dark:bg-neutral-800">
+														<div className="absolute inset-0 flex items-center justify-center bg-muted p-4 text-center dark:bg-muted">
 															<div className="space-y-2">
-																<p className="font-medium text-neutral-500 text-sm dark:text-neutral-400">
+																<p className="font-medium text-muted-foreground text-sm dark:text-muted-foreground">
 																	🍄 A Mushroom Pic
 																</p>
-																<p className="text-neutral-400 text-xs dark:text-neutral-500">Still Growing...</p>
+																<p className="text-muted-foreground text-xs">Still Growing...</p>
 															</div>
 														</div>
 													)}
@@ -354,7 +356,7 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 													<div className="absolute bottom-0 p-6 text-white">
 														<p className="mb-2 font-medium text-primary/80 text-sm">{post.blogTitle}</p>
 														<h3 className="mb-2 font-semibold text-2xl">{post.title}</h3>
-														<div className="flex items-center gap-2 text-neutral-200 text-sm">
+														<div className="flex items-center gap-2 text-foreground text-sm">
 															<span>{post.author.name}</span>
 															<span>•</span>
 															<time dateTime={post.publishedAt}>
@@ -380,8 +382,8 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 						<div className="container mx-auto px-4 py-12">
 							<div className="mb-10 flex items-center justify-between">
 								<div>
-									<h2 className="font-bold text-3xl text-neutral-900 dark:text-neutral-100">All Articles</h2>
-									<p className="mt-2 text-lg text-neutral-600 dark:text-neutral-400">
+									<h2 className="font-bold text-3xl text-foreground">All Articles</h2>
+									<p className="mt-2 text-lg text-muted-foreground">
 										{pagination.totalPosts > 0
 											? `Showing ${(pagination.currentPage - 1) * pagination.postsPerPage + 1}-${Math.min(
 													pagination.currentPage * pagination.postsPerPage,
@@ -392,18 +394,18 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
 								</div>
 								<div className="hidden items-center gap-4 md:flex">
 									<div className="flex items-center gap-2">
-										<span className="text-neutral-600 text-sm dark:text-neutral-400">Filter by:</span>
+										<span className="text-muted-foreground text-sm dark:text-muted-foreground">Filter by:</span>
 										<select
-											className="rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm dark:border-neutral-800 dark:bg-neutral-900"
+											className="rounded-md border border-border bg-white px-3 py-1.5 text-sm dark:border-border dark:bg-card"
 											disabled
 										>
 											<option>All Categories</option>
 										</select>
 									</div>
 									<div className="flex items-center gap-2">
-										<span className="text-neutral-600 text-sm dark:text-neutral-400">Sort by:</span>
+										<span className="text-muted-foreground text-sm dark:text-muted-foreground">Sort by:</span>
 										<select
-											className="rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm dark:border-neutral-800 dark:bg-neutral-900"
+											className="rounded-md border border-border bg-white px-3 py-1.5 text-sm dark:border-border dark:bg-card"
 											disabled
 										>
 											<option>Latest</option>

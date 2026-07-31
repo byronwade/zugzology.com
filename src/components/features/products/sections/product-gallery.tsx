@@ -14,7 +14,6 @@ import type {
 } from "@/lib/types";
 import { cn, debugLog } from "@/lib/utils";
 
-
 type ModelViewerAttributes = {
 	src: string;
 	poster?: string;
@@ -440,9 +439,9 @@ export function ProductGallery({
 							{validMedia[selectedMediaIndex] && isMediaVideo(validMedia[selectedMediaIndex]) && (
 								<div className="relative h-full w-full">
 									{!isPlaying && (
-										<div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20">
+										<div className="absolute inset-0 z-10 flex items-center justify-center bg-[hsl(205_55%_3%/0.35)]">
 											<button
-												className="rounded-full bg-white/90 p-3 transition-colors hover:bg-white"
+												className="rounded-full bg-background/90 p-3 transition-colors hover:bg-background"
 												onClick={handleVideoPlay}
 											>
 												<Play className="h-8 w-8 text-primary" />
@@ -518,7 +517,7 @@ export function ProductGallery({
 											"relative aspect-square overflow-hidden rounded border transition-all",
 											selectedMediaIndex === index
 												? "border-primary ring-1 ring-primary"
-												: "border-neutral-200 hover:border-neutral-300 dark:border-neutral-700 dark:hover:border-neutral-600"
+												: "border-border hover:border-foreground/35"
 										)}
 										key={item.id}
 										onClick={() => {

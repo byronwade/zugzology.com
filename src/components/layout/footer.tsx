@@ -77,14 +77,15 @@ export async function Footer() {
 				}
 			/>
 
-			<section className="border-border/70 border-y bg-gradient-to-br from-primary/5 via-transparent to-secondary/10">
-				<div className="container mx-auto flex flex-col gap-6 px-4 py-12 sm:items-center sm:text-center lg:flex-row lg:items-center lg:justify-between lg:text-left">
+			<section className="lit border-border border-y bg-muted/30">
+				<div className="container mx-auto flex flex-col gap-8 px-4 py-16 sm:items-center sm:text-center lg:flex-row lg:items-center lg:justify-between lg:text-left">
 					<div className="space-y-3">
-						<p className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 font-semibold text-primary text-xs uppercase tracking-wide">
+						<p className="slate flex items-center gap-3 text-flush sm:justify-center lg:justify-start">
+							<span className="h-px w-8 bg-flush" />
 							Join the community
 						</p>
-						<h2 className="font-semibold text-2xl text-foreground tracking-tight sm:text-3xl">
-							Stay in the Loop with {BRAND.name}
+						<h2 className="display-wide font-display font-semibold text-[clamp(1.5rem,3.5vw,2.5rem)] text-foreground leading-[0.98] tracking-[-0.025em]">
+							Stay in the loop with {BRAND.name}
 						</h2>
 						<p className="max-w-xl text-muted-foreground text-sm sm:mx-auto lg:mx-0">
 							Get cultivation tips, product launches, and exclusive offers delivered to your inbox. No spam—just the
@@ -101,7 +102,7 @@ export async function Footer() {
 						</label>
 						<input
 							autoComplete="email"
-							className="h-12 w-full flex-1 rounded-md border border-border/70 bg-background px-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 sm:h-11"
+							className="h-12 w-full flex-1 rounded-md border border-border bg-background px-4 text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background sm:h-12"
 							id="footer-email"
 							name="email"
 							placeholder="you@example.com"
@@ -109,7 +110,7 @@ export async function Footer() {
 							type="email"
 						/>
 						<button
-							className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-5 font-medium text-primary-foreground text-sm transition hover:bg-primary/90 sm:h-11"
+							className="inline-flex h-12 shrink-0 items-center justify-center rounded-md bg-primary px-6 font-medium text-primary-foreground text-sm shadow-sm transition-colors hover:bg-primary/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-12"
 							type="submit"
 						>
 							Subscribe
@@ -118,8 +119,8 @@ export async function Footer() {
 				</div>
 			</section>
 
-			<div className="border-border/70 border-t bg-card/50">
-				<div className="container mx-auto grid gap-12 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
+			<div className="border-border border-t bg-background">
+				<div className="container mx-auto grid gap-12 px-4 py-16 sm:grid-cols-2 lg:grid-cols-4">
 					<div className="space-y-4">
 						<div className="flex items-center gap-3">
 							<div className="relative h-8 w-8 flex-shrink-0">
@@ -131,7 +132,9 @@ export async function Footer() {
 									src={config.branding?.logoUrl || "/logo.png"}
 								/>
 							</div>
-							<h3 className="font-semibold text-foreground text-lg">{BRAND.name}</h3>
+							<h3 className="display-wide font-display font-semibold text-foreground text-lg tracking-[-0.02em]">
+								{BRAND.name}
+							</h3>
 						</div>
 						<p className="text-muted-foreground text-sm leading-relaxed">{BRAND.tagline}</p>
 						<div className="space-y-2 text-muted-foreground text-sm">
@@ -157,7 +160,7 @@ export async function Footer() {
 					</div>
 
 					<div>
-						<h4 className="font-semibold text-muted-foreground text-sm uppercase tracking-wide">Shop</h4>
+						<h4 className="slate text-muted-foreground">Shop</h4>
 						<ul className="mt-4 space-y-2 text-sm">
 							{(shopLinks.length
 								? shopLinks
@@ -180,7 +183,7 @@ export async function Footer() {
 					</div>
 
 					<div>
-						<h4 className="font-semibold text-muted-foreground text-sm uppercase tracking-wide">Collections</h4>
+						<h4 className="slate text-muted-foreground">Collections</h4>
 						<ul className="mt-4 space-y-2 text-sm">
 							{(collectionLinks.length
 								? collectionLinks
@@ -203,7 +206,7 @@ export async function Footer() {
 					</div>
 
 					<div>
-						<h4 className="font-semibold text-muted-foreground text-sm uppercase tracking-wide">Resources</h4>
+						<h4 className="slate text-muted-foreground">Resources</h4>
 						<ul className="mt-4 space-y-2 text-sm">
 							{([...pageLinks, ...supportLinks].length
 								? [...pageLinks, ...supportLinks].slice(0, 6)
@@ -226,7 +229,7 @@ export async function Footer() {
 				</div>
 			</div>
 
-			<div className="border-border/70 border-t bg-muted/40">
+			<div className="border-border border-t bg-muted/30">
 				<div className="container mx-auto flex flex-col gap-5 px-4 py-6 text-muted-foreground text-sm sm:flex-row sm:items-center sm:justify-between">
 					<p>
 						&copy; {COPYRIGHT_YEAR} {BRAND.name}. All rights reserved.
@@ -257,7 +260,7 @@ export async function Footer() {
 							return (
 								<li key={`social-${social.href}`}>
 									<a
-										className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-all duration-200 hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
+										className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors duration-200 hover:border-foreground/35 hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 										href={social.href}
 										rel="noopener noreferrer"
 										target="_blank"
