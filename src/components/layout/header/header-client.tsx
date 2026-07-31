@@ -57,7 +57,7 @@ type MenuItem = {
 type HeaderClientProps = {
 	initialMenuItems: MenuItem[];
 	blogs: ShopifyBlog[];
-	isAuthenticated: boolean;
+	isAuthenticated?: boolean;
 };
 
 type SearchHandlers = {
@@ -166,7 +166,7 @@ const _SearchBar = memo(function SearchBar({
 	);
 });
 
-export function HeaderClient({ initialMenuItems, blogs, isAuthenticated }: HeaderClientProps) {
+export function HeaderClient({ initialMenuItems, blogs }: HeaderClientProps) {
 	// 1. Context hooks first
 	const { openCart, cart } = useCart();
 	const { wishlist } = useWishlist();

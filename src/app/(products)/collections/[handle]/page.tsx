@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { unstable_noStore as noStore } from "next/cache";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import { cache, Suspense } from "react";
@@ -28,8 +27,6 @@ export type CollectionPageProps = {
 
 // Cache the collection data
 const getCachedCollection = cache(async (handle: string, sort = "featured", page = 1) => {
-	// Opt the collection page into dynamic rendering without route segment config
-	noStore();
 	try {
 		// Check if handle is valid
 		if (!handle || typeof handle !== "string") {

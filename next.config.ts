@@ -1,41 +1,35 @@
 import type { NextConfig } from "next";
 
-// Bundle analyzer for debugging bundle size
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
 	enabled: process.env.ANALYZE === "true",
 });
 
 const nextConfig: NextConfig = {
-	// React Compiler - stable in Next.js 16 but not enabled by default
 	reactCompiler: true,
 
-	// Turbopack is now stable and the default bundler in Next.js 16
-	// No configuration needed - it's used automatically
-
-	// Partial Prerendering (PPR) - disabled here to allow dynamic routes with no-store
+	// Allow static shell + dynamic holes where needed
 	cacheComponents: false,
 
 	experimental: {
-		// CSS inlining optimization
 		inlineCss: true,
-		// Optimized package imports for better performance
 		optimizePackageImports: [
 			"lucide-react",
-			"@radix-ui/react-icons",
 			"@radix-ui/react-dialog",
 			"@radix-ui/react-dropdown-menu",
 			"@radix-ui/react-popover",
-			"recharts",
+			"@radix-ui/react-select",
+			"@radix-ui/react-tabs",
+			"@radix-ui/react-tooltip",
+			"@radix-ui/react-scroll-area",
+			"@radix-ui/react-accordion",
+			"sonner",
 		],
 	},
 
 	typescript: {
-		// Temporarily ignore non-critical build errors while fixing remaining type issues
-		// Most critical errors have been fixed - remaining are minor type strictness issues
 		ignoreBuildErrors: true,
 	},
 
-	// Remove console logs in production
 	compiler: {
 		removeConsole:
 			process.env.NODE_ENV === "production"
@@ -47,7 +41,7 @@ const nextConfig: NextConfig = {
 
 	images: {
 		formats: ["image/avif", "image/webp"],
-		deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+		deviceSizes: [640, 750, 828, 1080, 1200, 1920],
 		imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
 		minimumCacheTTL: 31_536_000,
 		remotePatterns: [
@@ -69,11 +63,9 @@ const nextConfig: NextConfig = {
 		],
 	},
 
-	// Performance optimizations
 	compress: true,
 	poweredByHeader: false,
 
-	// Allow iframe embedding from byronwade.com and subdomains
 	async headers() {
 		return [
 			{
@@ -84,8 +76,6 @@ const nextConfig: NextConfig = {
 						value:
 							"default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.shopify.com https://*.googletagmanager.com https://*.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cdn.shopify.com https://*.shopify.com https://*.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com; frame-src *; child-src *; frame-ancestors *",
 					},
-					// Note: X-Frame-Options is deprecated in favor of CSP frame-ancestors
-					// Removed from middleware.ts to avoid conflicts
 				],
 			},
 		];

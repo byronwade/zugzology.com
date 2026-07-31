@@ -584,6 +584,50 @@ export async function removeFromCart(cartId: string, lineIds: string[]): Promise
 	}
 }
 
+// Lightweight blogs for header Learn menu (no full article HTML)
+export const getHeaderBlogs = unstable_cache(
+	async (): Promise<ShopifyBlog[]> => {
+		try {
+			const { data } = await shopifyFetch<{ blogs: { edges: { node: ShopifyBlog }[] } }>({
+				query: `
+					query getHeaderBlogs {
+						blogs(first: 4) {
+							edges {
+								node {
+									id
+									title
+									handle
+									articles(first: 1) {
+										edges {
+											node {
+												id
+												title
+												handle
+												excerpt
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				`,
+				tags: [CACHE_TAGS.BLOG, "header-blogs"],
+				next: { revalidate: CACHE_TIMES.HEADER },
+			});
+
+			return data?.blogs?.edges?.map((edge) => edge.node) || [];
+		} catch {
+			return [];
+		}
+	},
+	["header-blogs"],
+	{
+		revalidate: CACHE_TIMES.HEADER,
+		tags: [CACHE_TAGS.BLOG, "header"],
+	}
+);
+
 // Blog Actions
 export const getBlogs = unstable_cache(
 	async () => {

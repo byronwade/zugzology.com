@@ -1,6 +1,5 @@
 import { Facebook, Instagram, Linkedin, Mail, MapPin, Phone, Twitter, Youtube } from "lucide-react";
 import Image from "next/image";
-import { connection } from "next/server";
 import { WhyChooseBentoV2 } from "@/components/sections/why-choose-bento-v2";
 import { Link } from "@/components/ui/link";
 import { transformShopifyUrl } from "@/components/utils/transform-shopify-url";
@@ -8,6 +7,8 @@ import { getAllCollections, getMenu, getPages } from "@/lib/api/shopify/actions"
 import { getStoreConfigSafe } from "@/lib/config/store-config";
 import { BRAND, BUSINESS, CONTACT, SOCIAL } from "@/lib/config/wadesdesign.config";
 import type { ShopifyCollection, ShopifyMenuItem, ShopifyPage } from "@/lib/types";
+
+const COPYRIGHT_YEAR = new Date().getFullYear();
 
 type FooterLink = {
 	title: string;
@@ -41,9 +42,6 @@ const _FALLBACK_SOCIAL_LINKS: FooterLink[] = [
 ];
 
 export async function Footer() {
-	// Await connection to allow use of new Date() with dynamicIO
-	await connection();
-
 	const config = getStoreConfigSafe();
 	const mainMenuHandle = config.navigation?.mainMenu || "main-menu";
 	const footerMenuHandle = config.navigation?.footerMenu || "footer";
@@ -231,7 +229,7 @@ export async function Footer() {
 			<div className="border-border/70 border-t bg-muted/40">
 				<div className="container mx-auto flex flex-col gap-5 px-4 py-6 text-muted-foreground text-sm sm:flex-row sm:items-center sm:justify-between">
 					<p>
-						&copy; {new Date().getFullYear()} {BRAND.name}. All rights reserved.
+						&copy; {COPYRIGHT_YEAR} {BRAND.name}. All rights reserved.
 					</p>
 					<div className="flex flex-wrap items-center gap-x-6 gap-y-2">
 						<Link className="hover:text-foreground" href="/privacy">

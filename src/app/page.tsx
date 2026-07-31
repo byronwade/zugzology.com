@@ -1,43 +1,17 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 import Script from "next/script";
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import { ProductCard } from "@/components/features/products/product-card";
+import { BestSellersShowcase } from "@/components/sections/best-sellers-showcase";
+import { FeaturedCollections } from "@/components/sections/featured-collections";
 import { HeroVideoCinematic } from "@/components/sections/hero-video-cinematic";
+import { LatestProducts } from "@/components/sections/latest-products";
+import { SaleProducts } from "@/components/sections/sale-products";
 import { Button } from "@/components/ui/button";
 import { PrefetchLink } from "@/components/ui/prefetch-link";
 import { getSiteSettings } from "@/lib/api/shopify/actions";
 import { shopifyFetch } from "@/lib/api/shopify/client";
 import { PRODUCT_CARD_FRAGMENT } from "@/lib/api/shopify/fragments-optimized";
-
-// Dynamic imports for below-fold sections - reduces initial bundle
-const BestSellersShowcase = dynamic(
-	() => import("@/components/sections/best-sellers-showcase").then((mod) => ({ default: mod.BestSellersShowcase })),
-	{
-		loading: () => null,
-	}
-);
-
-const FeaturedCollections = dynamic(
-	() => import("@/components/sections/featured-collections").then((mod) => ({ default: mod.FeaturedCollections })),
-	{
-		loading: () => null,
-	}
-);
-
-const LatestProducts = dynamic(
-	() => import("@/components/sections/latest-products").then((mod) => ({ default: mod.LatestProducts })),
-	{
-		loading: () => null,
-	}
-);
-
-const SaleProducts = dynamic(
-	() => import("@/components/sections/sale-products").then((mod) => ({ default: mod.SaleProducts })),
-	{
-		loading: () => null,
-	}
-);
 
 import {
 	getEnhancedFAQSchema,
@@ -63,8 +37,8 @@ type HomePageData = {
 	bestSellingProducts: ShopifyProduct[];
 };
 
-// Optimized homepage product fetching - minimal GraphQL payload
-async function fetchOptimizedProducts(sortKey: string, first: number): Promise<ShopifyProduct[]> {
+// Request-deduped product fetch — sections share the same Promise per sortKey/first
+const fetchOptimizedProducts = cache(async (sortKey: string, first: number): Promise<ShopifyProduct[]> => {
 	try {
 		const { data } = await shopifyFetch<{ products: { nodes: ShopifyProduct[] } }>({
 			query: `
@@ -84,9 +58,22 @@ async function fetchOptimizedProducts(sortKey: string, first: number): Promise<S
 
 		return data?.products?.nodes || [];
 	} catch {
-		// Shopify outage: keep homepage navigable (banner shown from layout)
 		return [];
 	}
+});
+
+function getSaleProducts(products: ShopifyProduct[]): ShopifyProduct[] {
+	return products
+		.filter((product) => {
+			const firstVariant = product.variants?.nodes?.[0];
+			if (!firstVariant?.compareAtPrice?.amount) {
+				return false;
+			}
+			return (
+				Number.parseFloat(firstVariant.compareAtPrice.amount) > Number.parseFloat(firstVariant.price.amount || "0")
+			);
+		})
+		.slice(0, 5);
 }
 
 async function fetchHomePageData(): Promise<HomePageData> {
@@ -104,17 +91,6 @@ async function fetchHomePageData(): Promise<HomePageData> {
 	const heroProduct = [...uniqueFeatured, ...uniqueBestSelling, ...uniqueNew].find(
 		(product) => hasPurchasableVariant(product) && hasPrimaryImage(product)
 	);
-	const saleProducts = uniqueFeatured
-		.filter((product) => {
-			const firstVariant = product.variants?.nodes?.[0];
-			if (!firstVariant?.compareAtPrice?.amount) {
-				return false;
-			}
-			return (
-				Number.parseFloat(firstVariant.compareAtPrice.amount) > Number.parseFloat(firstVariant.price.amount || "0")
-			);
-		})
-		.slice(0, 5);
 
 	return {
 		site: {
@@ -124,7 +100,7 @@ async function fetchHomePageData(): Promise<HomePageData> {
 		},
 		heroProduct,
 		featuredProducts: uniqueFeatured,
-		saleProducts,
+		saleProducts: getSaleProducts(uniqueFeatured),
 		newProducts: uniqueNew,
 		bestSellingProducts: uniqueBestSelling,
 	};
@@ -260,10 +236,10 @@ export default function HomePage() {
 	);
 }
 
-// Each section fetches its own data independently - using optimized queries
+// Sections share cached fetches via React.cache — no duplicate Shopify calls
 async function HeroSection() {
-	const featuredProducts = await fetchOptimizedProducts("RELEVANCE", 3);
-	return <HeroVideoCinematic products={featuredProducts} />;
+	const featuredProducts = await fetchOptimizedProducts("RELEVANCE", 5);
+	return <HeroVideoCinematic products={featuredProducts.slice(0, 3)} />;
 }
 
 async function FeaturedSection() {
@@ -282,18 +258,7 @@ async function FeaturedSection() {
 
 async function SaleSection() {
 	const featuredProducts = await fetchOptimizedProducts("RELEVANCE", 5);
-
-	const saleProducts = featuredProducts
-		.filter((product) => {
-			const firstVariant = product.variants?.nodes?.[0];
-			if (!firstVariant?.compareAtPrice?.amount) {
-				return false;
-			}
-			return (
-				Number.parseFloat(firstVariant.compareAtPrice.amount) > Number.parseFloat(firstVariant.price.amount || "0")
-			);
-		})
-		.slice(0, 5);
+	const saleProducts = getSaleProducts(featuredProducts);
 
 	if (!saleProducts.length) return null;
 	return <SaleProducts products={saleProducts} />;

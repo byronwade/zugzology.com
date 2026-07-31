@@ -1,149 +1,80 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useSearch } from "@/components/providers";
 
-export function SearchDataLoader() {
+async function fetchJson<T>(url: string): Promise<T | null> {
+	try {
+		const response = await fetch(url, {
+			headers: { Accept: "application/json" },
+			next: undefined,
+		});
+		if (!response.ok) {
+			return null;
+		}
+		return (await response.json()) as T;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Loads search indexes only after the browser is idle (or after first user interaction).
+ * Avoids 3 no-store Shopify API round-trips on every page mount.
+ */
+export function SearchDataLoader(): null {
 	const { setAllProducts, setAllBlogs, setAllCollections } = useSearch();
-	const [_loadingProducts, setLoadingProducts] = useState(false);
-	const [_loadingBlogs, setLoadingBlogs] = useState(false);
-	const [_loadingCollections, setLoadingCollections] = useState(false);
-	const productsRequestedRef = useRef(false);
-	const blogsRequestedRef = useRef(false);
-	const collectionsRequestedRef = useRef(false);
+	const startedRef = useRef(false);
 
-	// Load products for search
 	useEffect(() => {
-		if (productsRequestedRef.current) {
+		if (startedRef.current) {
 			return;
 		}
-		productsRequestedRef.current = true;
 
-		let cancelled = false;
-
-		const loadProducts = async () => {
-			setLoadingProducts(true);
-			try {
-				const response = await fetch("/api/products?limit=100", {
-					cache: "no-store",
-					headers: { Accept: "application/json" },
-				});
-
-				if (!response.ok) {
-					throw new Error(`Request failed with status ${response.status}`);
-				}
-
-				const data = await response.json();
-				const products = Array.isArray(data.products) ? data.products : [];
-
-				if (!cancelled && products.length) {
-					setAllProducts(products);
-				}
-			} catch (_error) {
-				if (!cancelled) {
-				}
-			} finally {
-				if (!cancelled) {
-					setLoadingProducts(false);
-				}
+		const load = () => {
+			if (startedRef.current) {
+				return;
 			}
+			startedRef.current = true;
+
+			void (async () => {
+				const [productsData, blogsData, collectionsData] = await Promise.all([
+					fetchJson<{ products?: unknown[] }>("/api/products?limit=50"),
+					fetchJson<{ blogs?: unknown[] }>("/api/blogs"),
+					fetchJson<{ collections?: unknown[] }>("/api/collections"),
+				]);
+
+				if (productsData?.products?.length) {
+					setAllProducts(productsData.products as never[]);
+				}
+				if (blogsData?.blogs?.length) {
+					setAllBlogs(blogsData.blogs as never[]);
+				}
+				if (collectionsData?.collections?.length) {
+					setAllCollections(collectionsData.collections as never[]);
+				}
+			})();
 		};
 
-		loadProducts();
+		const idleId =
+			typeof window.requestIdleCallback === "function"
+				? window.requestIdleCallback(load, { timeout: 4000 })
+				: window.setTimeout(load, 2000);
+
+		const onInteract = () => load();
+		window.addEventListener("pointerdown", onInteract, { once: true, passive: true });
+		window.addEventListener("keydown", onInteract, { once: true });
 
 		return () => {
-			cancelled = true;
-		};
-	}, [setAllProducts]);
-
-	// Load blog posts for search
-	useEffect(() => {
-		if (blogsRequestedRef.current) {
-			return;
-		}
-		blogsRequestedRef.current = true;
-
-		let cancelled = false;
-
-		const loadBlogs = async () => {
-			setLoadingBlogs(true);
-			try {
-				const response = await fetch("/api/blogs", {
-					cache: "no-store",
-					headers: { Accept: "application/json" },
-				});
-
-				if (!response.ok) {
-					throw new Error(`Request failed with status ${response.status}`);
-				}
-
-				const data = await response.json();
-				const blogs = Array.isArray(data.blogs) ? data.blogs : [];
-
-				if (!cancelled && blogs.length) {
-					setAllBlogs(blogs);
-				}
-			} catch (_error) {
-				if (!cancelled) {
-				}
-			} finally {
-				if (!cancelled) {
-					setLoadingBlogs(false);
-				}
+			if (typeof window.cancelIdleCallback === "function" && typeof idleId === "number") {
+				window.cancelIdleCallback(idleId);
+			} else {
+				window.clearTimeout(idleId as number);
 			}
+			window.removeEventListener("pointerdown", onInteract);
+			window.removeEventListener("keydown", onInteract);
 		};
+	}, [setAllProducts, setAllBlogs, setAllCollections]);
 
-		loadBlogs();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [setAllBlogs]);
-
-	// Load collections for search
-	useEffect(() => {
-		if (collectionsRequestedRef.current) {
-			return;
-		}
-		collectionsRequestedRef.current = true;
-
-		let cancelled = false;
-
-		const loadCollections = async () => {
-			setLoadingCollections(true);
-			try {
-				const response = await fetch("/api/collections", {
-					cache: "no-store",
-					headers: { Accept: "application/json" },
-				});
-
-				if (!response.ok) {
-					throw new Error(`Request failed with status ${response.status}`);
-				}
-
-				const data = await response.json();
-				const collections = Array.isArray(data.collections) ? data.collections : [];
-
-				if (!cancelled && collections.length) {
-					setAllCollections(collections);
-				}
-			} catch (_error) {
-				if (!cancelled) {
-				}
-			} finally {
-				if (!cancelled) {
-					setLoadingCollections(false);
-				}
-			}
-		};
-
-		loadCollections();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [setAllCollections]);
-
-	// This component doesn't render anything visible
 	return null;
 }
